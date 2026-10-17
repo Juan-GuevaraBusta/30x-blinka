@@ -11,3 +11,5 @@ build/
 node_modules/
 .next/
 .DS_Store
+*.sqlite
+*.sqlite3

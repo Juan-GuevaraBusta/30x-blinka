@@ -8,6 +8,7 @@ dependencies = [
     "langsmith>=0.14",
     "fastapi>=0.115",
     "python-multipart>=0.0.9",
+    "sqlalchemy>=2",
 ]
 
 [project.optional-dependencies]
