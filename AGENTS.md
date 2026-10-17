@@ -34,29 +34,40 @@ Si una tarea exige violar un invariante: **detente y pregunta**.
 4. **Antes de ejecutar cada tarea del roadmap**, declarar en una línea qué skill usa (o "ninguna") y leerla.
 5. Si el IDE no tiene skills, continuar sin ellas y dejarlo anotado.
 
-Mapa tentativo (verificar contra las skills reales del IDE; salió de otro entorno):
-| Trabajo | Skill candidata |
-|---|---|
-| Frontend Next.js (reglas, decisiones, aprobaciones) | `frontend-design` |
-| Generar facturas PDF sintéticas / leer PDFs | `pdf`, `pdf-reading` |
-| Pruebas web / e2e de la UI | `testing` |
-| Diagramas de arquitectura para README | `diagrams` |
-| Hojas de datos (golden set, reportes) | `xlsx` |
-Las skills financieras/startup (`financial-analyst`, `startup-financial-auditor`) **no** aplican al núcleo; ignorarlas salvo para redactar el pitch.
+Mapa verificado el 2026-10-16 contra las skills reales del IDE. Detalle, cobertura y descartes: `docs/SKILLS_MAP.md`. Ejecución: `docs/AGENT_ROSTER.md`.
+
+| Trabajo | Skill real | Cobertura |
+|---|---|---|
+| Frontend Next.js (reglas, decisiones, aprobaciones) | `frontend-design` (`~/.agents/skills/frontend-design/SKILL.md`) | TOTAL en T4.3–T4.7 |
+| Rendimiento React/Next al escribir esa UI | `vercel-react-best-practices` | PARCIAL |
+| Motor de reglas, invariantes, fakes | `test-driven-development` + `python-testing-patterns` | TOTAL en T2.x y T3.10 |
+| Grafo LangGraph (T3.7) | `langgraph-fundamentals` | TOTAL solo en el grafo |
+| API y OpenAPI (T4.1) | `api-engineer` | PARCIAL (sin workspace Postman salvo aprobación) |
+| Deploy backend si se confirma Render | `render-deploy`, `render-web-services`, `render-postgres`, `render-env-vars` | PARCIAL; host es SUPUESTO |
+| Diagrama editable en README, si hace falta | `drawio-skill` | PARCIAL en T5.5 |
+| Cerrar gates | `verification-before-completion` | TOTAL en G0–G6 |
+| PDF sintético / leer PDF | ninguna | `pdf` y `pdf-reading` no están en el IDE |
+| Hojas de cálculo del set dorado | ninguna | `xlsx` no está en el IDE |
+| Pruebas web e2e | ninguna | `testing` no está en el IDE |
+| Diagramas (`diagrams`) | ninguna | no está; no sustituir por `drawio-skill` sin decirlo |
+
+No usar en el núcleo: `langchain-rag` (el diseño prohíbe base vectorial), `langfuse` / `migrate-to-langfuse` (el stack es LangSmith), skills de marketing, Caveman, Cursor IDE y Supabase. `financial-analyst` y `startup-financial-auditor` no están instaladas.
 
 ## 5. Orquestación de agentes
 Un **Orquestador** (el agente principal o el humano) asigna tareas por ID del roadmap. Cada agente tiene dueño exclusivo de sus carpetas.
 
+Modo de este hackathon: **sombreros secuenciales** de un solo agente (ver `docs/AGENT_ROSTER.md`). No crear `.cursor/agents/` hasta que el humano lo pida.
+
 | Agente | Dueño de | Skill típica | Entrega / DoD |
 |---|---|---|---|
-| **Orquestador** | `docs/05_*`, `docs/AI_USAGE_LOG.md`, `docs/SKILLS_MAP.md` | — | Asigna tareas, verifica gates, resuelve conflictos |
-| **Spec & Data** | `data/`, `backend/app/models/` | `pdf`, `xlsx` | Esquemas congelados, contratos, facturas, `golden.json` revisado |
-| **Rules Engine** | `backend/app/rules/`, `backend/app/records/` | — | R01–R13 puras, agregador, plantillas, invariant checker, 100% con extracción perfecta |
-| **Agent Graph** | `backend/app/graph/`, `extraction/`, `jev/`, `verifier/` | — | Grafo LangGraph e2e, fail-closed, trazas LangSmith |
-| **API** | `backend/app/api/`, persistencia | — | Endpoints con contrato OpenAPI y pruebas |
+| **Orquestador** | `docs/05_*`, `docs/SKILLS_MAP.md`, `docs/AGENT_ROSTER.md`, `docs/TASK_BOARD.md`, `docs/DECISIONS_LOG.md`, `docs/AI_USAGE_LOG.md`, `docs/OPEN_QUESTIONS_STATUS.md` | — | Asigna tareas, verifica gates, resuelve conflictos |
+| **Spec & Data** | `data/`, `backend/app/models/`, `docs/DATA_MANIFEST.md`, `docs/PARAMETERS.md` | ninguna (`pdf` y `xlsx` no están) | Esquemas congelados, contratos, facturas, `golden.json` revisado |
+| **Rules Engine** | `backend/app/rules/`, `backend/app/records/`, `backend/tests/rules/` | `test-driven-development`, `python-testing-patterns` | R01–R13 puras, `decide()`, plantillas. El `final_gate` no vive aquí |
+| **Agent Graph** | `backend/app/graph/`, `backend/app/extraction/`, `backend/app/jev/`, `backend/app/verifier/`, `backend/app/config.py` | `langgraph-fundamentals` (solo el grafo) | Grafo LangGraph e2e, fail-closed, trazas LangSmith |
+| **API** | `backend/app/api/`, persistencia SQLAlchemy (sin editar `models/` ni `config.py`), `backend/tests/api/` | `api-engineer` | Endpoints con contrato OpenAPI y pruebas |
 | **Frontend** | `frontend/` | `frontend-design` | Reglas, decisiones, detalle explicable, aprobaciones, métricas, desplegado |
-| **QA & Eval** | `backend/tests/`, `eval/` | `testing` | Pruebas de invariantes, reporte de eval, gate I9 |
-| **Docs & Judge** | `README.md`, `JUDGE_GUIDE.md` | `diagrams` | Claims→evidencia verificables |
+| **QA & Eval** | `backend/app/gate/`, `backend/tests/gate/`, `backend/tests/adversarial/`, `eval/` | `python-testing-patterns`, `test-driven-development` | `final_gate`, pruebas de invariantes, reporte de eval, gate I9 |
+| **Docs & Judge** | `README.md`, `JUDGE_GUIDE.md`, `docs/examples/records/`, `docs/DEMO_SCRIPT.md` | `drawio-skill` solo si hay diagrama; si no, ninguna | Claims→evidencia verificables |
 
 Reglas de coordinación:
 1. **Contratos primero.** Los esquemas (`models/`) se congelan al final de F1. Cambios posteriores los propone Spec & Data y los aprueba el Orquestador.
