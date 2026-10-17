@@ -1,0 +1,55 @@
+{
+  "company": {
+    "name": "Acme Demo Inc.",
+    "base_currency": "USD"
+  },
+  "limits": {
+    "per_payment": 5000,
+    "per_period": {
+      "type": "calendar_month",
+      "amount": 20000
+    }
+  },
+  "human_approval_threshold": 3000,
+  "allowed_beneficiaries": [
+    "Globex LLC",
+    "Initech SAS",
+    "Norteclaro SpA",
+    "Andesbyte SAS",
+    "Pampaluz Ltda",
+    "Rioseco Servicios SAS",
+    "Luma Austral SA"
+  ],
+  "department_budgets": {
+    "Ingenieria": 8000,
+    "Marketing": 5000
+  },
+  "approvers": {
+    "Ingenieria": "finanzas@demo.test",
+    "default": "cfo@demo.test"
+  },
+  "manual_blocks": [],
+  "on_fail": {
+    "R01": "FRENAR",
+    "R02": "ESCALAR",
+    "R03": "ESCALAR",
+    "R04": "ESCALAR",
+    "R05": "FRENAR",
+    "R06": "ESCALAR",
+    "R07": "FRENAR",
+    "R08": "ESCALAR",
+    "R09": "ESCALAR",
+    "R10": "ESCALAR",
+    "R11": "ESCALAR",
+    "R12": "FRENAR",
+    "R13": "ESCALAR"
+  },
+  "jev_thresholds": {
+    "J1": 0.9,
+    "J2": 0.9,
+    "J3": 0.85,
+    "J4": 0.85,
+    "J6": 0.85,
+    "J7": 0.5
+  }
+}
