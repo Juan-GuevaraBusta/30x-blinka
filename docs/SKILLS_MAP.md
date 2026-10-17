@@ -125,7 +125,7 @@ Inventario: 163 nombres únicos. Ninguna skill inventada en este mapa.
 | G1 | `verification-before-completion` | TOTAL | Igual, contra el checklist de `docs/05`. |
 | G2 | `verification-before-completion` | TOTAL | El gate se cierra con stdout fresco de `run_motor.py` + pytest, no con un relato. Contrato: `docs/G2_SPEC.md` (D028). |
 | G3 | `verification-before-completion` | TOTAL | Igual. |
-| G4 | `verification-before-completion` | TOTAL | Igual. |
+| G4 | `verification-before-completion` | TOTAL | Recorrido en URL pública (reglas, subida, ficha), no captura. Contrato: `docs/G4_SPEC.md` (D040). Deploy: skills Render PARCIAL vía T4.9. |
 | G5 | `verification-before-completion` | TOTAL | Igual. |
 | G6 | `verification-before-completion` | TOTAL | Igual. |
 

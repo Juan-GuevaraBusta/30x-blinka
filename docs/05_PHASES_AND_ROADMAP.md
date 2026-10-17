@@ -73,7 +73,7 @@ Ruta crítica: **F1 (datos y contratos) → F2 (motor) → F3 (grafo) → F4 (UI
 - [ ] **T4.8** Subir factura desde la UI para demo en vivo. *(Frontend + API)*
 - [ ] **T4.9** Despliegue: Vercel (front) + backend + Postgres; CORS y variables. *(API/Frontend)*
 
-**G4:** desde una URL pública se puede editar una regla, procesar una factura y ver la decisión explicada.
+**G4:** desde una URL pública se puede editar una regla, procesar una factura y ver la decisión explicada. Contrato: `docs/G4_SPEC.md` (D040).
 
 ## F5 — Evaluación y blindaje (h31–35)
 - [ ] **T5.1** Eval completa dev + holdout; reporte en `eval/reports/latest.md`. *(QA & Eval)*

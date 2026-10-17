@@ -190,7 +190,7 @@ El umbral 2500 tiene que sobrevivir a un reinicio del servicio **antes** de reve
 
 ### DoD de G4 (otra sesión, no esta)
 
-Desde la URL pública, en el navegador (una captura no basta): editar una regla, procesar una factura y ver la decisión explicada. Skill `verification-before-completion`. Exige T4.3, T4.5 y T4.9. Cerrar G4 en el tablero de esta sesión sería cerrar el gate de más.
+Ver `docs/G4_SPEC.md` (D040). Desde la URL pública, en el navegador (una captura no basta): editar una regla, procesar una factura y ver la decisión explicada. Skill `verification-before-completion`. Exige T4.3, T4.5, T4.8 y T4.9 desplegado. Cerrar G4 en el tablero de esta sesión sería cerrar el gate de más.
 
 ## 12. Subtareas
 
