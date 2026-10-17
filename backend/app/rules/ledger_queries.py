@@ -9,7 +9,8 @@ from app.rules.context import LedgerEntry
 from app.rules.normalize import normalize_beneficiary
 
 DuplicateMatch = Literal["exact", "probable"]
-_COUNTED_DECISIONS = frozenset({"PAGAR", "aprobada_humano"})
+COUNTED_DECISIONS = frozenset({"PAGAR", "aprobada_humano"})
+_COUNTED_DECISIONS = COUNTED_DECISIONS
 
 
 def _received(dt: str) -> datetime | None:

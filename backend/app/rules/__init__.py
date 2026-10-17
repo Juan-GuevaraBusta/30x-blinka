@@ -20,7 +20,9 @@ from app.rules.checks import (
 )
 from app.rules.context import ContractTerms, LedgerEntry, RuleContext
 from app.rules.fx import FxConversionResult, FxTable, convert_to_base, load_fx_table
+from app.rules.ledger import Ledger, ledger_view_for_invoice, sort_key
 from app.rules.ledger_queries import (
+    COUNTED_DECISIONS,
     department_spent,
     duplicate_match,
     period_paid_total,
@@ -39,9 +41,12 @@ __all__ = [
     "RULE_NAMES",
     "R13_PHRASES",
     "ContractTerms",
+    "COUNTED_DECISIONS",
     "FxConversionResult",
     "FxTable",
+    "Ledger",
     "LedgerEntry",
+    "ledger_view_for_invoice",
     "RuleContext",
     "check_r01",
     "check_r02",
@@ -67,4 +72,5 @@ __all__ = [
     "normalize_party_name",
     "period_paid_total",
     "run_deterministic_checks",
+    "sort_key",
 ]
