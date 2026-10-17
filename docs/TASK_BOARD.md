@@ -6,7 +6,7 @@ T0.2 y T0.5 quedaron HECHA en el turno de orquestación del 2026-10-16. Eso no a
 
 | ID | Tarea | Fase | Dueño | Skill | Depende de | Estado | Evidencia (archivo/prueba/reporte) | Notas |
 |---|---|---|---|---|---|---|---|---|
-| T0.1 | Repo con la estructura de `AGENTS.md` §8, `.env.example`, ruff y pytest mínimo | F0 | Orquestador | NINGUNA | — | PENDIENTE | POR COMPLETAR: árbol del repo, `.env.example`, configuración de ruff y pytest | Sin secretos en el repo |
+| T0.1 | Repo con la estructura de `AGENTS.md` §8, `.env.example`, ruff y pytest mínimo | F0 | Orquestador | NINGUNA | — | PENDIENTE | Spec lista en `docs/SCAFFOLD_SPEC.md` (D012). POR COMPLETAR: aplicar §1–§6 de esa spec | Sin secretos en el repo |
 | T0.2 | Descubrir skills y escribir `docs/SKILLS_MAP.md` | F0 | Orquestador | NINGUNA | — | HECHA | `docs/SKILLS_MAP.md` | Borrador del 2026-10-16. No cierra G0 |
 | T0.3 | Smoke test: OpenCode, JEV y LangSmith, una llamada cada uno | F0 | Agent Graph | NINGUNA | clave JEV | BLOQUEADA | POR COMPLETAR: nota en `docs/DECISIONS_LOG.md` con el resultado de las tres llamadas, sin pegar claves | Vía: API directa. Modelos baratos (D010). Falta la clave. Si no llega, plan B |
 | T0.4 | Resolver supuestos bloqueantes de `docs/08` | F0 | Orquestador | NINGUNA | clave JEV | BLOQUEADA | `docs/OPEN_QUESTIONS_STATUS.md` (Q1 vía, Q2, Q3, Q10) | La vía y los modelos ya están. Falta la clave para dar por cerrado el acceso |
