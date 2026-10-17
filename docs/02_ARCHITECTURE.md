@@ -37,7 +37,7 @@ Cualquier excepción en cualquier nodo desvía a **ESCALAR** con motivo `error_t
 | `jev_checks` | JEV | Extraction + texto → señales con probabilidad | prob < umbral o error → ESCALAR |
 | `aggregate` | determinista | CheckResult[] + señales → decisión propuesta | — |
 | `record` | determinista | todo → `DecisionRecord` + explicación | — |
-| `verify` | LLM fuerte | registro + reglas + texto fuente → `VerifierReport` | error → ESCALAR |
+| `verify` | LLM fuerte | registro + reglas + texto fuente → `VerifierReport` | error → ESCALAR; hallazgo concreto → FRENAR + aviso |
 | `final_gate` | determinista | decisión + checks → decisión final o bloqueo | cualquier violación → ESCALAR + alerta |
 
 ## Estado del grafo (esbozo)
@@ -76,7 +76,12 @@ Recibe texto fuente, extracción, reglas vigentes, chequeos, señales JEV y la d
 4. ¿La explicación dice lo mismo que los datos? ¿Cita regla y, si aplica, cláusula?
 5. ¿Hay algo que impida concluir la operación? (campos faltantes, contradicciones, texto sospechoso)
 
-Salida: `{consistent: bool, issues: [{code, severity, evidence}]}`. Si `consistent=false` en una decisión PAGAR → **ESCALAR**. Si el verificador intenta "mejorar" una decisión (ESCALAR→PAGAR), el `final_gate` lo ignora (I4).
+Salida: `{consistent: bool, issues: [{code, kind: "violation"|"uncertainty", evidence, admin_message}]}`.
+- Hay al menos un `violation` (hallazgo concreto y citable: la extracción contradice el texto, un chequeo aplicado no corresponde a la regla, la decisión no se sigue de los chequeos, instrucción embebida) → **FRENAR** y se genera `admin_notice` con qué se frenó y por qué.
+- Solo hay `uncertainty` (no puede confirmar, evidencia insuficiente) → **ESCALAR**.
+- Sin issues → no cambia nada.
+- Si el verificador intenta bajar la severidad (FRENAR/ESCALAR→PAGAR o FRENAR→ESCALAR), el `final_gate` lo ignora (I4).
+- Un `violation` debe traer evidencia citable (campo, cita del texto o regla); sin evidencia se degrada a `uncertainty`, para que el verificador no frene por impresiones.
 
 ## Contratos de proveedores (documentos firmados)
 1. **Ingesta (una vez por proveedor):** LLM extrae términos estructurados (tarifa, moneda, tope, periodicidad, cuenta/beneficiario autorizado, vigencia) y **cita la cláusula textual** de cada término.

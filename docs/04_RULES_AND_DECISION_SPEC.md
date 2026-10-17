@@ -4,10 +4,10 @@
 | Decisión | Significado |
 |---|---|
 | `PAGAR` | Autorizado (simulado) sin intervención humana. Solo si **todas** las reglas pasan y las señales superan umbral |
-| `ESCALAR` | Pendiente de aprobación humana |
-| `FRENAR` | No procede por una regla dura; se informa y queda registrado |
+| `ESCALAR` | **Incertidumbre** o decisión que por regla corresponde a una persona (aprobación humana por monto, datos faltantes, baja confianza, error técnico). Queda pendiente de aprobación humana |
+| `FRENAR` | **Violación o inconsistencia concreta** (regla dura o hallazgo del verificador). No procede; se registra y se **notifica al administrador** qué se frenó y por qué |
 
-Severidad: `PAGAR < ESCALAR < FRENAR`. **Gana la más severa** entre las reglas que fallan. Un resultado **indeterminado** cuenta como `ESCALAR`. El verificador solo puede mover hacia la derecha.
+Severidad: `PAGAR < ESCALAR < FRENAR`. **Gana la más severa** entre las reglas que fallan. Un resultado **indeterminado** cuenta como `ESCALAR`. El verificador solo puede mover hacia la derecha: hallazgo concreto → `FRENAR` (con `admin_notice`); duda → `ESCALAR`.
 
 Estados posteriores de una factura: `recibida → extraída → decidida → (pendiente | frenada | pagada_simulada) → aprobada_humano | rechazada_humano`.
 La aprobación humana es un **evento nuevo** con autor y motivo; nunca reescribe la decisión del agente.
@@ -85,6 +85,7 @@ R12 y R13 son el recorte de v1 para "compromisos bancarios / pendientes de stake
   ],
   "jev_signals": [{"id": "J2", "answer": true, "probability": 0.97}],
   "verifier": {"consistent": true, "issues": []},
+  "admin_notice": null,
   "next_step": "Pendiente de aprobación de finanzas@demo.test.",
   "trace": {"langsmith_run_id": "...", "url": "..."},
   "versions": {"rules_version": "v3", "model_extractor": "...", "model_verifier": "...", "jev": "jev-1.13.0"},
@@ -107,12 +108,15 @@ Reglas del registro:
 | R06 falla | "Escalada: el contrato (cláusula {clausula}) fija {pactado}, pero la factura cobra {cobrado} (regla R06)." |
 | R07 falla | "Frenada: el presupuesto restante de {depto} es USD {saldo}, menor al monto USD {monto_base} (regla R07)." |
 | Error técnico | "Escalada: no fue posible verificar la factura de forma confiable ({motivo}). Requiere revisión humana." |
-| Verificador | "Escalada por el verificador: {issue}." |
+| Verificador, hallazgo concreto | "Frenada por el verificador: {issue}. Se notificó al administrador." |
+| Verificador, incertidumbre | "Escalada: el verificador no pudo confirmar {issue}. Requiere revisión humana." |
+| Aviso al administrador (`admin_notice`) | "Se frenó la factura {id} de {beneficiario}: {motivo}. Evidencia: {cita_o_regla}." |
 Una persona no técnica debe entender cada plantilla sin glosario.
 
 ## 7. Invariant checker (gate final, en código)
 Antes de entregar la decisión final:
 - si `decision == PAGAR`: todo chequeo `OK`, ningún `indeterminado`, señales ≥ umbral, `verifier.consistent`, registro completo;
+- si `decision == FRENAR`: existe `admin_notice` con motivo y evidencia;
 - la decisión final nunca es menos severa que la propuesta;
 - la explicación referencia al menos una regla por cada chequeo no-OK.
 Si algo falla → `ESCALAR` con motivo `invariante_violado` y alerta en el registro.
