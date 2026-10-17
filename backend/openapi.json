@@ -1,0 +1,1442 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "blinka-invoice-agent",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rules": {
+      "get": {
+        "summary": "Get Rules",
+        "operationId": "get_rules_rules_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RulesConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Put Rules",
+        "operationId": "put_rules_rules_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RulesConfig"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RulesConfig"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/decisions": {
+      "get": {
+        "summary": "List Decisions",
+        "operationId": "list_decisions_decisions_get",
+        "parameters": [
+          {
+            "name": "decision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "PAGAR",
+                    "ESCALAR",
+                    "FRENAR"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Decision"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DecisionRecord"
+                  },
+                  "title": "Response List Decisions Decisions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/decisions/{id}": {
+      "get": {
+        "summary": "Get Decision",
+        "operationId": "get_decision_decisions__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices": {
+      "post": {
+        "summary": "Post Invoice",
+        "operationId": "post_invoice_invoices_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_post_invoice_invoices_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/decisions/{id}/approve": {
+      "post": {
+        "summary": "Approve",
+        "operationId": "approve_decisions__id__approve_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/decisions/{id}/reject": {
+      "post": {
+        "summary": "Reject",
+        "operationId": "reject_decisions__id__reject_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "summary": "Metrics",
+        "operationId": "metrics_metrics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "summary": "Openapi Json",
+        "operationId": "openapi_json_openapi_json_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Openapi Json Openapi Json Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_post_invoice_invoices_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "invoice_id": {
+            "type": "string",
+            "title": "Invoice Id"
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel"
+          },
+          "received_at": {
+            "type": "string",
+            "title": "Received At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file",
+          "invoice_id",
+          "channel",
+          "received_at"
+        ],
+        "title": "Body_post_invoice_invoices_post"
+      },
+      "CheckEvidence": {
+        "properties": {
+          "clause": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clause"
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CheckEvidence"
+      },
+      "CheckResult": {
+        "properties": {
+          "rule": {
+            "type": "string",
+            "enum": [
+              "R01",
+              "R02",
+              "R03",
+              "R04",
+              "R05",
+              "R06",
+              "R07",
+              "R08",
+              "R09",
+              "R10",
+              "R11",
+              "R12",
+              "R13"
+            ],
+            "title": "Rule"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "OK",
+              "FALLA",
+              "INDETERMINADO"
+            ],
+            "title": "Result"
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Detail"
+          },
+          "on_fail": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "FRENAR",
+                  "ESCALAR"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Fail"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rule",
+          "name",
+          "result",
+          "detail"
+        ],
+        "title": "CheckResult"
+      },
+      "CompanyRef": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "base_currency": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Base Currency"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "base_currency"
+        ],
+        "title": "CompanyRef"
+      },
+      "DecisionRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id"
+          },
+          "invoice_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Invoice Id"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Received At"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "PAGAR",
+              "ESCALAR",
+              "FRENAR"
+            ],
+            "title": "Decision"
+          },
+          "severity": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2
+            ],
+            "title": "Severity"
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Summary"
+          },
+          "extracted": {
+            "$ref": "#/components/schemas/Extraction"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CheckResult"
+            },
+            "type": "array",
+            "title": "Checks"
+          },
+          "jev_signals": {
+            "items": {
+              "$ref": "#/components/schemas/JevSignal"
+            },
+            "type": "array",
+            "title": "Jev Signals"
+          },
+          "verifier": {
+            "$ref": "#/components/schemas/VerifierReport"
+          },
+          "admin_notice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Notice"
+          },
+          "next_step": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Next Step"
+          },
+          "trace": {
+            "$ref": "#/components/schemas/TraceRef"
+          },
+          "versions": {
+            "$ref": "#/components/schemas/ModelVersions"
+          },
+          "human_events": {
+            "items": {
+              "$ref": "#/components/schemas/HumanEvent"
+            },
+            "type": "array",
+            "title": "Human Events"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "invoice_id",
+          "received_at",
+          "decision",
+          "severity",
+          "summary",
+          "extracted",
+          "checks",
+          "jev_signals",
+          "verifier",
+          "next_step",
+          "trace",
+          "versions",
+          "human_events"
+        ],
+        "title": "DecisionRecord"
+      },
+      "Extraction": {
+        "properties": {
+          "beneficiary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beneficiary"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "amount_base": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Base"
+          },
+          "fx": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FxQuote"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "invoice_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoice Number"
+          },
+          "recipient": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipient"
+          },
+          "department": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department"
+          },
+          "invoice_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "servicios",
+                  "productos",
+                  "suscripción",
+                  "honorarios",
+                  "otro"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoice Type"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/LineItem"
+            },
+            "type": "array",
+            "title": "Lines"
+          },
+          "source_spans": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Source Spans"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Extraction",
+        "description": "Raw extract. None means missing; T2 escalates. amount_base and fx are filled by T2.2."
+      },
+      "FxQuote": {
+        "properties": {
+          "rate": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Rate"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rate",
+          "date"
+        ],
+        "title": "FxQuote"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HumanDecisionBody": {
+        "properties": {
+          "author": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Author"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "author",
+          "reason"
+        ],
+        "title": "HumanDecisionBody",
+        "description": "Author and reason only. The client does not send `at` or a new decision."
+      },
+      "HumanEvent": {
+        "properties": {
+          "author": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Author"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "aprobada_humano",
+              "rechazada_humano"
+            ],
+            "title": "Action"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "author",
+          "at",
+          "action",
+          "reason"
+        ],
+        "title": "HumanEvent"
+      },
+      "JevSignal": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "J1",
+              "J2",
+              "J3",
+              "J4",
+              "J5",
+              "J6",
+              "J7"
+            ],
+            "title": "Id"
+          },
+          "answer": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "servicios",
+                  "productos",
+                  "suscripción",
+                  "honorarios",
+                  "otro"
+                ]
+              }
+            ],
+            "title": "Answer"
+          },
+          "probability": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Probability"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "answer",
+          "probability"
+        ],
+        "title": "JevSignal"
+      },
+      "JevThresholds": {
+        "properties": {
+          "J1": {
+            "type": "number",
+            "maximum": 1.0,
+            "exclusiveMinimum": 0.0,
+            "title": "J1"
+          },
+          "J2": {
+            "type": "number",
+            "maximum": 1.0,
+            "exclusiveMinimum": 0.0,
+            "title": "J2"
+          },
+          "J3": {
+            "type": "number",
+            "maximum": 1.0,
+            "exclusiveMinimum": 0.0,
+            "title": "J3"
+          },
+          "J4": {
+            "type": "number",
+            "maximum": 1.0,
+            "exclusiveMinimum": 0.0,
+            "title": "J4"
+          },
+          "J6": {
+            "type": "number",
+            "maximum": 1.0,
+            "exclusiveMinimum": 0.0,
+            "title": "J6"
+          },
+          "J7": {
+            "type": "number",
+            "maximum": 1.0,
+            "exclusiveMinimum": 0.0,
+            "title": "J7"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "J1",
+          "J2",
+          "J3",
+          "J4",
+          "J6",
+          "J7"
+        ],
+        "title": "JevThresholds",
+        "description": "J1, J2, J3, J4, J6, J7 only. J5 is not a payment threshold."
+      },
+      "Limits": {
+        "properties": {
+          "per_payment": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Per Payment"
+          },
+          "per_period": {
+            "$ref": "#/components/schemas/PeriodLimit"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "per_payment",
+          "per_period"
+        ],
+        "title": "Limits"
+      },
+      "LineItem": {
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Description"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "source_span": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Span"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "description"
+        ],
+        "title": "LineItem"
+      },
+      "MetricsBody": {
+        "properties": {
+          "unsafe_pay": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unsafe Pay"
+          },
+          "autonomy_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Autonomy Pct"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "none",
+              "report"
+            ],
+            "title": "Source"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "unsafe_pay",
+          "autonomy_pct",
+          "source"
+        ],
+        "title": "MetricsBody"
+      },
+      "ModelVersions": {
+        "properties": {
+          "rules_version": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Rules Version"
+          },
+          "model_extractor": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Model Extractor"
+          },
+          "model_verifier": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Model Verifier"
+          },
+          "jev": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Jev"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rules_version",
+          "model_extractor",
+          "model_verifier",
+          "jev"
+        ],
+        "title": "ModelVersions"
+      },
+      "OnFail": {
+        "properties": {
+          "R01": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R01"
+          },
+          "R02": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R02"
+          },
+          "R03": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R03"
+          },
+          "R04": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R04"
+          },
+          "R05": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R05"
+          },
+          "R06": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R06"
+          },
+          "R07": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R07"
+          },
+          "R08": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R08"
+          },
+          "R09": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R09"
+          },
+          "R10": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R10"
+          },
+          "R11": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R11"
+          },
+          "R12": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R12"
+          },
+          "R13": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R13"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "R01",
+          "R02",
+          "R03",
+          "R04",
+          "R05",
+          "R06",
+          "R07",
+          "R08",
+          "R09",
+          "R10",
+          "R11",
+          "R12",
+          "R13"
+        ],
+        "title": "OnFail",
+        "description": "Exactly R01–R13. Values are only FRENAR or ESCALAR."
+      },
+      "PeriodLimit": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "calendar_month",
+            "title": "Type"
+          },
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "amount"
+        ],
+        "title": "PeriodLimit"
+      },
+      "RulesConfig": {
+        "properties": {
+          "company": {
+            "$ref": "#/components/schemas/CompanyRef"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/Limits"
+          },
+          "human_approval_threshold": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Human Approval Threshold"
+          },
+          "allowed_beneficiaries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Allowed Beneficiaries"
+          },
+          "department_budgets": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Department Budgets"
+          },
+          "approvers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Approvers"
+          },
+          "manual_blocks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Manual Blocks"
+          },
+          "on_fail": {
+            "$ref": "#/components/schemas/OnFail"
+          },
+          "jev_thresholds": {
+            "$ref": "#/components/schemas/JevThresholds"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "company",
+          "limits",
+          "human_approval_threshold",
+          "allowed_beneficiaries",
+          "department_budgets",
+          "approvers",
+          "manual_blocks",
+          "on_fail",
+          "jev_thresholds"
+        ],
+        "title": "RulesConfig"
+      },
+      "TraceRef": {
+        "properties": {
+          "langsmith_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Langsmith Run Id"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "TraceRef"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VerifierIssue": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Code"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "violation",
+              "uncertainty"
+            ],
+            "title": "Kind"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence"
+          },
+          "admin_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "kind"
+        ],
+        "title": "VerifierIssue"
+      },
+      "VerifierReport": {
+        "properties": {
+          "consistent": {
+            "type": "boolean",
+            "title": "Consistent"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/VerifierIssue"
+            },
+            "type": "array",
+            "title": "Issues"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "consistent",
+          "issues"
+        ],
+        "title": "VerifierReport"
+      }
+    }
+  }
+}
