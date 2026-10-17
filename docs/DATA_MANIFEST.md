@@ -4,7 +4,7 @@ Dueño: Spec & Data. Estado global: EN CURSO. En `data/` existen `company.json` 
 
 Todo es ficticio. Prohibido pegar facturas, contratos o nombres reales. El holdout vive aparte y no se abre para calibrar.
 
-Validación común: JSON contra el modelo Pydantic congelado en T1.3; una segunda lectura de cada etiqueta hecha por el mismo humano, más tarde (D011); `golden` de desarrollo y el de holdout en carpetas distintas. Esa segunda lectura no es independiente. El reporte lo dice.
+Validación común: JSON contra el modelo Pydantic congelado en T1.3; segunda lectura de cada etiqueta hecha por el mismo humano (D011), confirmada el 2026-10-16 23:40 -05 (“por ahora ve todo bien”); `golden` de desarrollo y el de holdout en carpetas distintas. Esa segunda lectura no es independiente. El reporte lo dice.
 
 ## Datasets
 
@@ -26,7 +26,7 @@ Beneficiarios R01 fuera de `allowed_beneficiaries` (solo casos de prueba): Nuevo
 
 ## Cobertura de casos (marcar cuántas facturas hay por caso)
 
-Objetivo de desarrollo. Los `on_fail` están confirmados. Umbral humano 3000 USD; límite por pago 5000 USD. Generadas = objetivo (T1.6). Revisadas 2x = 34 en golden dev (T1.7; dos pasadas en sesión, D011).
+Objetivo de desarrollo. Los `on_fail` están confirmados. Umbral humano 3000 USD; límite por pago 5000 USD. Generadas = objetivo (T1.6). Revisadas 2x = 34 en golden dev (T1.7; pasadas de agente + segunda lectura humana D011 el 2026-10-16).
 
 | Caso | Regla(s) | Decisión esperada | Objetivo | Generadas | Revisadas 2x |
 |---|---|---|---|---|---|

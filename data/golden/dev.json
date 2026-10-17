@@ -3,9 +3,9 @@
   "split": "dev",
   "dataset_review": {
     "review_passes": 2,
-    "method": "Dos pasadas en sesión T1.7: catálogo + docs/04 + notas del artefacto.",
-    "reviewed_at": "2026-10-17T12:00:00-05:00",
-    "reviewer_note": "Segunda lectura humana posterior pendiente (D011); consistencia interna 2x en agente."
+    "method": "Dos pasadas en sesión T1.7 (agente) + segunda lectura humana D011 el 2026-10-16: catálogo, docs/04 y casos especiales; humano confirma etiquetas OK.",
+    "reviewed_at": "2026-10-16T23:40:00-05:00",
+    "reviewer_note": "Segunda lectura humana hecha (D011). Misma persona; no independiente. Humano: por ahora ve todo bien."
   },
   "entries": [
     {
