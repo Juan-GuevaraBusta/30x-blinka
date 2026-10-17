@@ -112,6 +112,7 @@ Inventario: 163 nombres únicos. Ninguna skill inventada en este mapa.
 | T4.7 | `frontend-design`; `vercel-react-best-practices` | TOTAL; PARCIAL | Igual. |
 | T4.8 | `frontend-design` | PARCIAL | Solo la pantalla de subida. El endpoint ya es T4.1. |
 | T4.9 | `render-deploy`; `render-web-services`; `render-postgres`; `render-env-vars` | PARCIAL | Cubren el backend si el host es Render. No hay skill de deploy en Vercel. |
+| T4.10 | `test-driven-development`; `python-testing-patterns` | PARCIAL | Humo pipeline con PDFs externos (`docs/PIPELINE_SMOKE_EXTERNAL_SPEC.md`). Sin red en pytest; no sustituye golden ni G5. |
 | T5.1 | NINGUNA | NINGUNA | El reporte de métricas no es una suite pytest. |
 | T5.2 | NINGUNA | NINGUNA | Calibrar umbrales es una regla de `docs/06`, no una skill. |
 | T5.3 | `python-testing-patterns` | PARCIAL | Los casos pueden ser tests. La skill no habla de adversariales de prompt. |
