@@ -34,7 +34,7 @@ Ruta crítica: **F1 (datos y contratos) → F2 (motor) → F3 (grafo) → F4 (UI
 - [ ] **T1.6** Generador reproducible de facturas sintéticas: ~30 de desarrollo + ~10 holdout, en PDF, imagen, correo y chat; layouts distintos. *(Spec & Data; skills `pdf`)*
 - [ ] **T1.7** `golden.json`: por factura, decisión esperada, regla(s) esperadas, motivo y **extracción verdadera** (para probar el motor aislado). Segunda revisión del etiquetado. *(Spec & Data)*
 
-**G1:** esquemas congelados; cada regla R01–R13 tiene ≥1 caso en el set; holdout guardado aparte y no consultado; etiquetas revisadas dos veces.
+**G1:** esquemas congelados; cada regla R01–R13 tiene ≥1 caso en el set; holdout guardado aparte y no consultado; etiquetas revisadas dos veces. **Cerrado 2026-10-16 (D015).**
 
 ## F2 — Núcleo determinista (h8–16)
 - [ ] **T2.1** Normalización (beneficiario, moneda, fechas, montos con formatos regionales). *(Rules Engine)*

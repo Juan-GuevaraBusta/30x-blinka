@@ -1,6 +1,6 @@
 # Manifiesto de datos sintéticos
 
-Dueño: Spec & Data. Estado global: EN CURSO. En `data/` existen `company.json` (T1.1), `rules.json` (T1.2) y `fx.json` (T1.5).
+Dueño: Spec & Data. Estado global: F1 CONGELADA (G1, 2026-10-16). En `data/` existen `company.json` (T1.1), `rules.json` (T1.2) y `fx.json` (T1.5).
 
 Todo es ficticio. Prohibido pegar facturas, contratos o nombres reales. El holdout vive aparte y no se abre para calibrar.
 
@@ -81,3 +81,15 @@ Mezcla propuesta, 10 facturas generadas (hold-001…hold-010). Estado: COMPLETO 
 ## Contratos (7)
 
 Un texto por beneficiario permitido. Cada uno con tarifa, moneda, tope, periodicidad, beneficiario autorizado y vigencia, más cita de cláusula. Al menos un contrato con ambigüedad deliberada para R06. `confirmed=false` hasta la revisión humana de la demo; mientras tanto R06 queda indeterminado y la decisión es ESCALAR.
+
+## Congelación F1 / G1
+
+**Congelado el 2026-10-16 23:45 -05.** Criterios G1 cumplidos:
+
+- Esquemas de dominio v1 congelados (D013) en `backend/app/models/domain.py`.
+- Cada regla R01–R13 tiene ≥1 caso en el set de desarrollo (34 facturas; índice `data/invoices/catalog.json`).
+- Holdout (10) en `data/invoices/holdout/` y `data/golden/holdout.json`; no se usa para calibrar en F1–F4.
+- Etiquetas revisadas dos veces: pasadas de agente en T1.7 + segunda lectura humana D011 (2026-10-16 23:40 -05).
+- Evidencia: `ruff check .` OK; `pytest -q` → 78 passed (incluye `test_domain_models`, `test_invoice_corpus`, `test_golden`).
+
+Cambios posteriores a esquemas, golden, contratos o corpus: Spec & Data + aprobación del Orquestador.
