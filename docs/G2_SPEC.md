@@ -64,7 +64,7 @@ Crear (sesión que ejecuta): **nada de código nuevo**. No hace falta `eval/repo
 
 Modificar al **cerrar** el gate (sesión que ejecuta):
 
-- `docs/DECISIONS_LOG.md` — fila de cierre G2 (**D028** si no hubo parche; **D029** si se tocó producto, solo tras aprobación)
+- `docs/DECISIONS_LOG.md` — fila de cierre G2 (**D028** si no hubo parche; **D030** si se tocó producto, solo tras aprobación)
 - `docs/TASK_BOARD.md` — **G2 HECHA** con evidencia (comandos + cifras); T2.7 y T2.8 siguen HECHO
 - `docs/AI_USAGE_LOG.md` — una fila
 - `docs/05_PHASES_AND_ROADMAP.md` — casillas T2.1–T2.8 y nota G2 cerrado (opcional, alineado a G1/D015)
@@ -177,7 +177,7 @@ En `docs/DECISIONS_LOG.md`, una fila:
 7. Fila G2 en el tablero: HECHA; evidencia = fila de `DECISIONS_LOG` + este spec + stdout del runner.
 8. G3 (y G4–G6) siguen PENDIENTE.
 9. No se tocó `data/golden/holdout.json` ni se corrió el split holdout.
-10. No se tocó producto **salvo** bug real aprobado (entonces D029 + pytest/ruff otra vez).
+10. No se tocó producto **salvo** bug real aprobado (entonces D030 + pytest/ruff otra vez).
 11. Commit y push: `G2: motor golden 34/34; gate closed` **solo** si 1–9 se cumplen. Si falla: `G2: motor gate blocked; gate stays open` y **no** marcar HECHA.
 
 ## 9. Subtareas
