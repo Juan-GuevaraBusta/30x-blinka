@@ -39,7 +39,7 @@ Siguen vigentes. Estado: ASUMIDA.
 | A10 | UI y explicaciones en español | ASUMIDA |
 | A11 | Ledger ordenado por fecha de recepción | ASUMIDA |
 
-G0 **no cerrado** (2026-10-17): falta `LANGSMITH_API_KEY` en `.env` local (`missing_credentials` en §6.4). OpenCode y plan B JEV ok; evidencia en `docs/DECISIONS_LOG.md` fila D027 cierre G0. Repetir §6.4 tras rellenar la clave. G2 y G3 siguen PENDIENTE. No pegar claves.
+G0 **cerrado** (2026-10-17): tres smokes en `docs/G0_SPEC.md` §6; evidencia en `docs/DECISIONS_LOG.md` filas D027 (cierre parcial + G0 cerrado). JEV sin clave → plan B documentado. G2 y G3 siguen PENDIENTE. No pegar claves.
 
 ## Qué sigue sin poder verificarse (igual que `docs/08`)
 

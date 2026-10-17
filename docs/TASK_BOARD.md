@@ -2,14 +2,14 @@
 
 Dueño: Orquestador. Fuente: `docs/05_PHASES_AND_ROADMAP.md`. Estados: PENDIENTE, EN CURSO, BLOQUEADA, HECHA, VERIFICADA.
 
-T0.2 y T0.5 quedaron HECHA en el turno de orquestación del 2026-10-16. Eso no abre la Fase 0 ni cierra G0.
+T0.2 y T0.5 quedaron HECHA en el turno de orquestación del 2026-10-16. **G0 cerrado** 2026-10-17 (`docs/DECISIONS_LOG.md` D027 G0 cerrado).
 
 | ID | Tarea | Fase | Dueño | Skill | Depende de | Estado | Evidencia (archivo/prueba/reporte) | Notas |
 |---|---|---|---|---|---|---|---|---|
 | T0.1 | Repo con la estructura de `AGENTS.md` §8, `.env.example`, ruff y pytest mínimo | F0 | Orquestador | NINGUNA | — | HECHA | Árbol §1 `docs/SCAFFOLD_SPEC.md` (`backend/app/{api,graph,extraction,jev,verifier,rules,records,models,gate}`, `backend/tests/{rules,api,gate,adversarial}`, `data/{contracts,invoices/dev,invoices/holdout,golden}`, `frontend/`, `eval/reports/`, `JUDGE_GUIDE.md`, `.env.example`, `pyproject.toml`). Sin `backend/app/config.py` (T3.1, D012). `python -m ruff check .` y `python -m pytest -q` en raíz con venv | Sin secretos en el repo |
 | T0.2 | Descubrir skills y escribir `docs/SKILLS_MAP.md` | F0 | Orquestador | NINGUNA | — | HECHA | `docs/SKILLS_MAP.md` | Borrador del 2026-10-16. No cierra G0 |
-| T0.3 | Smoke test: OpenCode, JEV y LangSmith, una llamada cada uno | F0 | Agent Graph | NINGUNA | clave JEV o plan B | EN CURSO | `docs/DECISIONS_LOG.md` D027 cierre G0: OpenCode ok, plan B ok, LangSmith pendiente clave | Falta `LANGSMITH_API_KEY` para cerrar G0 |
-| T0.4 | Resolver supuestos bloqueantes de `docs/08` | F0 | Orquestador | NINGUNA | clave JEV o plan B | HECHA | `docs/OPEN_QUESTIONS_STATUS.md` Q1 plan B, Q2 extractor visto en G0 | G0 sigue abierto por LangSmith |
+| T0.3 | Smoke test: OpenCode, JEV y LangSmith, una llamada cada uno | F0 | Agent Graph | NINGUNA | clave JEV o plan B | HECHA | `docs/DECISIONS_LOG.md` D027 (OpenCode, plan B JEV, LangSmith §6.4) | Tres vías ok; plan B sin `JEV_API_KEY` |
+| T0.4 | Resolver supuestos bloqueantes de `docs/08` | F0 | Orquestador | NINGUNA | clave JEV o plan B | HECHA | `docs/OPEN_QUESTIONS_STATUS.md` Q1 plan B, Q2 extractor visto en G0 | Cerrado con G0 |
 | T0.5 | Crear `docs/AI_USAGE_LOG.md` y la primera entrada | F0 | Orquestador | NINGUNA | — | HECHA | `docs/AI_USAGE_LOG.md` | Falta la columna de verificación humana |
 | T1.1 | `company.json` | F1 | Spec & Data | NINGUNA | T0.1 | HECHO | `data/company.json` | Valores de `docs/PARAMETERS.md` |
 | T1.2 | `rules.json` y esquema de `docs/04` §2 | F1 | Spec & Data | NINGUNA | T1.1 | HECHO | `data/rules.json`; `backend/app/models/rules_config.py`; `backend/tests/test_rules_config.py` | on_fail CONFIRMADOS. Límite 5000, umbral 3000. G1 no se cierra |
@@ -54,7 +54,7 @@ T0.2 y T0.5 quedaron HECHA en el turno de orquestación del 2026-10-16. Eso no a
 | T6.1 | Guion de demo de 3 minutos | F6 | Docs & Judge | `sales-enablement` (PARCIAL) | G4, G5 | PENDIENTE | POR COMPLETAR: `docs/DEMO_SCRIPT.md` | Normal pagada, duplicado frenado, monto alto escalado, aprobación, traza, métricas |
 | T6.2 | Video de respaldo y seed para reiniciar | F6 | Docs & Judge | NINGUNA | T6.1 | PENDIENTE | POR COMPLETAR: ruta del video y comando de seed citados en el README | `video` de marketing no aplica |
 | T6.3 | Etiqueta, congelar rama, lista de entrega | F6 | Orquestador | `finishing-a-development-branch` (PARCIAL) | T6.2, G5 | PENDIENTE | POR COMPLETAR: tag git y lista en `README.md` | No abrir PR sin pedirlo |
-| G0 | APIs responden, o plan B de JEV anotado | F0 | Orquestador | `verification-before-completion` | T0.1, T0.3, T0.4 | PENDIENTE | `docs/DECISIONS_LOG.md` D027 cierre G0 (2/3 vías ok); `docs/G0_SPEC.md` | Bloqueado: `LANGSMITH_API_KEY` vacía. G2/G3 PENDIENTE |
+| G0 | APIs responden, o plan B de JEV anotado | F0 | Orquestador | `verification-before-completion` | T0.1, T0.3, T0.4 | HECHA | `docs/DECISIONS_LOG.md` D027 G0 cerrado; `docs/G0_SPEC.md` §8 | G2/G3 siguen PENDIENTE |
 | G1 | Esquemas congelados, R01–R13 con caso, holdout aparte, etiquetas revisadas dos veces | F1 | Orquestador | `verification-before-completion` | T1.1–T1.7 | HECHO | `docs/DATA_MANIFEST.md` § Congelación F1/G1; D015; `ruff check .` OK; `pytest -q`: 78 passed; D011 segunda lectura humana OK | F2 desbloqueada (T2.1) |
 | G2 | 100 % en dev con extracción verdadera; `unsafe_pay = 0`; invariantes verdes | F2 | Orquestador | `verification-before-completion` | T2.7, T2.8 | PENDIENTE | POR COMPLETAR: salida de pytest y del runner | — |
 | G3 | E2E en dev con `unsafe_pay = 0`, autonomía de línea base y trazas | F3 | Orquestador | `verification-before-completion` | T3.8, T3.9, T3.10 | PENDIENTE | POR COMPLETAR: reporte corto en `eval/reports/` y un `run_id` | — |
