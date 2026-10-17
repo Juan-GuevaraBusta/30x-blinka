@@ -34,6 +34,25 @@ pytest
 ruff check .
 ```
 
+## Despliegue público (T4.9)
+
+Host **supuesto** (D003): API en [Render](https://render.com) con Postgres gestionado; frontend en Vercel (`frontend/`). Sustituir las URLs de ejemplo cuando exista el deploy.
+
+| Pieza | URL de ejemplo |
+|---|---|
+| API (Render) | `https://blinka-invoice-api.onrender.com` |
+| Frontend (Vercel) | `https://blinka-invoice-agent.vercel.app` |
+
+**Render (web service):** `render.yaml` en la raíz. Arranque: `uvicorn app.api.asgi:create_production_app --factory --host 0.0.0.0 --port $PORT`. Health: `GET /health`.
+
+Variables (nombres solamente; valores en el Dashboard o en `.env` local, sin commitear):
+
+- Render: `PORT` (inyectado), `DATABASE_URL` (desde la base del Blueprint), `CORS_ORIGINS` (origen exacto del front), `API_RATE_LIMIT_PER_MINUTE`
+- Secretos opcionales para el grafo (no exigidos para `/health` ni `/rules`): `LANGSMITH_API_KEY`, `LLM_API_KEY`, `JEV_API_KEY`
+- Vercel (solo servidor): `API_URL` — origen público del API, sin ruta ni clave
+
+El navegador usa same-origin (`/api/rules` en Next); CORS en el API es allowlist de respaldo.
+
 ## Estado
 - Fase actual: **F0 — arranque** (T0.1 scaffold hecho; G0 abierto hasta T0.3/T0.4).
 - Tiempo disponible: **36 h**. Idioma de documentos y UI: español. Identificadores de código: inglés.
