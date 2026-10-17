@@ -103,7 +103,7 @@ Inventario: 163 nombres únicos. Ninguna skill inventada en este mapa.
 | T3.8 | NINGUNA | NINGUNA | LangSmith no tiene skill. `langfuse` es otro producto: no se usa. |
 | T3.9 | NINGUNA | NINGUNA | Una CLI no está cubierta por las skills encontradas. |
 | T3.10 | `python-testing-patterns` | TOTAL | Mock de dependencias y fallo de servicios. |
-| T4.1 | `api-engineer` | PARCIAL | Cubre diseñar e implementar la API y el contrato. El flujo Postman queda fuera salvo aprobación. |
+| T4.1 | `api-engineer` | PARCIAL | Contrato: `docs/T4_1_SPEC.md` (D029). OpenAPI en repo. Sin workspace Postman salvo aprobación. |
 | T4.2 | NINGUNA | NINGUNA | SQLAlchemy no tiene skill. `supabase` sería otro proveedor. |
 | T4.3 | `frontend-design`; `vercel-react-best-practices` | TOTAL; PARCIAL | Diseño de la pantalla; la segunda solo rendimiento. |
 | T4.4 | `frontend-design`; `vercel-react-best-practices` | TOTAL; PARCIAL | Igual. |
