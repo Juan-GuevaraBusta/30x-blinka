@@ -56,26 +56,26 @@ Resolución de ambigüedad de `AGENTS.md §8`: el mapa dice `data/ ... golden.js
 - No añadir frameworks extra: solo pydantic v2 como dependencia mínima de runtime; pytest/ruff/hypothesis como dev (ver §4).
 - No subir `.env` real ni secretos (I6, AGENTS.md §3).
 
-## 3. `.env.example` (solo nombres, valores vacíos)
+## 3. `.env.example` (solo nombres, valores vacíos o placeholders)
 
-Contenido mínimo. Las variables de roles de modelo quedan **marcadas como borrador**: los nombres definitivos los fija Agent Graph en T3.1 (`config.py`), así que T0.1 no inventa proveedores.
+Contenido mínimo: 8 nombres, sin valores reales. El nombre del modelo/extractor
+(`OPENCODE_API_KEY`) es marcador hasta que Agent Graph fije `get_llm` en T3.1.
 
 ```bash
+# Nunca commitear `.env` real (ver `.gitignore` §5 e I6).
 # LangSmith (docs/07) — confirmadas
-LANGSMITH_TRACING=true
+LANGSMITH_TRACING=
 LANGSMITH_API_KEY=
-LANGSMITH_PROJECT=blinka-invoice-agent-dev
+LANGSMITH_PROJECT=
 LANGSMITH_ENDPOINT=
-
-# Roles de modelo (T0.3/T3.1 define nombres finales; estos son marcadores, no un contrato)
-EXTRACTOR_MODEL=
-VERIFIER_MODEL=
+# Modelos vía API (T0.3/T3.1 define nombres finales; marcador, no contrato)
+OPENCODE_API_KEY=
+# JEV (vía API directa D010; formato exacto se comprueba en T0.3)
 JEV_API_KEY=
-JEV_MODEL=
-POLISHER_MODEL=
+JEV_BASE_URL=
+# Persistencia (SQLite dev / Postgres prod; la URL real solo vive en `.env` local)
+DATABASE_URL=
 ```
-
-Reglas: una línea de comentario por variable; sin valores reales; el archivo se copia a `.env` (ignorado) en local.
 
 ## 4. `pyproject.toml` (mínimo)
 
@@ -91,12 +91,28 @@ Ignorar: `.env`, `.venv/`, `venv/`, `__pycache__/`, `*.pyc`, `.pytest_cache/`, `
 
 No ignorar: `data/` (facturas sintéticas y golden son parte del repo, I6), `eval/reports/`, ni `.env.example`.
 
-## 6. Criterio de hecho (DoD) de T0.1
+## 7. Handoff: AC de T0.1 + subtareas T0.1.1–T0.1.9
 
-1. Existe el árbol de §1 (`find` lo confirma; directorios vacíos trackeados con `.gitkeep`/`__init__.py`).
-2. `python -m ruff check .` corre sin error de configuración (puede no haber archivos aún).
-3. `python -m pytest --collect-only` corre sin error de configuración (0 tests coleccionados es válido).
-4. `.env.example` existe con los nombres de §3 y sin valores reales.
-5. `.gitignore` ignora `.env` (comprobado: `git check-ignore .env` responde).
-6. Sin código de negocio y sin secretos en el diff.
-7. Commit + push (norma D011) con mensaje `T0.1: scaffold repo structure, ruff, pytest, .env.example`.
+AC (los 8 criterios que cierran T0.1):
+
+1. Existe el árbol de §1 (`find` lo confirma; vacíos trackeados con `.gitkeep`/`__init__.py`).
+2. `pyproject.toml` único en raíz con ruff + pytest + python `>=3.11` (sin doble config).
+3. `python -m pytest` arranca y el test de T0.1.2 (`backend/tests/test_repo_scaffold.py`)
+   falla si falta una carpeta clave.
+4. `python -m ruff check .` corre sin error de configuración.
+5. `.env.example` existe con los 8 nombres de §3, valores vacíos/placeholder, sin secretos.
+6. `git check-ignore .env` responde (el `.env` real nunca se commitea).
+7. Sin código de negocio (ni reglas, ni `decide()`, ni modelos, ni FastAPI/Next.js, ni facturas).
+8. Commit + push (D011) y `docs/TASK_BOARD.md` marca T0.1 HECHA con evidencia.
+
+Subtareas listas para despachar (en orden):
+
+- T0.1.1: crear el árbol de §1 con `.gitkeep` en vacíos y `__init__.py` vacío en paquetes.
+- T0.1.2: test de scaffold (AI-TDD: falla si falta carpeta clave; luego implementa).
+- T0.1.3: `pyproject.toml` mínimo en raíz (§4).
+- T0.1.4: `.env.example` con los 8 nombres de §3.
+- T0.1.5: `.gitignore` mínimo (§5).
+- T0.1.6: `JUDGE_GUIDE.md` placeholder (el contenido real llega en T5.5).
+- T0.1.7: verificar pytest + ruff + `git check-ignore .env`.
+- T0.1.8: marcar T0.1 HECHA en `docs/TASK_BOARD.md` con evidencia.
+- T0.1.9: commit + push `T0.1: scaffold repo structure, ruff, pytest, .env.example`.
