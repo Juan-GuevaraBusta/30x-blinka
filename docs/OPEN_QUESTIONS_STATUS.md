@@ -41,7 +41,7 @@ Siguen vigentes. Estado: ASUMIDA.
 
 G0 **cerrado** (2026-10-17): tres smokes en `docs/G0_SPEC.md` §6; evidencia en `docs/DECISIONS_LOG.md` filas D027. JEV sin clave → plan B documentado.
 
-G2 **no cerrado**. Contrato de la sesión de motor: `docs/G2_SPEC.md` (D028). G3 sigue PENDIENTE. No pegar claves.
+G2 **cerrado** (2026-10-17): motor golden dev 34/34, `unsafe_pay=0`; evidencia `docs/DECISIONS_LOG.md` D028 G2 cerrado. G3 sigue PENDIENTE. No pegar claves.
 
 ## Qué sigue sin poder verificarse (igual que `docs/08`)
 

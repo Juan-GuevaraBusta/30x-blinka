@@ -46,7 +46,7 @@ Ruta crítica: **F1 (datos y contratos) → F2 (motor) → F3 (grafo) → F4 (UI
 - [ ] **T2.7** `final_gate` / invariant checker + property tests (hypothesis) para I1–I4. *(QA & Eval)*
 - [ ] **T2.8** Runner que alimenta la **extracción verdadera** del set dorado al motor y compara con lo esperado. *(QA & Eval)*
 
-**G2:** con extracción perfecta, 100 % de decisiones correctas en dev; `unsafe_pay = 0`; todos los invariantes con prueba verde.
+**G2:** con extracción perfecta, 100 % de decisiones correctas en dev; `unsafe_pay = 0`; todos los invariantes con prueba verde. **Cerrado 2026-10-17 (D028).**
 
 ## F3 — Agente (h16–24)
 - [ ] **T3.1** `get_llm(role)` por variables de entorno y `DecisionClient` (JEV + plan B). *(Agent Graph)*
