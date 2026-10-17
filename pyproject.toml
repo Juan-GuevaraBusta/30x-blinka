@@ -2,7 +2,7 @@
 name = "blinka-invoice-agent"
 version = "0.0.0"
 requires-python = ">=3.11"
-dependencies = ["pydantic>=2", "langgraph>=1.0"]
+dependencies = ["pydantic>=2", "langgraph>=1.0", "langsmith>=0.14"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.6", "hypothesis>=6.0"]

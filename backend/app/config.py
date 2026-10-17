@@ -22,6 +22,10 @@ _ENV_KEYS: dict[str, str] = {
     "JEV_MODEL": "jev_model",
     "DECISION_BACKEND": "decision_backend",
     "HTTP_TIMEOUT_SECONDS": "http_timeout_seconds",
+    "LANGSMITH_TRACING": "langsmith_tracing",
+    "LANGSMITH_API_KEY": "langsmith_api_key",
+    "LANGSMITH_PROJECT": "langsmith_project",
+    "LANGSMITH_ENDPOINT": "langsmith_endpoint",
 }
 
 
@@ -45,6 +49,10 @@ class Settings(BaseModel):
     jev_model: str = "jev-latest"
     decision_backend: str = "auto"
     http_timeout_seconds: float = 30.0
+    langsmith_tracing: bool = False
+    langsmith_api_key: str = ""
+    langsmith_project: str = "blinka-invoice-agent-dev"
+    langsmith_endpoint: str = ""
 
     @field_validator("llm_base_url", "jev_base_url", mode="before")
     @classmethod
@@ -60,7 +68,7 @@ class Settings(BaseModel):
             if env_key not in mapping:
                 continue
             value = mapping[env_key]
-            if field_name == "polisher_enabled":
+            if field_name in ("polisher_enabled", "langsmith_tracing"):
                 raw[field_name] = _parse_bool(value)
             elif field_name == "decision_backend":
                 raw[field_name] = _parse_backend(value)

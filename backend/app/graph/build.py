@@ -16,6 +16,7 @@ from app.extraction.ingest import IngestChannel, IngestError, ingest_bytes
 from app.gate.final_gate import GateInput, run_final_gate
 from app.graph.deps import GraphDeps
 from app.graph.state import InvoiceState
+from app.graph.tracing import NullTrace, TraceSession
 from app.jev.run import JevRunError, ask_invoice_signals, build_jev_state
 from app.models.domain import (
     SEVERITY,
@@ -430,6 +431,15 @@ def compile_invoice_graph(deps: GraphDeps, checkpointer: BaseCheckpointSaver):
     return builder.compile(checkpointer=checkpointer)
 
 
+def _record_writer(graph: object, config: dict) -> str:
+    history = list(graph.get_state_history(config))  # type: ignore[attr-defined]
+    if len(history) >= 2 and history[1].next:
+        node = history[1].next[0]
+        if node in ("final_gate", "escalate_technical"):
+            return node
+    return "final_gate"
+
+
 def run_invoice(
     deps: GraphDeps,
     *,
@@ -439,12 +449,24 @@ def run_invoice(
     received_at: datetime,
     checkpointer: BaseCheckpointSaver,
     thread_id: str,
+    tracer: TraceSession | None = None,
+    phase: Literal["dev", "eval", "demo"] = "dev",
 ) -> DecisionRecord:
     if not invoice_id or not invoice_id.strip():
         raise GraphError("empty_invoice_id")
     if received_at.tzinfo is None:
         raise GraphError("naive_datetime")
 
+    session: TraceSession = tracer if tracer is not None else NullTrace()
+    metadata = {
+        "invoice_id": invoice_id,
+        "rules_version": deps.rules_version,
+        "model_extractor": deps.model_extractor,
+        "model_verifier": deps.model_verifier,
+        "jev": deps.jev_label,
+        "phase": phase,
+    }
+    tags = ["invoice", phase]
     initial: InvoiceState = {
         "raw_b64": base64.b64encode(raw).decode("ascii"),
         "channel": channel,
@@ -452,9 +474,26 @@ def run_invoice(
         "received_at": received_at.isoformat(),
     }
     graph = compile_invoice_graph(deps, checkpointer)
-    config = {"configurable": {"thread_id": thread_id}}
+    config = {
+        "configurable": {"thread_id": thread_id},
+        **session.open_config(metadata=metadata, tags=tags),
+    }
     final_state = graph.invoke(initial, config)
-    return DecisionRecord.model_validate(final_state["record"])
+    record = DecisionRecord.model_validate(final_state["record"])
+    try:
+        finished = session.finish(record.decision)
+        if finished is None:
+            return record
+        patched = record.model_copy(update={"trace": finished})
+        checkpoint_config = {"configurable": {"thread_id": thread_id}}
+        graph.update_state(
+            checkpoint_config,
+            {"record": patched.model_dump(mode="json")},
+            as_node=_record_writer(graph, checkpoint_config),
+        )
+    except Exception:
+        return record
+    return patched
 
 
 __all__ = [

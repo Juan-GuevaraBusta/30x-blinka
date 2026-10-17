@@ -25,7 +25,7 @@ def test_settings_ignores_unrelated_env_keys() -> None:
     s = Settings.from_mapping(
         {
             "PATH": "/usr/bin",
-            "LANGSMITH_API_KEY": "should-not-appear",
+            "UNRELATED_TOKEN": "should-not-appear",
             "EXTRACTOR_MODEL": "gpt-test",
         }
     )
