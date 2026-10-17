@@ -48,7 +48,7 @@ Host **supuesto** (D003): API en [Render](https://render.com) con Postgres gesti
 Variables (nombres solamente; valores en el Dashboard o en `.env` local, sin commitear):
 
 - Render: `PORT` (inyectado), `DATABASE_URL` (desde la base del Blueprint), `CORS_ORIGINS` (origen exacto del front), `API_RATE_LIMIT_PER_MINUTE`
-- Secretos opcionales para el grafo (no exigidos para `/health` ni `/rules`): `LANGSMITH_API_KEY`, `LLM_API_KEY`, `JEV_API_KEY`
+- Secretos para procesar facturas en producción (G4, grafo real): `LLM_API_KEY`, modelos según `.env.example`; `JEV_API_KEY` o plan B documentado en `docs/DECISIONS_LOG.md`. Opcional: `LANGSMITH_API_KEY` para trazas.
 - Vercel (solo servidor): `API_URL` — origen público del API, sin ruta ni clave
 
 El navegador usa same-origin (`/api/rules` en Next); CORS en el API es allowlist de respaldo.

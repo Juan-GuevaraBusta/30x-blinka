@@ -15,8 +15,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 
 from app.api.app import create_app
-from app.api.schemas import InvoiceUpload
-from app.models.domain import DecisionRecord
+from app.api.production_processor import make_production_processor
 from app.persistence import (
     database_url_from_mapping,
     init_database,
@@ -99,11 +98,6 @@ def rate_limit_from_mapping(mapping: Mapping[str, str]) -> int:
     return value
 
 
-def _stub_processor(_upload: InvoiceUpload) -> DecisionRecord:
-    """Production entrypoint: invoice pipeline is not wired (T4.9 §4)."""
-    raise RuntimeError("invoice_processing_not_wired")
-
-
 def _build_engine(url: str) -> Engine:
     prepared = prepare_database_url(url)
     return create_engine(
@@ -139,9 +133,10 @@ def create_production_app(
         origins = parse_cors_origins(cors_origins)
 
     limit = rate_limit_from_mapping(env)
+    processor = make_production_processor(store)
     app = create_app(
         store,
-        _stub_processor,
+        processor,
         clock=lambda: datetime.now(UTC),
         rate_limit=limit,
     )
