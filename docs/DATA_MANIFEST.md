@@ -4,7 +4,7 @@ Dueño: Spec & Data. Estado global: POR GENERAR. Nada de esta lista existe todav
 
 Todo es ficticio. Prohibido pegar facturas, contratos o nombres reales. El holdout vive aparte y no se abre para calibrar.
 
-Validación común: JSON contra el modelo Pydantic congelado en T1.3; una segunda lectura humana de cada etiqueta; `golden` de desarrollo y el de holdout en carpetas distintas.
+Validación común: JSON contra el modelo Pydantic congelado en T1.3; una segunda lectura de cada etiqueta hecha por el mismo humano, más tarde (D011); `golden` de desarrollo y el de holdout en carpetas distintas. Esa segunda lectura no es independiente. El reporte lo dice.
 
 ## Datasets
 
