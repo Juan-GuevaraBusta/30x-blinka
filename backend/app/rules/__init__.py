@@ -19,6 +19,7 @@ from app.rules.checks import (
     check_r13,
 )
 from app.rules.context import ContractTerms, LedgerEntry, RuleContext
+from app.rules.decide import decide
 from app.rules.fx import FxConversionResult, FxTable, convert_to_base, load_fx_table
 from app.rules.ledger import Ledger, ledger_view_for_invoice, sort_key
 from app.rules.ledger_queries import (
@@ -62,6 +63,7 @@ __all__ = [
     "check_r12",
     "check_r13",
     "convert_to_base",
+    "decide",
     "department_spent",
     "duplicate_match",
     "load_fx_table",
