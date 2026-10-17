@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --canvas: #e8ecf1;
+  --surface: #ffffff;
+  --ink: #152033;
+  --ink-muted: #5c6778;
+  --line: #c5cdd8;
+  --accent: #b45309;
+  --danger: #9f1239;
+  --success: #166534;
+}
+
+body {
+  color: var(--ink);
+  background: var(--canvas);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+}
+
+.text-ink {
+  color: var(--ink);
+}
+
+.text-ink-muted {
+  color: var(--ink-muted);
+}
+
+.bg-canvas {
+  background-color: var(--canvas);
+}
+
+.bg-surface {
+  background-color: var(--surface);
+}
+
+.bg-ink {
+  background-color: var(--ink);
+}
+
+.text-surface {
+  color: var(--surface);
+}
+
+.border-line {
+  border-color: var(--line);
+}
+
+.border-accent {
+  border-color: var(--accent);
+}
+
+.bg-accent {
+  background-color: var(--accent);
+}
+
+.text-accent {
+  color: var(--accent);
+}
+
+.text-danger {
+  color: var(--danger);
+}
+
+.bg-danger\/10 {
+  background-color: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.border-danger\/40 {
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.text-success {
+  color: var(--success);
+}
+
+.bg-success\/10 {
+  background-color: color-mix(in srgb, var(--success) 12%, transparent);
+}
+
+.border-success\/40 {
+  border-color: color-mix(in srgb, var(--success) 40%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
