@@ -9,7 +9,11 @@ from app.models.domain import CheckResult, Decision, Extraction
 from app.models.rules_config import RulesConfig
 from app.records import templates as tpl
 from app.rules.context import ContractTerms, LedgerEntry, RuleContext
-from app.rules.ledger_queries import department_spent, duplicate_match, period_paid_total
+from app.rules.ledger_queries import (
+    department_spent_for_budget,
+    duplicate_match,
+    period_paid_total,
+)
 from app.rules.normalize import normalize_beneficiary, normalize_currency
 
 _RULE_NAMES: dict[str, str] = {
@@ -162,7 +166,11 @@ def _summary_line_for_check(check: CheckResult, ctx: RecordContext) -> str:
     if rule == "R07" and amount is not None:
         depto = ctx.extraction.department or "s/d"
         budget = ctx.rules.department_budgets.get(depto)
-        spent = department_spent(ctx.ledger, depto) if depto != "s/d" else 0.0
+        spent = (
+            department_spent_for_budget(ctx.ledger, depto, ctx.received_at)
+            if depto != "s/d"
+            else 0.0
+        )
         saldo = (budget - spent) if budget is not None else 0.0
         return tpl.TEMPLATE_R07_FAIL.format(
             depto=depto,

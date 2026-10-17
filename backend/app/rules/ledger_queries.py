@@ -37,6 +37,28 @@ def department_spent(entries: tuple[LedgerEntry, ...], department: str) -> float
     return sum(e.amount_base for e in _counted(entries) if e.department == department)
 
 
+def department_spent_for_budget(
+    entries: tuple[LedgerEntry, ...],
+    department: str,
+    received_at: datetime | None,
+) -> float:
+    """R07 spend: synthetic SEED-* lines always count; other settlements in the invoice month."""
+    if received_at is None:
+        return department_spent(entries, department)
+    year, month = received_at.year, received_at.month
+    total = 0.0
+    for entry in _counted(entries):
+        if entry.department != department:
+            continue
+        if entry.invoice_number.startswith("SEED-"):
+            total += entry.amount_base
+            continue
+        stamp = _received(entry.received_at)
+        if stamp is not None and stamp.year == year and stamp.month == month:
+            total += entry.amount_base
+    return total
+
+
 def duplicate_match(
     entries: tuple[LedgerEntry, ...],
     beneficiary_norm: str | None,

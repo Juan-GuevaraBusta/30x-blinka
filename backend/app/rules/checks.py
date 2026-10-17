@@ -6,7 +6,7 @@ from app.models.domain import CheckEvidence, CheckResult, JevSignal
 from app.rules.context import RuleContext
 from app.rules.fx import convert_to_base
 from app.rules.ledger_queries import (
-    department_spent,
+    department_spent_for_budget,
     duplicate_match,
     period_paid_total,
 )
@@ -140,14 +140,10 @@ def check_r05(ctx: RuleContext) -> CheckResult:
 def check_r06(ctx: RuleContext) -> CheckResult:
     if ctx.contract_terms is None or not ctx.contract_confirmed:
         return _indeterminate("R06", "Contrato ausente o sin confirmar.")
-    fee_base: float | None
-    if ctx.contract_terms.fee_currency == normalize_currency(ctx.extraction.currency):
-        fee_base = float(ctx.contract_terms.fee_amount)
-    else:
-        converted = convert_to_base(
-            ctx.contract_terms.fee_amount, ctx.contract_terms.fee_currency, ctx.fx_table
-        )
-        fee_base = converted.amount_base
+    converted_fee = convert_to_base(
+        ctx.contract_terms.fee_amount, ctx.contract_terms.fee_currency, ctx.fx_table
+    )
+    fee_base = converted_fee.amount_base
     amount = _amount_base(ctx)
     if fee_base is None or amount is None:
         return _indeterminate("R06", "No se puede comparar factura contra tarifa.")
@@ -175,7 +171,7 @@ def check_r07(ctx: RuleContext) -> CheckResult:
     budget = ctx.rules.department_budgets.get(department)
     if budget is None:
         return _indeterminate("R07", f"Sin presupuesto configurado para {department}.")
-    spent = department_spent(ctx.ledger, department)
+    spent = department_spent_for_budget(ctx.ledger, department, ctx.received_at)
     if budget - spent < amount:
         return _fail(ctx, "R07", f"Presupuesto restante de {department} insuficiente.")
     return _ok("R07", f"Presupuesto de {department} suficiente.")
