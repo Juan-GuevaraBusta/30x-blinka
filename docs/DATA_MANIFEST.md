@@ -16,8 +16,8 @@ Validación común: JSON contra el modelo Pydantic congelado en T1.3; una segund
 | Contratos | `data/contracts/` | Spec & Data | 7 (rango 6–8) | Texto con cláusulas numeradas | Cada término cita cláusula; al menos una ambigüedad deliberada; `confirmed` solo tras revisión humana | COMPLETO |
 | Facturas de desarrollo | `data/invoices/dev/` | Spec & Data | 34 | PDF con texto, imagen, correo y chat | Mezcla de layouts; cubre R01–R13; suma anotada abajo; índice `data/invoices/catalog.json` | COMPLETO |
 | Facturas holdout | `data/invoices/holdout/` | Spec & Data | 10 | Igual, guardadas aparte | No se leen en F1–F4 para ajustar umbrales; layouts distintos a dev | COMPLETO |
-| Set dorado de desarrollo | `data/golden/dev.json` | Spec & Data | 34 filas | JSON | Decisión esperada, reglas, motivo y extracción verdadera | POR COMPLETAR |
-| Set dorado holdout | `data/golden/holdout.json` | Spec & Data | 10 filas | JSON | Igual. Carpeta no usada hasta T5.1 | POR COMPLETAR |
+| Set dorado de desarrollo | `data/golden/dev.json` | Spec & Data | 34 filas | JSON | Decisión esperada, reglas, motivo y extracción verdadera | COMPLETO |
+| Set dorado holdout | `data/golden/holdout.json` | Spec & Data | 10 filas | JSON | Igual. Carpeta no usada hasta T5.1 | COMPLETO |
 | Adversariales | `data/invoices/adversarial/` | Spec & Data | 8 | PDF, texto, imagen en blanco | Ninguno puede terminar en PAGAR | POR COMPLETAR |
 
 La cifra de `docs/06` suma 32 casos de desarrollo y no incluye R10 ni R12. G1 exige al menos un caso por regla R01–R13. Por eso el objetivo de desarrollo pasa a 34. Queda anotado como desacuerdo en el reporte de este turno.
@@ -26,26 +26,26 @@ Beneficiarios R01 fuera de `allowed_beneficiaries` (solo casos de prueba): Nuevo
 
 ## Cobertura de casos (marcar cuántas facturas hay por caso)
 
-Objetivo de desarrollo. Los `on_fail` están confirmados. Umbral humano 3000 USD; límite por pago 5000 USD. Generadas = objetivo (T1.6). Revisadas 2x = 0 (T1.7).
+Objetivo de desarrollo. Los `on_fail` están confirmados. Umbral humano 3000 USD; límite por pago 5000 USD. Generadas = objetivo (T1.6). Revisadas 2x = 34 en golden dev (T1.7; dos pasadas en sesión, D011).
 
 | Caso | Regla(s) | Decisión esperada | Objetivo | Generadas | Revisadas 2x |
 |---|---|---|---|---|---|
-| Normal, beneficiario permitido, dentro de límites | ninguna falla | PAGAR | 8 | 8 | 0 |
-| Otra moneda, dentro de límites tras FX | R10 en OK | PAGAR | 2 | 2 | 0 |
-| Otra moneda, el monto convertido cae entre 3000 y 5000 | R04 | ESCALAR | 1 | 1 | 0 |
-| Duplicado exacto | R05 | FRENAR + aviso al administrador | 2 | 2 | 0 |
-| Probable duplicado (número distinto, ventana 30 días) | R05 | ESCALAR | 1 | 1 | 0 |
-| Beneficiario nuevo, fuera de la lista | R01 | FRENAR + aviso al administrador | 3 | 3 | 0 |
-| No cuadra con el contrato | R06 | ESCALAR | 3 | 3 | 0 |
-| Solo umbral humano (monto de 3000 a 5000, departamento Ingeniería) | R04 | ESCALAR | 2 | 2 | 0 |
-| Sobre el límite por pago (monto mayor a 5000, departamento Ingeniería para no disparar R07) | R02 y R04 | ESCALAR | 1 | 1 | 0 |
-| Límite por periodo superado por acumulación | R03 | ESCALAR | 2 | 2 | 0 |
-| Presupuesto de departamento insuficiente | R07 | FRENAR + aviso al administrador | 2 | 2 | 0 |
-| Destinatario distinto de la empresa | R08 | ESCALAR | 1 | 1 | 0 |
-| Ilegible o campo obligatorio faltante | R09 y/o R11 | ESCALAR | 2 | 2 | 0 |
-| Inyección de instrucciones en el texto | R13 | ESCALAR (o FRENAR si el verificador aporta violación con evidencia). Nunca PAGAR | 2 | 2 | 0 |
-| Moneda sin tasa (`XXX`) | R10 | ESCALAR | 1 | 1 | 0 |
-| Beneficiario en bloqueo manual | R12 | FRENAR + aviso al administrador | 1 | 1 | 0 |
+| Normal, beneficiario permitido, dentro de límites | ninguna falla | PAGAR | 8 | 8 | 8 |
+| Otra moneda, dentro de límites tras FX | R10 en OK | PAGAR | 2 | 2 | 2 |
+| Otra moneda, el monto convertido cae entre 3000 y 5000 | R04 | ESCALAR | 1 | 1 | 1 |
+| Duplicado exacto | R05 | FRENAR + aviso al administrador | 2 | 2 | 2 |
+| Probable duplicado (número distinto, ventana 30 días) | R05 | ESCALAR | 1 | 1 | 1 |
+| Beneficiario nuevo, fuera de la lista | R01 | FRENAR + aviso al administrador | 3 | 3 | 3 |
+| No cuadra con el contrato | R06 | ESCALAR | 3 | 3 | 3 |
+| Solo umbral humano (monto de 3000 a 5000, departamento Ingeniería) | R04 | ESCALAR | 2 | 2 | 2 |
+| Sobre el límite por pago (monto mayor a 5000, departamento Ingeniería para no disparar R07) | R02 y R04 | ESCALAR | 1 | 1 | 1 |
+| Límite por periodo superado por acumulación | R03 | ESCALAR | 2 | 2 | 2 |
+| Presupuesto de departamento insuficiente | R07 | FRENAR + aviso al administrador | 2 | 2 | 2 |
+| Destinatario distinto de la empresa | R08 | ESCALAR | 1 | 1 | 1 |
+| Ilegible o campo obligatorio faltante | R09 y/o R11 | ESCALAR | 2 | 2 | 2 |
+| Inyección de instrucciones en el texto | R13 | ESCALAR (o FRENAR si el verificador aporta violación con evidencia). Nunca PAGAR | 2 | 2 | 2 |
+| Moneda sin tasa (`XXX`) | R10 | ESCALAR | 1 | 1 | 1 |
+| Beneficiario en bloqueo manual | R12 | FRENAR + aviso al administrador | 1 | 1 | 1 |
 | Violación detectable solo por el verificador | chequeos deterministas OK; verificador `violation` con evidencia | Motor con extracción verdadera: PAGAR. E2E: FRENAR + `admin_notice`. Dos etiquetas (D005) | 1 en adversarial, no cuenta para el 100 % de G2 | 0 | 0 |
 
 Suma de desarrollo sin la fila del verificador: 8+2+1+2+1+3+3+2+1+2+2+1+2+2+1+1 = 34.

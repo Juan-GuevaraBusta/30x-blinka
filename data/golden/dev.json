@@ -1,0 +1,1551 @@
+{
+  "schema_version": 1,
+  "split": "dev",
+  "dataset_review": {
+    "review_passes": 2,
+    "method": "Dos pasadas en sesión T1.7: catálogo + docs/04 + notas del artefacto.",
+    "reviewed_at": "2026-10-17T12:00:00-05:00",
+    "reviewer_note": "Segunda lectura humana posterior pendiente (D011); consistencia interna 2x en agente."
+  },
+  "entries": [
+    {
+      "invoice_id": "dev-001",
+      "catalog_path": "data/invoices/dev/dev-001_normal_pay.pdf",
+      "case": "normal_pay",
+      "received_at": "2025-12-22T10:00:00Z",
+      "expected_decision": "PAGAR",
+      "expected_rules": [],
+      "reason": "La factura cumple las reglas: beneficiario autorizado, montos dentro de límites y contrato confirmado.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 800,
+        "currency": "USD",
+        "due_date": "2026-01-05",
+        "invoice_number": "INV-GX-2026-0105",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-002",
+      "catalog_path": "data/invoices/dev/dev-002_normal_pay.png",
+      "case": "normal_pay",
+      "received_at": "2025-12-25T10:00:00Z",
+      "expected_decision": "PAGAR",
+      "expected_rules": [],
+      "reason": "La factura cumple las reglas: beneficiario autorizado, montos dentro de límites y contrato confirmado.",
+      "extraction": {
+        "beneficiary": "Pampaluz Ltda",
+        "amount": 600,
+        "currency": "USD",
+        "due_date": "2026-01-08",
+        "invoice_number": "INV-PP-2026-0108",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 600.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/pampaluz-ltda.txt",
+      "contract_terms": {
+        "beneficiary": "Pampaluz Ltda",
+        "fee_amount": 600,
+        "fee_currency": "USD",
+        "period_cap_amount": 2400,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-003",
+      "catalog_path": "data/invoices/dev/dev-003_normal_pay.eml",
+      "case": "normal_pay",
+      "received_at": "2026-01-23T10:00:00Z",
+      "expected_decision": "PAGAR",
+      "expected_rules": [],
+      "reason": "La factura cumple las reglas: beneficiario autorizado, montos dentro de límites y contrato confirmado.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 800,
+        "currency": "USD",
+        "due_date": "2026-02-06",
+        "invoice_number": "INV-GX-2026-0206",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-004",
+      "catalog_path": "data/invoices/dev/dev-004_normal_pay.txt",
+      "case": "normal_pay",
+      "received_at": "2026-01-26T10:00:00Z",
+      "expected_decision": "PAGAR",
+      "expected_rules": [],
+      "reason": "La factura cumple las reglas: beneficiario autorizado, montos dentro de límites y contrato confirmado.",
+      "extraction": {
+        "beneficiary": "Pampaluz Ltda",
+        "amount": 600,
+        "currency": "USD",
+        "due_date": "2026-02-09",
+        "invoice_number": "INV-PP-2026-0209",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 600.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/pampaluz-ltda.txt",
+      "contract_terms": {
+        "beneficiary": "Pampaluz Ltda",
+        "fee_amount": 600,
+        "fee_currency": "USD",
+        "period_cap_amount": 2400,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-005",
+      "catalog_path": "data/invoices/dev/dev-005_normal_pay.pdf",
+      "case": "normal_pay",
+      "received_at": "2026-02-24T10:00:00Z",
+      "expected_decision": "PAGAR",
+      "expected_rules": [],
+      "reason": "La factura cumple las reglas: beneficiario autorizado, montos dentro de límites y contrato confirmado.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 800,
+        "currency": "USD",
+        "due_date": "2026-03-10",
+        "invoice_number": "INV-GX-2026-0310",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-006",
+      "catalog_path": "data/invoices/dev/dev-006_normal_pay.png",
+      "case": "normal_pay",
+      "received_at": "2026-02-27T10:00:00Z",
+      "expected_decision": "PAGAR",
+      "expected_rules": [],
+      "reason": "La factura cumple las reglas: beneficiario autorizado, montos dentro de límites y contrato confirmado.",
+      "extraction": {
+        "beneficiary": "Pampaluz Ltda",
+        "amount": 600,
+        "currency": "USD",
+        "due_date": "2026-03-13",
+        "invoice_number": "INV-PP-2026-0313",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 600.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/pampaluz-ltda.txt",
+      "contract_terms": {
+        "beneficiary": "Pampaluz Ltda",
+        "fee_amount": 600,
+        "fee_currency": "USD",
+        "period_cap_amount": 2400,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-007",
+      "catalog_path": "data/invoices/dev/dev-007_normal_pay.eml",
+      "case": "normal_pay",
+      "received_at": "2026-03-28T10:00:00Z",
+      "expected_decision": "PAGAR",
+      "expected_rules": [],
+      "reason": "La factura cumple las reglas: beneficiario autorizado, montos dentro de límites y contrato confirmado.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 800,
+        "currency": "USD",
+        "due_date": "2026-04-11",
+        "invoice_number": "INV-GX-2026-0411",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-008",
+      "catalog_path": "data/invoices/dev/dev-008_normal_pay.txt",
+      "case": "normal_pay",
+      "received_at": "2026-03-31T10:00:00Z",
+      "expected_decision": "PAGAR",
+      "expected_rules": [],
+      "reason": "La factura cumple las reglas: beneficiario autorizado, montos dentro de límites y contrato confirmado.",
+      "extraction": {
+        "beneficiary": "Pampaluz Ltda",
+        "amount": 600,
+        "currency": "USD",
+        "due_date": "2026-04-14",
+        "invoice_number": "INV-PP-2026-0414",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 600.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/pampaluz-ltda.txt",
+      "contract_terms": {
+        "beneficiary": "Pampaluz Ltda",
+        "fee_amount": 600,
+        "fee_currency": "USD",
+        "period_cap_amount": 2400,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-009",
+      "catalog_path": "data/invoices/dev/dev-009_fx_pay.pdf",
+      "case": "fx_pay",
+      "received_at": "2025-12-29T10:00:00Z",
+      "expected_decision": "PAGAR",
+      "expected_rules": [],
+      "reason": "Pago autorizado tras convertir la moneda con la tabla FX; el monto en USD queda bajo umbrales.",
+      "extraction": {
+        "beneficiary": "Luma Austral SA",
+        "amount": 2000,
+        "currency": "BRL",
+        "due_date": "2026-01-12",
+        "invoice_number": "INV-LM-2026-0112",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 360.0,
+        "fx": {
+          "rate": 0.18,
+          "date": "2026-03-01"
+        }
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/luma-austral-sa.txt",
+      "contract_terms": {
+        "beneficiary": "Luma Austral SA",
+        "fee_amount": 2000,
+        "fee_currency": "BRL",
+        "period_cap_amount": 8000,
+        "period_cap_currency": "BRL",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-010",
+      "catalog_path": "data/invoices/dev/dev-010_fx_pay.png",
+      "case": "fx_pay",
+      "received_at": "2026-01-01T10:00:00Z",
+      "expected_decision": "PAGAR",
+      "expected_rules": [],
+      "reason": "Pago autorizado tras convertir la moneda con la tabla FX; el monto en USD queda bajo umbrales.",
+      "extraction": {
+        "beneficiary": "Andesbyte SAS",
+        "amount": 500,
+        "currency": "EUR",
+        "due_date": "2026-01-15",
+        "invoice_number": "INV-AB-2026-0115",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 540.0,
+        "fx": {
+          "rate": 1.08,
+          "date": "2026-03-01"
+        }
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/andesbyte-sas.txt",
+      "contract_terms": {
+        "beneficiary": "Andesbyte SAS",
+        "fee_amount": 500,
+        "fee_currency": "EUR",
+        "period_cap_amount": 2000,
+        "period_cap_currency": "EUR",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-011",
+      "catalog_path": "data/invoices/dev/dev-011_fx_r04.eml",
+      "case": "fx_r04",
+      "received_at": "2026-02-04T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R04"
+      ],
+      "reason": "El monto convertido a USD supera el umbral de aprobación humana; requiere revisión.",
+      "extraction": {
+        "beneficiary": "Rioseco Servicios SAS",
+        "amount": 14000000,
+        "currency": "COP",
+        "due_date": "2026-02-18",
+        "invoice_number": "INV-RS-2026-0218",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 3500.0,
+        "fx": {
+          "rate": 0.00025,
+          "date": "2026-03-01"
+        }
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/rioseco-servicios-sas.txt",
+      "contract_terms": {
+        "beneficiary": "Rioseco Servicios SAS",
+        "fee_amount": 8000000,
+        "fee_currency": "COP",
+        "period_cap_amount": 20000000,
+        "period_cap_currency": "COP",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-012",
+      "catalog_path": "data/invoices/dev/dev-012_dup_exact.txt",
+      "case": "dup_exact",
+      "received_at": "2026-08-21T10:00:00Z",
+      "expected_decision": "PAGAR",
+      "expected_rules": [],
+      "reason": "Primera factura con este número en orden de recepción; aún no hay duplicado en el ledger.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 800,
+        "currency": "USD",
+        "due_date": "2026-09-04",
+        "invoice_number": "INV-GX-DUP-EXACT",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      },
+      "notes": "Primera del par INV-GX-DUP-EXACT por received_at; golden PAGAR para motor ordenado. Catálogo/manifiesto cuenta el caso como FRENAR."
+    },
+    {
+      "invoice_id": "dev-013",
+      "catalog_path": "data/invoices/dev/dev-013_dup_exact.pdf",
+      "case": "dup_exact",
+      "received_at": "2026-08-23T10:00:00Z",
+      "expected_decision": "FRENAR",
+      "expected_rules": [
+        "R05"
+      ],
+      "reason": "Ya existe una factura con el mismo número y beneficiario; se frena por duplicado exacto.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 800,
+        "currency": "USD",
+        "due_date": "2026-09-06",
+        "invoice_number": "INV-GX-DUP-EXACT",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      },
+      "notes": "Segunda del par exacto; FRENAR por R05 tras dev-012 en el ledger."
+    },
+    {
+      "invoice_id": "dev-014",
+      "catalog_path": "data/invoices/dev/dev-014_dup_probable.png",
+      "case": "dup_probable",
+      "received_at": "2026-04-11T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R05"
+      ],
+      "reason": "Mismo beneficiario y monto con número distinto en ventana de 30 días; posible duplicado.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 800,
+        "currency": "USD",
+        "due_date": "2026-04-25",
+        "invoice_number": "INV-GX-2026-0425",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-015",
+      "catalog_path": "data/invoices/dev/dev-015_r01.eml",
+      "case": "r01",
+      "received_at": "2026-02-15T10:00:00Z",
+      "expected_decision": "FRENAR",
+      "expected_rules": [
+        "R01"
+      ],
+      "reason": "El beneficiario no está en la lista permitida; el pago debe frenarse.",
+      "extraction": {
+        "beneficiary": "Nuevo Socio Fantasma SAS",
+        "amount": 500,
+        "currency": "USD",
+        "due_date": "2026-03-01",
+        "invoice_number": "INV-NS-2026-0301",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 500.0
+      },
+      "contract_confirmed": false,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2
+    },
+    {
+      "invoice_id": "dev-016",
+      "catalog_path": "data/invoices/dev/dev-016_r01.txt",
+      "case": "r01",
+      "received_at": "2026-05-18T10:00:00Z",
+      "expected_decision": "FRENAR",
+      "expected_rules": [
+        "R01"
+      ],
+      "reason": "El beneficiario no está en la lista permitida; el pago debe frenarse.",
+      "extraction": {
+        "beneficiary": "Nuevo Socio Fantasma SAS",
+        "amount": 700,
+        "currency": "USD",
+        "due_date": "2026-06-01",
+        "invoice_number": "INV-NS-2026-0601",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 700.0
+      },
+      "contract_confirmed": false,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2
+    },
+    {
+      "invoice_id": "dev-017",
+      "catalog_path": "data/invoices/dev/dev-017_r01.pdf",
+      "case": "r01",
+      "received_at": "2026-02-18T10:00:00Z",
+      "expected_decision": "FRENAR",
+      "expected_rules": [
+        "R01"
+      ],
+      "reason": "El beneficiario no está en la lista permitida; el pago debe frenarse.",
+      "extraction": {
+        "beneficiary": "Taller Sin Alta Ltda",
+        "amount": 450,
+        "currency": "USD",
+        "due_date": "2026-03-04",
+        "invoice_number": "INV-TS-2026-0304",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 450.0
+      },
+      "contract_confirmed": false,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2
+    },
+    {
+      "invoice_id": "dev-018",
+      "catalog_path": "data/invoices/dev/dev-018_r06.png",
+      "case": "r06",
+      "received_at": "2026-05-04T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R06"
+      ],
+      "reason": "El monto facturado no coincide con la tarifa pactada en el contrato confirmado.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 1500,
+        "currency": "USD",
+        "due_date": "2026-05-18",
+        "invoice_number": "INV-GX-2026-0518",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 1500.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-019",
+      "catalog_path": "data/invoices/dev/dev-019_r06.eml",
+      "case": "r06",
+      "received_at": "2026-05-06T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R06"
+      ],
+      "reason": "El importe supera la tarifa mensual acordada con Pampaluz según el contrato.",
+      "extraction": {
+        "beneficiary": "Pampaluz Ltda",
+        "amount": 1100,
+        "currency": "USD",
+        "due_date": "2026-05-20",
+        "invoice_number": "INV-PP-2026-0520",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 1100.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/pampaluz-ltda.txt",
+      "contract_terms": {
+        "beneficiary": "Pampaluz Ltda",
+        "fee_amount": 600,
+        "fee_currency": "USD",
+        "period_cap_amount": 2400,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-020",
+      "catalog_path": "data/invoices/dev/dev-020_r06.txt",
+      "case": "r06",
+      "received_at": "2026-05-08T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R06"
+      ],
+      "reason": "El monto no encaja con ninguna tarifa clara por ambigüedad del contrato Initech.",
+      "extraction": {
+        "beneficiary": "Initech SAS",
+        "amount": 2000,
+        "currency": "USD",
+        "due_date": "2026-05-22",
+        "invoice_number": "INV-IN-2026-0522",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 2000.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/initech-sas.txt",
+      "contract_terms": {
+        "beneficiary": "Initech SAS",
+        "fee_amount": 1200,
+        "fee_currency": "USD",
+        "fee_amount_alt": 1800,
+        "fee_alt_note": "Si el servicio incluye soporte prioritario (cl. 4.2); ambigüedad en 4.3.",
+        "period_cap_amount": 5000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "4.2",
+          "4.3",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-021",
+      "catalog_path": "data/invoices/dev/dev-021_r04_only.pdf",
+      "case": "r04_only",
+      "received_at": "2026-06-06T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R04"
+      ],
+      "reason": "El monto en USD alcanza o supera el umbral de aprobación humana de 3000 USD.",
+      "extraction": {
+        "beneficiary": "Norteclaro SpA",
+        "amount": 4200,
+        "currency": "USD",
+        "due_date": "2026-06-20",
+        "invoice_number": "INV-NC-2026-0620",
+        "recipient": "Acme Demo Inc.",
+        "department": "Marketing",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 4200.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/norteclaro-spa.txt",
+      "contract_terms": {
+        "beneficiary": "Norteclaro SpA",
+        "fee_amount": 4200,
+        "fee_currency": "USD",
+        "period_cap_amount": 4500,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-022",
+      "catalog_path": "data/invoices/dev/dev-022_r04_only.png",
+      "case": "r04_only",
+      "received_at": "2026-06-11T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R04",
+        "R06"
+      ],
+      "reason": "Supera el umbral humano y además excede el tope contractual del periodo.",
+      "extraction": {
+        "beneficiary": "Pampaluz Ltda",
+        "amount": 3800,
+        "currency": "USD",
+        "due_date": "2026-06-25",
+        "invoice_number": "INV-PP-2026-0625",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 3800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/pampaluz-ltda.txt",
+      "contract_terms": {
+        "beneficiary": "Pampaluz Ltda",
+        "fee_amount": 600,
+        "fee_currency": "USD",
+        "period_cap_amount": 2400,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-023",
+      "catalog_path": "data/invoices/dev/dev-023_r02_r04.eml",
+      "case": "r02_r04",
+      "received_at": "2026-06-24T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R02",
+        "R04",
+        "R06"
+      ],
+      "reason": "Excede el límite por pago y el umbral humano; también supera el tope del contrato.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 6000,
+        "currency": "USD",
+        "due_date": "2026-07-08",
+        "invoice_number": "INV-GX-2026-0708",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 6000.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-024",
+      "catalog_path": "data/invoices/dev/dev-024_r03.txt",
+      "case": "r03",
+      "received_at": "2026-05-13T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R03"
+      ],
+      "reason": "La suma de pagos del periodo más esta factura supera el límite mensual de 20000 USD.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 800,
+        "currency": "USD",
+        "due_date": "2026-05-27",
+        "invoice_number": "INV-GX-2026-0527",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [
+        {
+          "beneficiary": "Cargo Periodo Sintetico SA",
+          "amount_base": 10000,
+          "currency": "USD",
+          "invoice_number": "SEED-R03-024-A",
+          "received_at": "2026-05-02T10:00:00Z",
+          "decision": "PAGAR"
+        },
+        {
+          "beneficiary": "Cargo Periodo Sintetico SA",
+          "amount_base": 9300,
+          "currency": "USD",
+          "invoice_number": "SEED-R03-024-B",
+          "received_at": "2026-05-10T10:00:00Z",
+          "decision": "PAGAR"
+        }
+      ],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-025",
+      "catalog_path": "data/invoices/dev/dev-025_r03.pdf",
+      "case": "r03",
+      "received_at": "2026-08-02T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R03"
+      ],
+      "reason": "La suma de pagos del periodo más esta factura supera el límite mensual de 20000 USD.",
+      "extraction": {
+        "beneficiary": "Pampaluz Ltda",
+        "amount": 600,
+        "currency": "USD",
+        "due_date": "2026-08-16",
+        "invoice_number": "INV-PP-2026-0816",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 600.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [
+        {
+          "beneficiary": "Cargo Periodo Sintetico SA",
+          "amount_base": 10000,
+          "currency": "USD",
+          "invoice_number": "SEED-R03-025-A",
+          "received_at": "2026-08-02T10:00:00Z",
+          "decision": "PAGAR"
+        },
+        {
+          "beneficiary": "Cargo Periodo Sintetico SA",
+          "amount_base": 9500,
+          "currency": "USD",
+          "invoice_number": "SEED-R03-025-B",
+          "received_at": "2026-08-08T10:00:00Z",
+          "decision": "PAGAR"
+        }
+      ],
+      "review_passes": 2,
+      "contract_path": "data/contracts/pampaluz-ltda.txt",
+      "contract_terms": {
+        "beneficiary": "Pampaluz Ltda",
+        "fee_amount": 600,
+        "fee_currency": "USD",
+        "period_cap_amount": 2400,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-026",
+      "catalog_path": "data/invoices/dev/dev-026_r07.png",
+      "case": "r07",
+      "received_at": "2026-08-25T10:00:00Z",
+      "expected_decision": "FRENAR",
+      "expected_rules": [
+        "R07",
+        "R04"
+      ],
+      "reason": "No hay presupuesto suficiente en el departamento para cubrir este pago.",
+      "extraction": {
+        "beneficiary": "Norteclaro SpA",
+        "amount": 4200,
+        "currency": "USD",
+        "due_date": "2026-09-08",
+        "invoice_number": "INV-NC-2026-0908",
+        "recipient": "Acme Demo Inc.",
+        "department": "Marketing",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 4200.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [
+        {
+          "beneficiary": "Norteclaro SpA",
+          "amount_base": 1500,
+          "currency": "USD",
+          "invoice_number": "SEED-R07-026",
+          "received_at": "2026-09-02T10:00:00Z",
+          "decision": "PAGAR"
+        }
+      ],
+      "review_passes": 2,
+      "contract_path": "data/contracts/norteclaro-spa.txt",
+      "contract_terms": {
+        "beneficiary": "Norteclaro SpA",
+        "fee_amount": 4200,
+        "fee_currency": "USD",
+        "period_cap_amount": 4500,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-027",
+      "catalog_path": "data/invoices/dev/dev-027_r07.eml",
+      "case": "r07",
+      "received_at": "2026-09-26T10:00:00Z",
+      "expected_decision": "FRENAR",
+      "expected_rules": [
+        "R07"
+      ],
+      "reason": "No hay presupuesto suficiente en el departamento para cubrir este pago.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 800,
+        "currency": "USD",
+        "due_date": "2026-10-10",
+        "invoice_number": "INV-GX-2026-1010",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [
+        {
+          "beneficiary": "Globex LLC",
+          "amount_base": 7500,
+          "currency": "USD",
+          "invoice_number": "SEED-R07-027",
+          "received_at": "2026-10-02T10:00:00Z",
+          "decision": "PAGAR"
+        }
+      ],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-028",
+      "catalog_path": "data/invoices/dev/dev-028_r08.txt",
+      "case": "r08",
+      "received_at": "2026-07-19T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R08"
+      ],
+      "reason": "El destinatario de la factura no es la empresa configurada; requiere escalamiento.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 800,
+        "currency": "USD",
+        "due_date": "2026-08-02",
+        "invoice_number": "INV-GX-2026-0802",
+        "recipient": "Otra Empresa Fantasma SA",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-029",
+      "catalog_path": "data/invoices/dev/dev-029_r09_r11.pdf",
+      "case": "r09_r11",
+      "received_at": "2026-03-20T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R09"
+      ],
+      "reason": "Falta el monto en la extracción; no se puede validar el pago con confianza.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": null,
+        "currency": "USD",
+        "due_date": "2026-04-03",
+        "invoice_number": "INV-GX-2026-0320",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        }
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-030",
+      "catalog_path": "data/invoices/dev/dev-030_r09_r11.png",
+      "case": "r09_r11",
+      "received_at": "2026-06-16T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R11"
+      ],
+      "reason": "Falta o es ilegible la fecha de vencimiento; se escala por dato obligatorio.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 800,
+        "currency": "USD",
+        "due_date": null,
+        "invoice_number": "INV-GX-2026-0630",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-031",
+      "catalog_path": "data/invoices/dev/dev-031_r13.eml",
+      "case": "r13",
+      "received_at": "2026-10-29T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R13"
+      ],
+      "reason": "El documento contiene texto que intenta alterar las reglas del sistema.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 800,
+        "currency": "USD",
+        "due_date": "2026-11-12",
+        "invoice_number": "INV-GX-2026-1112",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-032",
+      "catalog_path": "data/invoices/dev/dev-032_r13.txt",
+      "case": "r13",
+      "received_at": "2026-12-01T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R13"
+      ],
+      "reason": "El documento contiene texto que intenta alterar las reglas del sistema.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 800,
+        "currency": "USD",
+        "due_date": "2026-12-15",
+        "invoice_number": "INV-GX-2026-1215",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-033",
+      "catalog_path": "data/invoices/dev/dev-033_r10.pdf",
+      "case": "r10",
+      "received_at": "2026-03-19T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R10"
+      ],
+      "reason": "La moneda XXX no tiene tasa en la tabla FX; no se puede convertir a USD.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 100,
+        "currency": "XXX",
+        "due_date": "2026-04-02",
+        "invoice_number": "INV-GX-2026-0402",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2",
+          "currency": "synthetic:3"
+        }
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "dev-034",
+      "catalog_path": "data/invoices/dev/dev-034_r12.png",
+      "case": "r12",
+      "received_at": "2026-05-02T10:00:00Z",
+      "expected_decision": "FRENAR",
+      "expected_rules": [
+        "R12"
+      ],
+      "reason": "El beneficiario tiene bloqueo manual activo en el contexto de evaluación.",
+      "extraction": {
+        "beneficiary": "Pampaluz Ltda",
+        "amount": 600,
+        "currency": "USD",
+        "due_date": "2026-05-16",
+        "invoice_number": "INV-PP-2026-0516",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 600.0
+      },
+      "contract_confirmed": true,
+      "manual_block": true,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/pampaluz-ltda.txt",
+      "contract_terms": {
+        "beneficiary": "Pampaluz Ltda",
+        "fee_amount": 600,
+        "fee_currency": "USD",
+        "period_cap_amount": 2400,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    }
+  ]
+}

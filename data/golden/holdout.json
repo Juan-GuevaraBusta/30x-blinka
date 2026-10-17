@@ -1,0 +1,460 @@
+{
+  "schema_version": 1,
+  "split": "holdout",
+  "dataset_review": {
+    "review_passes": 2,
+    "method": "Dos pasadas en sesión T1.7: catálogo + docs/04 + notas del artefacto.",
+    "reviewed_at": "2026-10-17T12:00:00-05:00",
+    "reviewer_note": "Segunda lectura humana posterior pendiente (D011); consistencia interna 2x en agente."
+  },
+  "entries": [
+    {
+      "invoice_id": "hold-001",
+      "catalog_path": "data/invoices/holdout/hold-001_normal_pay.pdf",
+      "case": "normal_pay",
+      "received_at": "2026-12-23T10:00:00Z",
+      "expected_decision": "PAGAR",
+      "expected_rules": [],
+      "reason": "Primera factura con este número en orden de recepción; aún no hay duplicado en el ledger.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 800,
+        "currency": "USD",
+        "due_date": "2027-01-06",
+        "invoice_number": "INV-H-GX-1",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      },
+      "notes": "Primera del par INV-H-GX-1 por received_at; PAGAR en golden. hold-004 es el duplicado exacto posterior."
+    },
+    {
+      "invoice_id": "hold-002",
+      "catalog_path": "data/invoices/holdout/hold-002_normal_pay.png",
+      "case": "normal_pay",
+      "received_at": "2026-12-25T10:00:00Z",
+      "expected_decision": "PAGAR",
+      "expected_rules": [],
+      "reason": "La factura cumple las reglas: beneficiario autorizado, montos dentro de límites y contrato confirmado.",
+      "extraction": {
+        "beneficiary": "Pampaluz Ltda",
+        "amount": 600,
+        "currency": "USD",
+        "due_date": "2027-01-08",
+        "invoice_number": "INV-H-PP-1",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 600.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/pampaluz-ltda.txt",
+      "contract_terms": {
+        "beneficiary": "Pampaluz Ltda",
+        "fee_amount": 600,
+        "fee_currency": "USD",
+        "period_cap_amount": 2400,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "hold-003",
+      "catalog_path": "data/invoices/holdout/hold-003_normal_pay.eml",
+      "case": "normal_pay",
+      "received_at": "2027-02-06T10:00:00Z",
+      "expected_decision": "PAGAR",
+      "expected_rules": [],
+      "reason": "La factura cumple las reglas: beneficiario autorizado, montos dentro de límites y contrato confirmado.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 800,
+        "currency": "USD",
+        "due_date": "2027-02-20",
+        "invoice_number": "INV-H-GX-2",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "hold-004",
+      "catalog_path": "data/invoices/holdout/hold-004_dup_exact.txt",
+      "case": "dup_exact",
+      "received_at": "2026-12-29T10:00:00Z",
+      "expected_decision": "FRENAR",
+      "expected_rules": [
+        "R05"
+      ],
+      "reason": "Ya existe una factura con el mismo número y beneficiario; se frena por duplicado exacto.",
+      "extraction": {
+        "beneficiary": "Globex LLC",
+        "amount": 800,
+        "currency": "USD",
+        "due_date": "2027-01-12",
+        "invoice_number": "INV-H-GX-1",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 800.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/globex-llc.txt",
+      "contract_terms": {
+        "beneficiary": "Globex LLC",
+        "fee_amount": 800,
+        "fee_currency": "USD",
+        "period_cap_amount": 4000,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      },
+      "notes": "Segunda dup_exact holdout; FRENAR por R05 tras hold-001."
+    },
+    {
+      "invoice_id": "hold-005",
+      "catalog_path": "data/invoices/holdout/hold-005_fx_pay.pdf",
+      "case": "fx_pay",
+      "received_at": "2027-01-06T10:00:00Z",
+      "expected_decision": "PAGAR",
+      "expected_rules": [],
+      "reason": "Pago autorizado tras convertir la moneda con la tabla FX; el monto en USD queda bajo umbrales.",
+      "extraction": {
+        "beneficiary": "Rioseco Servicios SAS",
+        "amount": 8000000,
+        "currency": "COP",
+        "due_date": "2027-01-20",
+        "invoice_number": "INV-H-RS-1",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 2000.0,
+        "fx": {
+          "rate": 0.00025,
+          "date": "2026-03-01"
+        }
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/rioseco-servicios-sas.txt",
+      "contract_terms": {
+        "beneficiary": "Rioseco Servicios SAS",
+        "fee_amount": 8000000,
+        "fee_currency": "COP",
+        "period_cap_amount": 20000000,
+        "period_cap_currency": "COP",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "hold-006",
+      "catalog_path": "data/invoices/holdout/hold-006_r01.png",
+      "case": "r01",
+      "received_at": "2027-01-19T10:00:00Z",
+      "expected_decision": "FRENAR",
+      "expected_rules": [
+        "R01"
+      ],
+      "reason": "El beneficiario no está en la lista permitida; el pago debe frenarse.",
+      "extraction": {
+        "beneficiary": "Nuevo Socio Fantasma SAS",
+        "amount": 500,
+        "currency": "USD",
+        "due_date": "2027-02-02",
+        "invoice_number": "INV-H-NS-1",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 500.0
+      },
+      "contract_confirmed": false,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2
+    },
+    {
+      "invoice_id": "hold-007",
+      "catalog_path": "data/invoices/holdout/hold-007_r06.eml",
+      "case": "r06",
+      "received_at": "2027-01-27T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R06"
+      ],
+      "reason": "El importe en EUR no coincide con la tarifa de 500 EUR del contrato Andesbyte.",
+      "extraction": {
+        "beneficiary": "Andesbyte SAS",
+        "amount": 900,
+        "currency": "EUR",
+        "due_date": "2027-02-10",
+        "invoice_number": "INV-H-AB-1",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 972.0,
+        "fx": {
+          "rate": 1.08,
+          "date": "2026-03-01"
+        }
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/andesbyte-sas.txt",
+      "contract_terms": {
+        "beneficiary": "Andesbyte SAS",
+        "fee_amount": 500,
+        "fee_currency": "EUR",
+        "period_cap_amount": 2000,
+        "period_cap_currency": "EUR",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "hold-008",
+      "catalog_path": "data/invoices/holdout/hold-008_r04_only.txt",
+      "case": "r04_only",
+      "received_at": "2027-02-04T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R04"
+      ],
+      "reason": "El monto en USD alcanza o supera el umbral de aprobación humana de 3000 USD.",
+      "extraction": {
+        "beneficiary": "Norteclaro SpA",
+        "amount": 4200,
+        "currency": "USD",
+        "due_date": "2027-02-18",
+        "invoice_number": "INV-H-NC-1",
+        "recipient": "Acme Demo Inc.",
+        "department": "Marketing",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 4200.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/norteclaro-spa.txt",
+      "contract_terms": {
+        "beneficiary": "Norteclaro SpA",
+        "fee_amount": 4200,
+        "fee_currency": "USD",
+        "period_cap_amount": 4500,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "hold-009",
+      "catalog_path": "data/invoices/holdout/hold-009_r07.eml",
+      "case": "r07",
+      "received_at": "2027-04-01T10:00:00Z",
+      "expected_decision": "FRENAR",
+      "expected_rules": [
+        "R07",
+        "R04"
+      ],
+      "reason": "No hay presupuesto suficiente en el departamento para cubrir este pago.",
+      "extraction": {
+        "beneficiary": "Norteclaro SpA",
+        "amount": 4200,
+        "currency": "USD",
+        "due_date": "2027-04-15",
+        "invoice_number": "INV-H-NC-2",
+        "recipient": "Acme Demo Inc.",
+        "department": "Marketing",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 4200.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [
+        {
+          "beneficiary": "Norteclaro SpA",
+          "amount_base": 1500,
+          "currency": "USD",
+          "invoice_number": "SEED-R07-H09",
+          "received_at": "2027-04-02T10:00:00Z",
+          "decision": "PAGAR"
+        }
+      ],
+      "review_passes": 2,
+      "contract_path": "data/contracts/norteclaro-spa.txt",
+      "contract_terms": {
+        "beneficiary": "Norteclaro SpA",
+        "fee_amount": 4200,
+        "fee_currency": "USD",
+        "period_cap_amount": 4500,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    },
+    {
+      "invoice_id": "hold-010",
+      "catalog_path": "data/invoices/holdout/hold-010_r13.txt",
+      "case": "r13",
+      "received_at": "2027-02-19T10:00:00Z",
+      "expected_decision": "ESCALAR",
+      "expected_rules": [
+        "R13"
+      ],
+      "reason": "El documento contiene texto que intenta alterar las reglas del sistema.",
+      "extraction": {
+        "beneficiary": "Pampaluz Ltda",
+        "amount": 600,
+        "currency": "USD",
+        "due_date": "2027-03-05",
+        "invoice_number": "INV-H-PP-2",
+        "recipient": "Acme Demo Inc.",
+        "department": "Ingenieria",
+        "invoice_type": "servicios",
+        "lines": [],
+        "source_spans": {
+          "beneficiary": "synthetic:1",
+          "invoice_number": "synthetic:2"
+        },
+        "amount_base": 600.0
+      },
+      "contract_confirmed": true,
+      "manual_block": false,
+      "ledger_seed": [],
+      "review_passes": 2,
+      "contract_path": "data/contracts/pampaluz-ltda.txt",
+      "contract_terms": {
+        "beneficiary": "Pampaluz Ltda",
+        "fee_amount": 600,
+        "fee_currency": "USD",
+        "period_cap_amount": 2400,
+        "period_cap_currency": "USD",
+        "billing_period": "mensual",
+        "cited_clauses": [
+          "4.1",
+          "5.1",
+          "6.1"
+        ]
+      }
+    }
+  ]
+}
