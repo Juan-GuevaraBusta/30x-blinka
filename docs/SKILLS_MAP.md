@@ -121,7 +121,7 @@ Inventario: 163 nombres únicos. Ninguna skill inventada en este mapa.
 | T6.1 | `sales-enablement` | PARCIAL | Menciona guiones de demo, en clave de ventas. |
 | T6.2 | NINGUNA | NINGUNA | `video` genera vídeo de marketing con herramientas de IA, no una grabación de la demo. |
 | T6.3 | `finishing-a-development-branch` | PARCIAL | Ayuda a cerrar la rama. El etiquetado lo decide el humano. |
-| G0 | `verification-before-completion` | TOTAL | El gate se cierra con salida de las tres llamadas, no con un relato. |
+| G0 | `verification-before-completion` | TOTAL | El gate se cierra con salida de las tres llamadas, no con un relato. Contrato: `docs/G0_SPEC.md` (D027). T0.3 sigue NINGUNA de dominio. |
 | G1 | `verification-before-completion` | TOTAL | Igual, contra el checklist de `docs/05`. |
 | G2 | `verification-before-completion` | TOTAL | Igual. |
 | G3 | `verification-before-completion` | TOTAL | Igual. |

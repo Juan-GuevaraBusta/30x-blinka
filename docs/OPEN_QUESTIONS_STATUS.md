@@ -39,6 +39,8 @@ Siguen vigentes. Estado: ASUMIDA.
 | A10 | UI y explicaciones en español | ASUMIDA |
 | A11 | Ledger ordenado por fecha de recepción | ASUMIDA |
 
+G0 no está cerrado. Contrato de la sesión de smoke: `docs/G0_SPEC.md` (D027). Q1 vía ya está; la clave o el plan B se resuelven al ejecutar ese spec. Q2 IDs de modelo se anotan tras el smoke de OpenCode. No pegar claves.
+
 ## Qué sigue sin poder verificarse (igual que `docs/08`)
 
 - Formato real de la petición JEV.
