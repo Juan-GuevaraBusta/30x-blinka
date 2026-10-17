@@ -12,7 +12,7 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 
 from app.api.schemas import InvoiceRejected, InvoiceUpload
-from app.config import Settings
+from app.config import Settings, load_settings
 from app.extraction.ingest import IngestChannel
 from app.graph.build import GraphError, run_invoice
 from app.graph.deps import GraphDeps
@@ -140,7 +140,7 @@ def make_production_processor(
 ) -> Processor:
     """Factory used by `create_production_app`. Tests may inject `deps_factory`."""
     root = data_root if data_root is not None else repo_root_from_module()
-    effective_settings = settings or Settings()
+    effective_settings = settings if settings is not None else load_settings()
     saver = checkpointer if checkpointer is not None else _PROCESS_CHECKPOINTER
 
     def default_factory(
