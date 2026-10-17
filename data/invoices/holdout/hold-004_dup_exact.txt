@@ -1,0 +1,8 @@
+Globex LLC (2026-12-29 14:00): factura INV-H-GX-1
+FROM: Globex LLC
+BILL TO: Acme Demo Inc.
+INVOICE: INV-H-GX-1
+AMOUNT DUE: 800 USD
+DUE: 2027-01-12
+DEPT: Ingenieria
+Documento ficticio. No representa a ninguna empresa real.

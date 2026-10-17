@@ -1,0 +1,8 @@
+[2026-07-19 10:15] Globex LLC: adjunta factura INV-GX-2026-0802
+Beneficiario: Globex LLC
+Numero: INV-GX-2026-0802
+Total: 800 USD
+Vence: 2026-08-02
+Departamento: Ingenieria
+Destinatario: Otra Empresa Fantasma SA
+Documento ficticio. No representa a ninguna empresa real.

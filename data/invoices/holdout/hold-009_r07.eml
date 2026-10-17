@@ -1,0 +1,14 @@
+From: billing@norteclaro-spa.demo.test
+To: ap@acme.demo.test
+Subject: HOLD-INVOICE INV-H-NC-2
+Date: 2027-04-01
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+FROM: Norteclaro SpA
+BILL TO: Acme Demo Inc.
+INVOICE: INV-H-NC-2
+AMOUNT DUE: 4200 USD
+DUE: 2027-04-15
+DEPT: Marketing
+Documento ficticio. No representa a ninguna empresa real.

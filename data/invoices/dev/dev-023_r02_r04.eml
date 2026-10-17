@@ -1,0 +1,14 @@
+From: billing@globex-llc.demo.test
+To: ap@acme.demo.test
+Subject: Factura INV-GX-2026-0708 de Globex LLC
+Date: 2026-06-24
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Beneficiario: Globex LLC
+Numero: INV-GX-2026-0708
+Total: 6000 USD
+Vence: 2026-07-08
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Documento ficticio. No representa a ninguna empresa real.

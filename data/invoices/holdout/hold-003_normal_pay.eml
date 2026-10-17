@@ -1,0 +1,14 @@
+From: billing@globex-llc.demo.test
+To: ap@acme.demo.test
+Subject: HOLD-INVOICE INV-H-GX-2
+Date: 2027-02-06
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+FROM: Globex LLC
+BILL TO: Acme Demo Inc.
+INVOICE: INV-H-GX-2
+AMOUNT DUE: 800 USD
+DUE: 2027-02-20
+DEPT: Ingenieria
+Documento ficticio. No representa a ninguna empresa real.

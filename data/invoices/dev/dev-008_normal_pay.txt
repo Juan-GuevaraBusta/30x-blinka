@@ -1,0 +1,8 @@
+[2026-03-31 10:15] Pampaluz Ltda: adjunta factura INV-PP-2026-0414
+Beneficiario: Pampaluz Ltda
+Numero: INV-PP-2026-0414
+Total: 600 USD
+Vence: 2026-04-14
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Documento ficticio. No representa a ninguna empresa real.

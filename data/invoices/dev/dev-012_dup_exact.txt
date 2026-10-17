@@ -1,0 +1,8 @@
+[2026-08-21 10:15] Globex LLC: adjunta factura INV-GX-DUP-EXACT
+Beneficiario: Globex LLC
+Numero: INV-GX-DUP-EXACT
+Total: 800 USD
+Vence: 2026-09-04
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Documento ficticio. No representa a ninguna empresa real.

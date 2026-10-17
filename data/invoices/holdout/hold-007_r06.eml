@@ -1,0 +1,14 @@
+From: billing@andesbyte-sas.demo.test
+To: ap@acme.demo.test
+Subject: HOLD-INVOICE INV-H-AB-1
+Date: 2027-01-27
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+FROM: Andesbyte SAS
+BILL TO: Acme Demo Inc.
+INVOICE: INV-H-AB-1
+AMOUNT DUE: 900 EUR
+DUE: 2027-02-10
+DEPT: Ingenieria
+Documento ficticio. No representa a ninguna empresa real.

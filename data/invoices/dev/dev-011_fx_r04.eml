@@ -1,0 +1,14 @@
+From: billing@rioseco-servicios-sa.demo.test
+To: ap@acme.demo.test
+Subject: Factura INV-RS-2026-0218 de Rioseco Servicios SAS
+Date: 2026-02-04
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Beneficiario: Rioseco Servicios SAS
+Numero: INV-RS-2026-0218
+Total: 14000000 COP
+Vence: 2026-02-18
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Documento ficticio. No representa a ninguna empresa real.

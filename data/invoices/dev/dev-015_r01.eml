@@ -1,0 +1,14 @@
+From: billing@nuevo-socio-fantasma.demo.test
+To: ap@acme.demo.test
+Subject: Factura INV-NS-2026-0301 de Nuevo Socio Fantasma SAS
+Date: 2026-02-15
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Beneficiario: Nuevo Socio Fantasma SAS
+Numero: INV-NS-2026-0301
+Total: 500 USD
+Vence: 2026-03-01
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Documento ficticio. No representa a ninguna empresa real.

@@ -1,0 +1,8 @@
+Norteclaro SpA (2027-02-04 14:00): factura INV-H-NC-1
+FROM: Norteclaro SpA
+BILL TO: Acme Demo Inc.
+INVOICE: INV-H-NC-1
+AMOUNT DUE: 4200 USD
+DUE: 2027-02-18
+DEPT: Marketing
+Documento ficticio. No representa a ninguna empresa real.

@@ -1,0 +1,8 @@
+[2026-05-18 10:15] Nuevo Socio Fantasma SAS: adjunta factura INV-NS-2026-0601
+Beneficiario: Nuevo Socio Fantasma SAS
+Numero: INV-NS-2026-0601
+Total: 700 USD
+Vence: 2026-06-01
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Documento ficticio. No representa a ninguna empresa real.

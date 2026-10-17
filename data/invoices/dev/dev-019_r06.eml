@@ -1,0 +1,14 @@
+From: billing@pampaluz-ltda.demo.test
+To: ap@acme.demo.test
+Subject: Factura INV-PP-2026-0520 de Pampaluz Ltda
+Date: 2026-05-06
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Beneficiario: Pampaluz Ltda
+Numero: INV-PP-2026-0520
+Total: 1100 USD
+Vence: 2026-05-20
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Documento ficticio. No representa a ninguna empresa real.

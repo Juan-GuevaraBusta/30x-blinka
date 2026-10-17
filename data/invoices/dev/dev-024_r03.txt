@@ -1,0 +1,8 @@
+[2026-05-13 10:15] Globex LLC: adjunta factura INV-GX-2026-0527
+Beneficiario: Globex LLC
+Numero: INV-GX-2026-0527
+Total: 800 USD
+Vence: 2026-05-27
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Documento ficticio. No representa a ninguna empresa real.
