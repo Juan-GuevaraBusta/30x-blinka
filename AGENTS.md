@@ -24,6 +24,7 @@ Si una tarea exige violar un invariante: **detente y pregunta**.
 - Documentos, UI y explicaciones al usuario: **español**. Código, nombres de variables, commits: **inglés**.
 - Python 3.11+, Pydantic v2, tipado estricto, `ruff`. TypeScript estricto en frontend.
 - Commits pequeños, un ID de tarea por commit (`T2.3: implement R02 per-payment limit`).
+- **Commit + push obligatorios tras cada tarea o avance**, por pequeño que sea. No acumular trabajo solo en local. Detalle: `.cursor/rules/commit-push-after-progress.mdc`.
 - Sin secretos en el repo. `.env.example` sí; `.env` no.
 - Decisiones de diseño relevantes: una línea en `docs/AI_USAGE_LOG.md`.
 
@@ -72,7 +73,7 @@ Modo de este hackathon: **sombreros secuenciales** de un solo agente (ver `docs/
 Reglas de coordinación:
 1. **Contratos primero.** Los esquemas (`models/`) se congelan al final de F1. Cambios posteriores los propone Spec & Data y los aprueba el Orquestador.
 2. **Un dueño por archivo.** Para tocar algo ajeno: pedir al dueño o abrir nota en `docs/AI_USAGE_LOG.md`.
-3. **Handoff explícito:** al terminar una tarea, listar archivos tocados, pruebas añadidas y qué sigue.
+3. **Handoff explícito:** al terminar una tarea, listar archivos tocados, pruebas añadidas y qué sigue; luego **commit y push** de ese avance antes de cambiar de sombrero o de tarea.
 4. **Paralelo permitido** solo entre agentes sin dependencia (p. ej. Frontend con API mockeada desde el esquema OpenAPI).
 5. **Nada se da por terminado sin su gate** (ver `docs/05_PHASES_AND_ROADMAP.md`).
 
@@ -81,6 +82,7 @@ Reglas de coordinación:
 - Los invariantes siguen verdes.
 - Si cambió comportamiento visible: el registro de decisión y su explicación siguen siendo legibles para una persona no técnica.
 - Documentación mínima actualizada (README de módulo o docstring).
+- El avance está en remoto: commit hecho y `git push` confirmado (`git status` al día con `origin`).
 
 ## 7. Qué NO hacer
 - No añadir bases vectoriales, colas, microservicios ni frameworks extra sin aprobación del Orquestador.

@@ -1,0 +1,32 @@
+---
+description: Tras cada tarea o avance, por pequeño que sea, commit y push obligatorios
+alwaysApply: true
+---
+
+# Commit y push tras cada avance
+
+Norma del proyecto. No negociable.
+
+## Cuándo
+
+Tras **cada** tarea del roadmap, handoff de sombrero, o avance parcial (docs, código, tests, config). Incluye cambios mínimos de una línea.
+
+## Qué hacer
+
+1. Verificar que no hay secretos (`.env`, claves, datos reales).
+2. `git add` solo archivos del avance actual.
+3. Commit con mensaje en inglés, ID de tarea si aplica (`T2.3: …`).
+4. `git push` a la rama remota de seguimiento (crear upstream con `-u` si falta).
+5. Confirmar con `git status` limpio respecto a ese avance.
+
+## Qué no hacer
+
+- No acumular varios avances sin push.
+- No dejar el trabajo solo en local “para luego”.
+- No `--force` a `main`/`master` salvo pedido explícito del humano.
+- No cambiar `git config` (autor = cuenta del humano).
+- No incluir `.env` ni secretos en el commit.
+
+## Conflicto con otras preferencias
+
+Esta norma **manda** sobre preferencias genéricas de “solo commit si el usuario lo pide”. El humano del repo la fijó como regla de proyecto.

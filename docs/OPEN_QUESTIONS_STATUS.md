@@ -2,24 +2,24 @@
 
 Dueño: Orquestador. Fuente: `docs/08_OPEN_QUESTIONS_AND_ASSUMPTIONS.md`, más las que salieron al armar el roster.
 
-Fecha: 2026-10-16. Ninguna respuesta humana todavía.
+Fecha de las respuestas: 2026-10-16 22:21 (UTC-5).
 
 ## Preguntas
 
 | ID | Pregunta | Bloqueante | Propuesta por defecto | Respuesta | Estado (ABIERTA\|RESUELTA\|ASUMIDA) | Responde |
 |---|---|---|---|---|---|---|
-| Q1 | ¿Cómo se accede a JEV: clave directa de TypeSafe, Vercel AI Gateway, Cloudflare Workers AI o AI/ML API? ¿Cuál es el formato exacto de la petición? | Sí, para T0.3 y F3 | Probar primero una vía sin lista de espera. Si no hay acceso, plan B: `DecisionClient` con LLM de salida estructurada. | POR COMPLETAR | ABIERTA | Humano |
-| Q2 | ¿Qué modelos expone OpenCode, hablan el formato OpenAI, hay salida estructurada y visión, y qué presupuesto de llamadas hay? | Sí, para T0.3 y F3 | `get_llm(role)` con extractor barato y verificador fuerte, por variables de entorno. | POR COMPLETAR | ABIERTA | Humano |
-| Q3 | ¿Los `on_fail` de `docs/04` son los que queremos? En particular, beneficiario nuevo = FRENAR, no ESCALAR. | Sí para etiquetar T1.7. No impide T0.1. | Dejar los defaults de `docs/PARAMETERS.md` y documentarlos en `rules.json`. | POR COMPLETAR | ABIERTA | Humano |
-| Q4 | ¿Hay una segunda persona para la segunda lectura de etiquetas y para la lectura ciega de 5 registros? | No para codar. Sí para la calidad de G1 y T5.4. | La misma persona hace una segunda pasada en otro momento. No es independiente. Se anota esa limitación en el reporte. | POR COMPLETAR | ABIERTA | Humano |
+| Q1 | ¿Cómo se accede a JEV? | La vía ya no. La clave sí, para T0.3. | API directa. Si la clave no llega, plan B. | API directa de TypeSafe. La clave todavía no está; la consigue el humano. El formato de la petición se comprueba en T0.3. | RESUELTA en la vía. La clave sigue PENDIENTE. | Humano, 2026-10-16 22:21 |
+| Q2 | ¿Qué modelos, y con qué presupuesto? | No, si se respeta la política de costo. | Modelos baratos por variables de entorno. | El humano puede elegir el que sea. En la demo no se usan modelos caros. Extractor económico; verificador como mucho un peldaño mejor. IDs en T0.3. | RESUELTA | Humano, 2026-10-16 22:21 |
+| Q3 | ¿Se confirman los `on_fail` de `docs/04`, con beneficiario nuevo = FRENAR? | No. Ya no bloquea T1.7. | Esos defaults. | Sí. | RESUELTA | Humano, 2026-10-16 22:21 |
+| Q4 | ¿Hay una segunda persona para releer las etiquetas y para leer 5 explicaciones sin haber visto el código? | No para codar. | La misma persona hace una segunda pasada más tarde y se anota que no es independiente. | No entendió la pregunta. Sigue ABIERTA. Explicación en el chat del 2026-10-16 22:21. | ABIERTA | Humano |
 | Q5 | ¿Hay facturas o reglas compartidas por otros equipos? | No | Generar las propias. Si llegan compartidas, sumarlas al holdout, no al set con el que se calibra. | — | ASUMIDA | Orquestador, default de `docs/08` |
 | Q6 | ¿Dónde se despliega el backend y hay Postgres? | No, si se acepta el SUPUESTO | Render + Postgres gestionado. Frontend en Vercel. | — | ASUMIDA | Orquestador (D003). El humano puede revertirla. |
 | Q7 | ¿Los pendientes de aprobación reservan saldo del periodo? | No | No en v1. | — | ASUMIDA | Orquestador, default de `docs/08` |
 | Q8 | ¿Hay que mostrar trazas de LangSmith a evaluadores externos? | No | Capturas y enlace si el plan lo permite. La UI no depende de LangSmith para explicar la decisión. | — | ASUMIDA | Orquestador, default de `docs/08` |
 | Q9 | ¿La evaluación revisará el uso de IA? | No | Mantener este archivo y `docs/AI_USAGE_LOG.md` desde el inicio. | — | ASUMIDA | Orquestador, default de `docs/08` |
-| Q10 | ¿Se confirman los parámetros PROPUESTOS de `docs/PARAMETERS.md` (empresa, límites ambos en 3000, beneficiarios, FX, umbrales JEV)? | Sí para dar por cerrados los números. Se puede avanzar con ellos marcados PROPUESTO. | Usar la tabla tal cual. R02 y R04 quedan en el mismo monto. | POR COMPLETAR | ABIERTA | Humano |
+| Q10 | ¿R02 y R04 pueden quedar en el mismo monto? | No. El resto del paquete (nombre, FX, beneficiarios, umbrales JEV) sigue PROPUESTO y no bloquea. | Montos distintos. | Deben ser distintos. Quedaron umbral humano 3000 USD y límite por pago 5000 USD. | RESUELTA | Humano, 2026-10-16 22:21 |
 
-Q10 agrupa la confirmación del paquete. No cambia invariantes.
+Q10 quedó resuelta solo en los dos montos. Nombre, FX, beneficiarios y umbrales JEV siguen PROPUESTOS en `docs/PARAMETERS.md`.
 
 ## Supuestos heredados de `docs/08`
 

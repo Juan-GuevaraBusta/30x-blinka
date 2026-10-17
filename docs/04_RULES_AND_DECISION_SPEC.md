@@ -17,7 +17,7 @@ La aprobación humana es un **evento nuevo** con autor y motivo; nunca reescribe
 {
   "company": {"name": "Acme Demo Inc.", "base_currency": "USD"},
   "limits": {
-    "per_payment": 3000,
+    "per_payment": 5000,
     "per_period": {"type": "calendar_month", "amount": 20000}
   },
   "human_approval_threshold": 3000,
@@ -33,7 +33,7 @@ La aprobación humana es un **evento nuevo** con autor y motivo; nunca reescribe
 }
 ```
 - Se valida con JSON Schema/Pydantic. Una regla mal formada **no se guarda**.
-- Los `on_fail` por defecto son una decisión de producto abierta (ver `08`). Son configurables.
+- Los `on_fail` quedaron confirmados el 2026-10-16 (beneficiario nuevo = FRENAR). Siguen siendo configurables. El límite por pago vivo es 5000 USD y el umbral humano es 3000 USD (`docs/PARAMETERS.md`, D009).
 
 ## 3. Catálogo de reglas
 | Código | Regla | Entrada | Falla si… | Default |
@@ -70,7 +70,7 @@ R12 y R13 son el recorte de v1 para "compromisos bancarios / pendientes de stake
   "received_at": "2026-03-04T10:15:00Z",
   "decision": "ESCALAR",
   "severity": 1,
-  "summary": "Requiere aprobación humana: el monto supera el límite por pago.",
+  "summary": "Escalada: USD 4.200 llega al umbral de aprobación humana de USD 3.000 (regla R04).",
   "extracted": {
     "beneficiary": "Globex LLC",
     "amount": 4200.0, "currency": "USD", "amount_base": 4200.0,
@@ -80,7 +80,8 @@ R12 y R13 son el recorte de v1 para "compromisos bancarios / pendientes de stake
   },
   "checks": [
     {"rule": "R01", "name": "Beneficiario permitido", "result": "OK", "detail": "Globex LLC está en la lista."},
-    {"rule": "R02", "name": "Límite por pago", "result": "FALLA", "detail": "USD 4.200 supera el límite de USD 3.000.", "on_fail": "ESCALAR"},
+    {"rule": "R02", "name": "Límite por pago", "result": "OK", "detail": "USD 4.200 no supera el límite de USD 5.000."},
+    {"rule": "R04", "name": "Aprobación humana por monto", "result": "FALLA", "detail": "USD 4.200 llega al umbral de USD 3.000.", "on_fail": "ESCALAR"},
     {"rule": "R06", "name": "Cuadra con contrato", "result": "OK", "detail": "Tarifa pactada USD 4.200", "evidence": {"clause": "4.2", "quote": "..."}}
   ],
   "jev_signals": [{"id": "J2", "answer": true, "probability": 0.97}],
@@ -103,6 +104,7 @@ Reglas del registro:
 | PAGAR | "Pagada: cumple todas las reglas ({n} chequeos). Monto USD {monto_base}, vence {fecha}." |
 | R01 falla | "Frenada: {beneficiario} no está en la lista de beneficiarios permitidos (regla R01)." |
 | R02 falla | "Escalada: USD {monto_base} supera el límite por pago de USD {limite} (regla R02)." |
+| R04 falla | "Escalada: USD {monto_base} llega al umbral de aprobación humana de USD {umbral} (regla R04)." |
 | R03 falla | "Escalada: con este pago el acumulado del mes sería USD {acum}, sobre el límite de USD {limite} (regla R03)." |
 | R05 exacto | "Frenada: ya existe una factura {numero} de {beneficiario} registrada el {fecha} (regla R05)." |
 | R06 falla | "Escalada: el contrato (cláusula {clausula}) fija {pactado}, pero la factura cobra {cobrado} (regla R06)." |

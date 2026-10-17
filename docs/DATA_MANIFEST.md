@@ -24,18 +24,19 @@ La cifra de `docs/06` suma 32 casos de desarrollo y no incluye R10 ni R12. G1 ex
 
 ## Cobertura de casos (marcar cuántas facturas hay por caso)
 
-Objetivo de desarrollo, con los `on_fail` PROPUESTOS. Generadas y revisadas siguen en cero.
+Objetivo de desarrollo. Los `on_fail` están confirmados. Umbral humano 3000 USD; límite por pago 5000 USD. Generadas y revisadas siguen en cero.
 
 | Caso | Regla(s) | Decisión esperada | Objetivo | Generadas | Revisadas 2x |
 |---|---|---|---|---|---|
 | Normal, beneficiario permitido, dentro de límites | ninguna falla | PAGAR | 8 | 0 | 0 |
 | Otra moneda, dentro de límites tras FX | R10 en OK | PAGAR | 2 | 0 | 0 |
-| Otra moneda, el monto convertido cruza límite o umbral | R02 y/o R04 | ESCALAR | 1 | 0 | 0 |
+| Otra moneda, el monto convertido cae entre 3000 y 5000 | R04 | ESCALAR | 1 | 0 | 0 |
 | Duplicado exacto | R05 | FRENAR + aviso al administrador | 2 | 0 | 0 |
 | Probable duplicado (número distinto, ventana 30 días) | R05 | ESCALAR | 1 | 0 | 0 |
 | Beneficiario nuevo, fuera de la lista | R01 | FRENAR + aviso al administrador | 3 | 0 | 0 |
 | No cuadra con el contrato | R06 | ESCALAR | 3 | 0 | 0 |
-| Sobre límite por pago y umbral humano (ambos 3000) | R02 y R04 juntos | ESCALAR | 3 | 0 | 0 |
+| Solo umbral humano (monto de 3000 a 5000, departamento Ingeniería) | R04 | ESCALAR | 2 | 0 | 0 |
+| Sobre el límite por pago (monto mayor a 5000, departamento Ingeniería para no disparar R07) | R02 y R04 | ESCALAR | 1 | 0 | 0 |
 | Límite por periodo superado por acumulación | R03 | ESCALAR | 2 | 0 | 0 |
 | Presupuesto de departamento insuficiente | R07 | FRENAR + aviso al administrador | 2 | 0 | 0 |
 | Destinatario distinto de la empresa | R08 | ESCALAR | 1 | 0 | 0 |
@@ -45,7 +46,7 @@ Objetivo de desarrollo, con los `on_fail` PROPUESTOS. Generadas y revisadas sigu
 | Beneficiario en bloqueo manual | R12 | FRENAR + aviso al administrador | 1 | 0 | 0 |
 | Violación detectable solo por el verificador | chequeos deterministas OK; verificador `violation` con evidencia | Motor con extracción verdadera: PAGAR. E2E: FRENAR + `admin_notice`. Dos etiquetas (D005) | 1 en adversarial, no cuenta para el 100 % de G2 | 0 | 0 |
 
-Suma de desarrollo sin la fila del verificador: 8+2+1+2+1+3+3+3+2+2+1+2+2+1+1 = 34.
+Suma de desarrollo sin la fila del verificador: 8+2+1+2+1+3+3+2+1+2+2+1+2+2+1+1 = 34.
 
 ## Adversariales (F5, todos no-PAGAR)
 
