@@ -1,0 +1,22 @@
+{
+  "name": "Acme Demo Inc.",
+  "base_currency": "USD",
+  "department_budgets": {
+    "Ingenieria": 8000,
+    "Marketing": 5000
+  },
+  "approvers": {
+    "Ingenieria": "finanzas@demo.test",
+    "default": "cfo@demo.test"
+  },
+  "admin_notice_mailbox": "cfo@demo.test",
+  "allowed_beneficiaries": [
+    "Globex LLC",
+    "Initech SAS",
+    "Norteclaro SpA",
+    "Andesbyte SAS",
+    "Pampaluz Ltda",
+    "Rioseco Servicios SAS",
+    "Luma Austral SA"
+  ]
+}

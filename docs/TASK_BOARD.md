@@ -11,7 +11,7 @@ T0.2 y T0.5 quedaron HECHA en el turno de orquestación del 2026-10-16. Eso no a
 | T0.3 | Smoke test: OpenCode, JEV y LangSmith, una llamada cada uno | F0 | Agent Graph | NINGUNA | clave JEV | BLOQUEADA | POR COMPLETAR: nota en `docs/DECISIONS_LOG.md` con el resultado de las tres llamadas, sin pegar claves | Vía: API directa. Modelos baratos (D010). Falta la clave. Si no llega, plan B |
 | T0.4 | Resolver supuestos bloqueantes de `docs/08` | F0 | Orquestador | NINGUNA | clave JEV | BLOQUEADA | `docs/OPEN_QUESTIONS_STATUS.md` (Q1 vía, Q2, Q3, Q10) | La vía y los modelos ya están. Falta la clave para dar por cerrado el acceso |
 | T0.5 | Crear `docs/AI_USAGE_LOG.md` y la primera entrada | F0 | Orquestador | NINGUNA | — | HECHA | `docs/AI_USAGE_LOG.md` | Falta la columna de verificación humana |
-| T1.1 | `company.json` | F1 | Spec & Data | NINGUNA | T0.1 | PENDIENTE | POR COMPLETAR: `data/company.json` | Valores de `docs/PARAMETERS.md` |
+| T1.1 | `company.json` | F1 | Spec & Data | NINGUNA | T0.1 | HECHO | `data/company.json` | Valores de `docs/PARAMETERS.md` |
 | T1.2 | `rules.json` y esquema de `docs/04` §2 | F1 | Spec & Data | NINGUNA | T1.1 | PENDIENTE | POR COMPLETAR: `data/rules.json` más test o validador que rechace una regla mal formada | on_fail CONFIRMADOS. Límite 5000, umbral 3000 |
 | T1.3 | Modelos Pydantic y congelar v1 | F1 | Spec & Data | NINGUNA | T1.2 | PENDIENTE | POR COMPLETAR: `backend/app/models/` y una línea de congelación en `docs/DECISIONS_LOG.md` | Extraction, Rules, CheckResult, JevSignal, VerifierReport, DecisionRecord, HumanEvent |
 | T1.4 | 6–8 contratos en texto | F1 | Spec & Data | NINGUNA | T1.1 | PENDIENTE | POR COMPLETAR: `data/contracts/` (7 archivos) | Cláusulas numeradas; una ambigüedad deliberada |

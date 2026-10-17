@@ -1,6 +1,6 @@
 # Manifiesto de datos sintéticos
 
-Dueño: Spec & Data. Estado global: POR GENERAR. Nada de esta lista existe todavía en `data/`.
+Dueño: Spec & Data. Estado global: POR GENERAR. En `data/` solo existe `company.json` (T1.1).
 
 Todo es ficticio. Prohibido pegar facturas, contratos o nombres reales. El holdout vive aparte y no se abre para calibrar.
 
@@ -10,7 +10,7 @@ Validación común: JSON contra el modelo Pydantic congelado en T1.3; una segund
 
 | Dataset | Ruta | Dueño | Cantidad objetivo | Formato | Validación | Estado |
 |---|---|---|---|---|---|---|
-| Empresa | `data/company.json` | Spec & Data | 1 | JSON | Campos de `docs/PARAMETERS.md`; moneda USD | POR COMPLETAR |
+| Empresa | `data/company.json` | Spec & Data | 1 | JSON | Campos de `docs/PARAMETERS.md`; moneda USD | COMPLETO |
 | Reglas | `data/rules.json` | Spec & Data | 1 | JSON | Esquema `docs/04` §2; regla mal formada no se guarda | POR COMPLETAR |
 | Tasas | `data/fx.json` | Spec & Data | 5 monedas + fecha | JSON | USD, EUR, MXN, COP, BRL; `XXX` ausente a propósito | POR COMPLETAR |
 | Contratos | `data/contracts/` | Spec & Data | 7 (rango 6–8) | Texto con cláusulas numeradas | Cada término cita cláusula; al menos una ambigüedad deliberada; `confirmed` solo tras revisión humana | POR COMPLETAR |
@@ -21,6 +21,8 @@ Validación común: JSON contra el modelo Pydantic congelado en T1.3; una segund
 | Adversariales | `data/invoices/adversarial/` | Spec & Data | 8 | PDF, texto, imagen en blanco | Ninguno puede terminar en PAGAR | POR COMPLETAR |
 
 La cifra de `docs/06` suma 32 casos de desarrollo y no incluye R10 ni R12. G1 exige al menos un caso por regla R01–R13. Por eso el objetivo de desarrollo pasa a 34. Queda anotado como desacuerdo en el reporte de este turno.
+
+Beneficiarios R01 fuera de `allowed_beneficiaries` (solo casos de prueba): Nuevo Socio Fantasma SAS; Taller Sin Alta Ltda (`docs/PARAMETERS.md`).
 
 ## Cobertura de casos (marcar cuántas facturas hay por caso)
 
