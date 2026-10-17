@@ -101,9 +101,9 @@ El humano puede elegir el modelo, con una condición: en la demo no se usan mode
 |---|---|---|---|
 | Política de costo | Extractor y verificador económicos. El verificador puede ser un peldaño mejor que el extractor, sin llegar a un modelo de frontera. | CONFIRMADO | Humano, 2026-10-16 |
 | Acceso a JEV | API directa de TypeSafe | CONFIRMADO | Humano, 2026-10-16 |
-| Clave de JEV | Todavía no está. La consigue el humano. Si no llega antes del smoke test, entra el plan B. | PENDIENTE | Humano |
-| Identificador del extractor | POR COMPLETAR en T0.3 | PENDIENTE | Orquestador, dentro de la política de costo |
-| Identificador del verificador | POR COMPLETAR en T0.3 | PENDIENTE | Orquestador, dentro de la política de costo |
+| Clave de JEV | No configurada en smoke G0; plan B activo (D010, D027). | ASUMIDA (plan B) | Smoke G0 2026-10-17 |
+| Identificador del extractor | `openai/gpt-4o-mini` (OpenRouter; smoke G0 §6.2) | CONFIRMADO | Smoke G0 2026-10-17 |
+| Identificador del verificador | Sin smoke en G0; elegir en `.env` con la misma política de costo | PENDIENTE | Humano / T4+ |
 
 ## Host (no es una regla de pago)
 

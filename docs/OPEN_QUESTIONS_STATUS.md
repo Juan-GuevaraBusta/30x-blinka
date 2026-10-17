@@ -8,8 +8,8 @@ Fecha de las respuestas: 2026-10-16 22:21 (UTC-5).
 
 | ID | Pregunta | Bloqueante | Propuesta por defecto | Respuesta | Estado (ABIERTA\|RESUELTA\|ASUMIDA) | Responde |
 |---|---|---|---|---|---|---|
-| Q1 | ¿Cómo se accede a JEV? | La vía ya no. La clave sí, para T0.3. | API directa. Si la clave no llega, plan B. | API directa de TypeSafe. La clave todavía no está; la consigue el humano. El formato de la petición se comprueba en T0.3. | RESUELTA en la vía. La clave sigue PENDIENTE. | Humano, 2026-10-16 22:21 |
-| Q2 | ¿Qué modelos, y con qué presupuesto? | No, si se respeta la política de costo. | Modelos baratos por variables de entorno. | El humano puede elegir el que sea. En la demo no se usan modelos caros. Extractor económico; verificador como mucho un peldaño mejor. IDs en T0.3. | RESUELTA | Humano, 2026-10-16 22:21 |
+| Q1 | ¿Cómo se accede a JEV? | La vía ya no. La clave sí, para T0.3. | API directa. Si la clave no llega, plan B. | API directa de TypeSafe. Sin `JEV_API_KEY` en el smoke G0 (2026-10-17): **plan B asumido** (D010, D027 cierre parcial). | RESUELTA (vía API; clave opcional con plan B documentado) | Humano 2026-10-16; smoke G0 2026-10-17 |
+| Q2 | ¿Qué modelos, y con qué presupuesto? | No, si se respeta la política de costo. | Modelos baratos por variables de entorno. | Política confirmada. Smoke extractor G0: `openai/gpt-4o-mini` en OpenRouter (económico). Verificador: sin smoke en G0; mismo stack cuando se setee `VERIFIER_MODEL`. | RESUELTA (extractor visto en G0) | Smoke G0 2026-10-17 |
 | Q3 | ¿Se confirman los `on_fail` de `docs/04`, con beneficiario nuevo = FRENAR? | No. Ya no bloquea T1.7. | Esos defaults. | Sí. | RESUELTA | Humano, 2026-10-16 22:21 |
 | Q4 | ¿Hay una segunda persona para releer las etiquetas y para leer 5 explicaciones sin haber visto el código? | No. | La misma persona hace una segunda pasada más tarde y se anota que no es independiente. | Las hace el humano más tarde. No hay un segundo lector. El reporte debe decir que las dos lecturas no son independientes. | RESUELTA | Humano, 2026-10-16 22:27 |
 | Q5 | ¿Hay facturas o reglas compartidas por otros equipos? | No | Generar las propias. Si llegan compartidas, sumarlas al holdout, no al set con el que se calibra. | — | ASUMIDA | Orquestador, default de `docs/08` |
@@ -39,7 +39,7 @@ Siguen vigentes. Estado: ASUMIDA.
 | A10 | UI y explicaciones en español | ASUMIDA |
 | A11 | Ledger ordenado por fecha de recepción | ASUMIDA |
 
-G0 no está cerrado. Contrato de la sesión de smoke: `docs/G0_SPEC.md` (D027). Q1 vía ya está; la clave o el plan B se resuelven al ejecutar ese spec. Q2 IDs de modelo se anotan tras el smoke de OpenCode. No pegar claves.
+G0 **no cerrado** (2026-10-17): falta `LANGSMITH_API_KEY` en `.env` local (`missing_credentials` en §6.4). OpenCode y plan B JEV ok; evidencia en `docs/DECISIONS_LOG.md` fila D027 cierre G0. Repetir §6.4 tras rellenar la clave. G2 y G3 siguen PENDIENTE. No pegar claves.
 
 ## Qué sigue sin poder verificarse (igual que `docs/08`)
 
