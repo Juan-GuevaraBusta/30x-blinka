@@ -126,6 +126,7 @@ def create_production_app(
     if not path.is_file():
         raise RulesFileMissingError()
     seed_rules(store, path)
+    data_root = path.resolve().parent.parent
 
     if cors_origins is None:
         origins = parse_cors_origins(env.get("CORS_ORIGINS"))
@@ -133,7 +134,7 @@ def create_production_app(
         origins = parse_cors_origins(cors_origins)
 
     limit = rate_limit_from_mapping(env)
-    processor = make_production_processor(store)
+    processor = make_production_processor(store, data_root=data_root)
     app = create_app(
         store,
         processor,

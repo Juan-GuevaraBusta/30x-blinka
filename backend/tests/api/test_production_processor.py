@@ -149,7 +149,11 @@ def test_production_app_post_persists_with_mocked_graph(
     def fake_processor(upload: InvoiceUpload) -> DecisionRecord:
         return expected.model_copy(update={"invoice_id": upload.invoice_id})
 
-    monkeypatch.setattr(asgi_module, "make_production_processor", lambda _store: fake_processor)
+    monkeypatch.setattr(
+        asgi_module,
+        "make_production_processor",
+        lambda _store, **_: fake_processor,
+    )
     app = create_production_app(mapping, rules_path=RULES_PATH, cors_origins="")
     client = TestClient(app)
 
