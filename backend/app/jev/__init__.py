@@ -1,1 +1,1 @@
-"""JEV decision signals. Lands in T3.5."""
+"""Decision signal client is T3.1; JEV graph node J1–J7 is T3.5."""
