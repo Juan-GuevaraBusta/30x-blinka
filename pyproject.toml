@@ -2,10 +2,18 @@
 name = "blinka-invoice-agent"
 version = "0.0.0"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["pydantic>=2"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "ruff>=0.6"]
+dev = ["pytest>=8.0", "ruff>=0.6", "hypothesis>=6.0"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+include = ["app*"]
 
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]
@@ -14,6 +22,7 @@ pythonpath = ["backend"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+src = ["backend/app", "backend/tests", "eval"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP"]
+select = ["E", "F", "I", "UP", "B", "SIM"]

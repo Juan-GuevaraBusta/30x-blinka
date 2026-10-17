@@ -1,6 +1,6 @@
 # Paquete de contexto — Agente pagador de facturas (Hackathon Blinka)
 
-Este paquete **no contiene código**. Su objetivo es que otra IA (o tu IDE) entienda qué construimos, por qué, con qué límites y en qué orden, y a partir de ahí produzca/valide el roadmap.
+Este paquete incluye **documentación de contexto** y un **scaffold mínimo** (árbol de carpetas, pytest, ruff, `.env.example`). Su objetivo es que otra IA (o tu IDE) entienda qué construimos, por qué, con qué límites y en qué orden, y a partir de ahí implemente el agente pagador.
 
 ## Orden de lectura (obligatorio)
 
@@ -22,6 +22,18 @@ Este paquete **no contiene código**. Su objetivo es que otra IA (o tu IDE) enti
 2. Pega `docs/00_MASTER_PROMPT.md` como primer mensaje a la IA.
 3. La IA debe responder con su comprensión, ambigüedades y el roadmap validado **antes de escribir código**.
 
+## Desarrollo local (scaffold)
+
+Desde la raíz del repo, con Python 3.11+:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+pytest
+ruff check .
+```
+
 ## Estado
-- Fase actual: **pre-código (alineación de contexto)**.
+- Fase actual: **F0 — arranque** (T0.1 scaffold hecho; G0 abierto hasta T0.3/T0.4).
 - Tiempo disponible: **36 h**. Idioma de documentos y UI: español. Identificadores de código: inglés.

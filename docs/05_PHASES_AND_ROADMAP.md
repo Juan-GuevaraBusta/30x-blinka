@@ -17,7 +17,7 @@ Ruta crítica: **F1 (datos y contratos) → F2 (motor) → F3 (grafo) → F4 (UI
 
 ---
 ## F0 — Arranque (h0–2)
-- [ ] **T0.1** Crear repo con estructura de `AGENTS.md §8`, `.env.example`, `ruff`, `pytest` mínimo. *(Orquestador)*
+- [x] **T0.1** Crear repo con estructura de `AGENTS.md §8`, `.env.example`, `ruff`, `pytest` mínimo. *(Orquestador)*
 - [ ] **T0.2** Descubrir skills del IDE y escribir `docs/SKILLS_MAP.md`. *(Orquestador)*
 - [ ] **T0.3** Smoke test de 3 accesos con una llamada cada uno: modelo extractor/verificador (OpenCode), JEV (vía elegida), LangSmith (una traza). *(Agent Graph)*
 - [ ] **T0.4** Resolver supuestos bloqueantes de `08` con el humano. *(Orquestador)*

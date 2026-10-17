@@ -1,6 +1,13 @@
+.env
 .venv/
+venv/
 __pycache__/
-*.py[cod]
+*.pyc
 .pytest_cache/
 .ruff_cache/
-.env
+dist/
+build/
+*.egg-info/
+node_modules/
+.next/
+.DS_Store
