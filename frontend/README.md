@@ -2,11 +2,12 @@
 
 Next.js (App Router) + TypeScript estricto. Fase F4.
 
-## Pantalla disponible
+## Pantallas disponibles
 
 - **`/reglas`** — edición del `RulesConfig` vigente vía proxy same-origin a `GET`/`PUT /rules` (T4.3).
+- **`/decisiones/[id]`** — ficha de un `DecisionRecord` (solo lectura) vía proxy `GET /api/decisions/{id}` (T4.5). El `{id}` es `DecisionRecord.id`, no `invoice_id`.
 
-Otras rutas (`/decisiones`, `/aprobaciones`, etc.) siguen fuera de alcance hasta sus tareas T4.x.
+Otras rutas (`/decisiones` índice, `/aprobaciones`, `/metricas`, `/subir`, etc.) siguen fuera de alcance hasta sus tareas T4.x.
 
 ## Desarrollo local
 
@@ -34,4 +35,5 @@ El navegador llama a `/api/rules`; Next reenvía a `${API_URL}/rules` (sin CORS 
 ## Referencias
 
 - `docs/T4_3_SPEC.md` — contrato de la pantalla de reglas.
+- `docs/T4_5_SPEC.md` — contrato del detalle de decisión.
 - `AGENTS.md` — invariantes (I2, I6, I8).
