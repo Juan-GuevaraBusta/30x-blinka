@@ -13,7 +13,7 @@ Validación común: JSON contra el modelo Pydantic congelado en T1.3; una segund
 | Empresa | `data/company.json` | Spec & Data | 1 | JSON | Campos de `docs/PARAMETERS.md`; moneda USD | COMPLETO |
 | Reglas | `data/rules.json` | Spec & Data | 1 | JSON | Esquema `docs/04` §2; regla mal formada no se guarda | COMPLETO |
 | Tasas | `data/fx.json` | Spec & Data | 5 monedas + fecha | JSON | USD, EUR, MXN, COP, BRL; `XXX` ausente a propósito | COMPLETO |
-| Contratos | `data/contracts/` | Spec & Data | 7 (rango 6–8) | Texto con cláusulas numeradas | Cada término cita cláusula; al menos una ambigüedad deliberada; `confirmed` solo tras revisión humana | POR COMPLETAR |
+| Contratos | `data/contracts/` | Spec & Data | 7 (rango 6–8) | Texto con cláusulas numeradas | Cada término cita cláusula; al menos una ambigüedad deliberada; `confirmed` solo tras revisión humana | COMPLETO |
 | Facturas de desarrollo | `data/invoices/dev/` | Spec & Data | 34 | PDF con texto, imagen, correo y chat | Mezcla de layouts; cubre R01–R13; suma anotada abajo | POR COMPLETAR |
 | Facturas holdout | `data/invoices/holdout/` | Spec & Data | 10 | Igual, guardadas aparte | No se leen en F1–F4 para ajustar umbrales | POR COMPLETAR |
 | Set dorado de desarrollo | `data/golden/dev.json` | Spec & Data | 34 filas | JSON | Decisión esperada, reglas, motivo y extracción verdadera | POR COMPLETAR |

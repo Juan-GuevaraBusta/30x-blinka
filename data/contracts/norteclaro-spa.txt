@@ -1,0 +1,25 @@
+CONTRATO SINTÉTICO DE SERVICIOS
+Documento ficticio. No representa a ninguna empresa real.
+confirmed: false
+
+1. Partes
+1.1 El beneficiario autorizado es Norteclaro SpA.
+1.2 La empresa contratante es Acme Demo Inc.
+
+2. Vigencia
+2.1 La vigencia corre desde 2026-01-01 hasta 2026-12-31.
+
+3. Periodicidad
+3.1 La facturación es mensual.
+
+4. Tarifa
+4.1 La tarifa pactada es 4200 USD por periodo mensual.
+
+5. Tope
+5.1 El tope por periodo mensual es 4500 USD.
+
+6. Moneda
+6.1 La moneda del contrato es USD.
+
+7. Área
+7.1 El área interna de cargo es Marketing.
