@@ -39,7 +39,9 @@ Siguen vigentes. Estado: ASUMIDA.
 | A10 | UI y explicaciones en español | ASUMIDA |
 | A11 | Ledger ordenado por fecha de recepción | ASUMIDA |
 
-G0 **cerrado** (2026-10-17): tres smokes en `docs/G0_SPEC.md` §6; evidencia en `docs/DECISIONS_LOG.md` filas D027 (cierre parcial + G0 cerrado). JEV sin clave → plan B documentado. G2 y G3 siguen PENDIENTE. No pegar claves.
+G0 **cerrado** (2026-10-17): tres smokes en `docs/G0_SPEC.md` §6; evidencia en `docs/DECISIONS_LOG.md` filas D027. JEV sin clave → plan B documentado.
+
+G2 **no cerrado**. Contrato de la sesión de motor: `docs/G2_SPEC.md` (D028). G3 sigue PENDIENTE. No pegar claves.
 
 ## Qué sigue sin poder verificarse (igual que `docs/08`)
 
