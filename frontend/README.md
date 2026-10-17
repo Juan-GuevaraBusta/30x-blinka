@@ -5,9 +5,12 @@ Next.js (App Router) + TypeScript estricto. Fase F4.
 ## Pantallas disponibles
 
 - **`/reglas`** — edición del `RulesConfig` vigente vía proxy same-origin a `GET`/`PUT /rules` (T4.3).
+- **`/decisiones`** — listado con filtros Pagadas / Frenadas / Pendientes vía `GET /api/decisions?decision=` (T4.4).
 - **`/decisiones/[id]`** — ficha de un `DecisionRecord` (solo lectura) vía proxy `GET /api/decisions/{id}` (T4.5). El `{id}` es `DecisionRecord.id`, no `invoice_id`.
+- **`/aprobaciones`** — cola `ESCALAR` y eventos humanos approve/reject (T4.6).
+- **`/metricas`** — lectura de `GET /metrics` (autonomía y `unsafe_pay`; T4.7).
 
-Otras rutas (`/decisiones` índice, `/aprobaciones`, `/metricas`, `/subir`, etc.) siguen fuera de alcance hasta sus tareas T4.x.
+`/subir` y el resto de T4.x siguen fuera hasta T4.8 / deploy T4.9.
 
 ## Desarrollo local
 
@@ -35,5 +38,8 @@ El navegador llama a `/api/rules`; Next reenvía a `${API_URL}/rules` (sin CORS 
 ## Referencias
 
 - `docs/T4_3_SPEC.md` — contrato de la pantalla de reglas.
+- `docs/T4_4_SPEC.md` — listado de decisiones.
 - `docs/T4_5_SPEC.md` — contrato del detalle de decisión.
+- `docs/T4_6_SPEC.md` — cola de aprobaciones.
+- `docs/T4_7_SPEC.md` — métricas de evaluación.
 - `AGENTS.md` — invariantes (I2, I6, I8).
