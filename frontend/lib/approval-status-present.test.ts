@@ -33,6 +33,15 @@ describe("approvalCountLabel", () => {
     expect(approvalCountLabel(status({ collected: 0, required: 1 }))).toBe("0 de 1 aprobación");
   });
 
+  it("never shows more collected than required (live: «2 de 1»)", () => {
+    expect(approvalCountLabel(status({ collected: 2, required: 1 }))).toBe(
+      "1 de 1 aprobación (+1 adicional)",
+    );
+    expect(approvalCountLabel(status({ collected: 4, required: 2 }))).toBe(
+      "2 de 2 aprobaciones (+2 adicionales)",
+    );
+  });
+
   it("has a plain sentence when no approval is required at all", () => {
     expect(approvalCountLabel(status({ collected: 0, required: 0 }))).toBe(
       "No se requieren aprobaciones adicionales.",

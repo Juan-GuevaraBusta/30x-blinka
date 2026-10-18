@@ -349,3 +349,64 @@ def test_package_exports_contract_api() -> None:
     assert extraction.ContractRecord is ContractRecord
     assert extraction.lookup_contract is lookup_contract
     assert extraction.parse_confirmed_marker is parse_confirmed_marker
+
+
+# --- Live scenario: the model quoted numbers as JSON numbers / nulls ---------------
+
+# Captured verbatim from the extractor (openai/gpt-4o-mini) on data/contracts/initech-sas.txt.
+_INITECH_LIVE_RAW = {
+    "beneficiary": "Initech SAS",
+    "fee_amount": None,
+    "fee_currency": None,
+    "period_cap_amount": 5000,
+    "period_cap_currency": "USD",
+    "billing_period": "mensual",
+    "cited_clauses": ["1.1", "2.1", "3.1", "4.1", "5.1", "6.1"],
+    "quotes": {
+        "beneficiary": "El beneficiario autorizado es Initech SAS.",
+        "period_cap_amount": 5000,
+        "period_cap_currency": "USD",
+        "billing_period": "La facturación es mensual.",
+    },
+}
+
+
+def _with_quote(field: str, value: object) -> dict:
+    return {**_INITECH_LIVE_RAW, "quotes": {**_INITECH_LIVE_RAW["quotes"], field: value}}
+
+
+def test_initech_live_numeric_quote_is_tolerated_and_still_span_checked() -> None:
+    record = lookup_contract("Initech SAS", FakeLlm(response=_INITECH_LIVE_RAW))
+    assert record.found is True
+    assert record.confirmed is False
+    assert record.terms is None
+    assert record.period_cap_amount == 5000.0
+    assert record.quotes["period_cap_amount"] == "5000"
+
+
+def test_numeric_quote_absent_from_document_still_fails_closed() -> None:
+    raw = _with_quote("period_cap_amount", 7777)
+    with pytest.raises(ContractLookupError) as exc:
+        lookup_contract("Initech SAS", FakeLlm(response=raw))
+    assert exc.value.code == "span_not_in_document"
+
+
+def test_null_quote_for_non_null_field_fails_closed() -> None:
+    raw = _with_quote("period_cap_amount", None)
+    with pytest.raises(ContractLookupError) as exc:
+        lookup_contract("Initech SAS", FakeLlm(response=raw))
+    assert exc.value.code == "span_not_in_document"
+
+
+def test_null_quote_for_null_field_is_ignored() -> None:
+    raw = _with_quote("fee_amount", None)
+    record = lookup_contract("Initech SAS", FakeLlm(response=raw))
+    assert record.found is True
+    assert "fee_amount" not in record.quotes
+
+
+def test_boolean_quote_is_schema_mismatch() -> None:
+    raw = _with_quote("period_cap_amount", True)
+    with pytest.raises(ContractLookupError) as exc:
+        lookup_contract("Initech SAS", FakeLlm(response=raw))
+    assert exc.value.code == "schema_mismatch"

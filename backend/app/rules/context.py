@@ -39,6 +39,10 @@ class ContractTerms(BaseModel):
     fee_amount: float
     fee_currency: str
     cited_clauses: list[str] = Field(default_factory=list)
+    # Human-confirmed agreement only: the clause text JEV's J6 reads ("does the
+    # cited clause support the amount?"). Never consulted by R06, which keeps
+    # comparing `fee_amount`/`fee_currency` deterministically.
+    clause_text: str | None = None
 
 
 @dataclass

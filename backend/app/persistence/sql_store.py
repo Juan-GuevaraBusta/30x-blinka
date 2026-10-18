@@ -367,6 +367,7 @@ class SqlStore:
                     agreement=parse_vendor_agreement(json.loads(row.terms_json)),
                     version=row.version,
                     confirmed_by=row.confirmed_by,
+                    spans=json.loads(row.spans_json),
                 )
                 for row in rows
             ]

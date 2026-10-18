@@ -20,6 +20,9 @@ from sqlalchemy.engine import Engine
 
 from app.api.app import create_app
 from app.api.production_processor import make_production_processor
+from app.config import ConfigError, Settings
+from app.graph.tracing import TraceSession, make_langsmith_session
+from app.llm import LlmClient, get_llm
 from app.models.rules_config import RulesConfig, load_rules_config
 from app.persistence import (
     database_url_from_mapping,
@@ -179,6 +182,28 @@ def load_approver_groups(data_root: Path) -> dict[str, frozenset[str]]:
     return result
 
 
+def _agreement_llm(settings: Settings) -> LlmClient | None:
+    """T9.1 `POST /agreements/draft` uses the extractor-role LLM (it only proposes, I7).
+
+    Missing LLM config is not a boot failure: `create_app` then keeps its
+    fail-closed stand-in, which always answers an empty draft.
+    """
+    try:
+        return get_llm("extractor", settings)
+    except ConfigError as exc:
+        _logger.warning("agreement draft LLM not configured (%s); drafts stay empty", exc.code)
+        return None
+
+
+def _tracer_factory(settings: Settings):
+    """Per-upload LangSmith session (NullTrace when tracing is off or has no key)."""
+
+    def factory() -> TraceSession:
+        return make_langsmith_session(settings)
+
+    return factory
+
+
 def _build_engine(url: str) -> Engine:
     prepared = prepare_database_url(url)
     return create_engine(
@@ -241,10 +266,17 @@ def create_production_app(
     validate_policy_groups(in_force_rules.approval_policy, approver_groups)
 
     limit = rate_limit_from_mapping(env)
-    processor = make_production_processor(store, data_root=data_root)
+    settings = Settings.from_mapping(env)
+    processor = make_production_processor(
+        store,
+        settings=settings,
+        data_root=data_root,
+        tracer_factory=_tracer_factory(settings),
+    )
     app = create_app(
         store,
         processor,
+        agreement_llm=_agreement_llm(settings),
         clock=lambda: datetime.now(UTC),
         rate_limit=limit,
         admin_api_key=admin_api_key,

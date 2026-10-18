@@ -25,7 +25,11 @@ from app.rules.payment_series import (
     first_period_conflict,
     paid_total_for_series,
     period_key,
+    resolve_item_key,
 )
+
+# Same tolerance `check_r15` uses to compare the base amount with the series.
+_R15_AMOUNT_TOLERANCE = 0.005
 
 _RULE_NAMES: dict[str, str] = {
     "R01": "Beneficiario permitido",
@@ -126,6 +130,39 @@ def _r15_window_text(series: PaymentSeries) -> str:
     start_text = series.start.isoformat() if series.start is not None else "sin fecha de inicio"
     end_text = series.end.isoformat() if series.end is not None else "sin fecha de fin"
     return f"vigencia pactada del {start_text} al {end_text}"
+
+
+def _r15_amount_text(
+    series: PaymentSeries, due_date: date | None, amount: float | None, serie_id: str
+) -> str | None:
+    """R15 explanation when the date is inside the series but the amount is not.
+
+    Mirrors `check_r15`'s order (date window first, then amount): returns None
+    whenever the failing condition is the date (or cannot be told apart), so
+    the caller keeps the date-window template.
+    """
+    if due_date is None or amount is None:
+        return None
+    monto = _fmt_usd(amount)
+    if series.periodicity in ("installments", "milestones"):
+        key, count = resolve_item_key(series, due_date)
+        if count != 1 or key is None:
+            return None
+        item = next((item for item in series.items if item.key == key), None)
+        if item is None or abs(amount - item.amount) <= _R15_AMOUNT_TOLERANCE:
+            return None
+        return tpl.TEMPLATE_R15_ITEM_AMOUNT_FAIL.format(
+            item=key, serie=serie_id, esperado=_fmt_usd(float(item.amount)), monto=monto
+        )
+    if series.start is None or series.expected_amount is None:
+        return None
+    if due_date < series.start or (series.end is not None and due_date > series.end):
+        return None
+    low, high = series.expected_amount.min, series.expected_amount.max
+    if low <= amount <= high:
+        return None
+    rango = _fmt_usd(low) if low == high else f"{_fmt_usd(low)} a {_fmt_usd(high)}"
+    return tpl.TEMPLATE_R15_AMOUNT_FAIL.format(monto=monto, serie=serie_id, rango=rango)
 
 
 def _r05_is_probable(check: CheckResult) -> bool:
@@ -236,6 +273,13 @@ def _summary_line_for_check(check: CheckResult, ctx: RecordContext) -> str:
         serie_id = resolution.series.id if resolution.series is not None else "s/serie"
 
         if rule == "R15":
+            amount_text = (
+                _r15_amount_text(resolution.series, ctx.extraction.due_date, amount, serie_id)
+                if resolution.series is not None
+                else None
+            )
+            if amount_text is not None:
+                return amount_text
             fecha = _fmt_date(ctx.extraction.due_date)
             ventana = (
                 _r15_window_text(resolution.series)

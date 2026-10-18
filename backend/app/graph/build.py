@@ -203,7 +203,9 @@ def _make_nodes(deps: GraphDeps):
                 deps.agreement_contracts.get(vendor_key) if vendor_key is not None else None
             )
             if agreement_terms is not None:
-                cited = agreement_terms.cited_clauses[0] if agreement_terms.cited_clauses else None
+                cited = agreement_terms.clause_text or (
+                    agreement_terms.cited_clauses[0] if agreement_terms.cited_clauses else None
+                )
                 return Command(
                     goto="jev_checks",
                     update={

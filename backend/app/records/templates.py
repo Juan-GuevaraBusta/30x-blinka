@@ -80,6 +80,14 @@ TEMPLATE_R15_FAIL = (
     "Escalada: la fecha de la factura ({fecha}) no cumple la serie pactada {serie} "
     "({ventana}) (regla R15)."
 )
+TEMPLATE_R15_AMOUNT_FAIL = (
+    "Escalada: la factura cobra USD {monto}, fuera del monto pactado en la serie "
+    "{serie} (USD {rango}) (regla R15)."
+)
+TEMPLATE_R15_ITEM_AMOUNT_FAIL = (
+    "Escalada: el ítem {item} de la serie {serie} espera USD {esperado} y la factura "
+    "cobra USD {monto} (regla R15)."
+)
 TEMPLATE_R16_FAIL = (
     "Frenada: el periodo {periodo} de la serie {serie} ya se pagó con la "
     "factura {numero} (regla R16)."

@@ -380,3 +380,59 @@ def test_api_amount_zero_returns_non_pagar_not_5xx(tmp_path: Path, rules, fx_tab
         assert body["decision"] != "PAGAR"
         failed = {c["rule"]: c["result"] for c in body["checks"] if c["result"] != "OK"}
         assert failed.get("R02") == "FALLA"
+
+
+# -- live scenario: two approvals on one decision were counted twice --------------------
+
+
+def _approved_record(events: list[HumanEvent]) -> DecisionRecord:
+    base = make_record(invoice_id="INV-4200", id="dec_4200", decision="ESCALAR")
+    extracted = base.extracted.model_copy(
+        update={"amount": 4200.0, "currency": "USD", "amount_base": 4200.0}
+    )
+    return base.model_copy(update={"extracted": extracted, "human_events": events})
+
+
+def test_two_approvals_on_one_decision_make_one_ledger_line(fx_table) -> None:
+    from datetime import timedelta
+
+    events = [
+        HumanEvent(author="finanzas@demo.test", at=T0, action="aprobada_humano", reason="ok"),
+        HumanEvent(
+            author="cfo@demo.test",
+            at=T0 + timedelta(hours=1),
+            action="aprobada_humano",
+            reason="ok",
+        ),
+    ]
+    record = _approved_record(events)
+    store = SimpleNamespace(decisions={record.id: record})
+
+    lines = settled_ledger_from_store(store, fx_table).as_tuple()  # type: ignore[arg-type]
+
+    assert len(lines) == 1
+    assert lines[0].amount_base == 4200.0
+    assert sum(line.amount_base or 0.0 for line in lines) == 4200.0
+    # Latest approval time: R20 ("approval after added_at") sees the same answer
+    # as with one line per event, and windows stay the most conservative.
+    assert lines[0].received_at == (T0 + timedelta(hours=1)).isoformat().replace("+00:00", "Z")
+
+
+def test_rejected_after_approved_still_counts_once(fx_table) -> None:
+    from datetime import timedelta
+
+    events = [
+        HumanEvent(author="finanzas@demo.test", at=T0, action="aprobada_humano", reason="ok"),
+        HumanEvent(
+            author="cfo@demo.test",
+            at=T0 + timedelta(hours=1),
+            action="rechazada_humano",
+            reason="no",
+        ),
+    ]
+    store = SimpleNamespace(decisions={"dec_4200": _approved_record(events)})
+
+    lines = settled_ledger_from_store(store, fx_table).as_tuple()  # type: ignore[arg-type]
+
+    assert len(lines) == 1
+    assert lines[0].amount_base == 4200.0

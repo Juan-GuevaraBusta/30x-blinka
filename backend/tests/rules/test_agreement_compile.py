@@ -552,3 +552,52 @@ def test_hand_written_variable_pricing_unaffected_by_agreement_floor(
     ctx = replace(ctx, metered_lines=lines)
 
     assert check_r19(ctx, terms).result == "OK"
+
+
+# --- Live scenario: J6 reads a deterministic clause text for confirmed agreements ---
+
+
+def test_clause_text_without_quotes_renders_confirmed_terms() -> None:
+    from app.rules.agreements import agreement_clause_text
+
+    text = agreement_clause_text(_active(_retainer(), version=2))
+    assert text == "La tarifa pactada es 800 USD por periodo mensual."
+
+
+def test_clause_text_quotes_literal_spans_and_drops_bare_clause_ids() -> None:
+    from app.rules.agreements import ActiveAgreement, agreement_clause_text
+
+    agreement = _retainer(
+        source_clauses={"amount": "4.1", "valid_from": "2.1", "note": "Pago a 30 días."}
+    )
+    active = ActiveAgreement(
+        agreement=agreement,
+        version=1,
+        confirmed_by="finanzas@demo.test",
+        spans={"amount_min": "4.1 La tarifa pactada es 800 USD por periodo mensual."},
+    )
+    text = agreement_clause_text(active)
+    assert text == (
+        "4.1 La tarifa pactada es 800 USD por periodo mensual. Pago a 30 días. "
+        "La tarifa pactada es 800 USD por periodo mensual."
+    )
+
+
+def test_clause_text_range_and_installments() -> None:
+    from app.rules.agreements import agreement_clause_text
+
+    ranged = _retainer(amount={"min": 700, "max": 900})
+    assert agreement_clause_text(_active(ranged)) == (
+        "La tarifa pactada es de entre 700 y 900 USD por periodo mensual."
+    )
+    assert agreement_clause_text(_active(_installments())) == (
+        "El monto pactado por cuota es 1000 USD."
+    )
+
+
+def test_contract_map_carries_clause_text_but_keeps_cited_clauses() -> None:
+    agreement = _retainer(source_clauses={"amount": "4.1"})
+    terms = agreement_contract_map([_active(agreement)])["globex"]
+    assert terms.cited_clauses == ["4.1"]  # R06 explanation unchanged
+    assert terms.clause_text is not None and "800 USD" in terms.clause_text
+    assert terms.fee_amount == 800.0

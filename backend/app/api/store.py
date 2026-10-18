@@ -286,6 +286,7 @@ class MemoryStore:
                         agreement=active.terms,
                         version=active.version,
                         confirmed_by=active.confirmed_by,
+                        spans=dict(active.spans),
                     )
                 )
         return result

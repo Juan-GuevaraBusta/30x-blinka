@@ -19,10 +19,10 @@ from app.extraction.ingest import IngestChannel
 from app.graph.build import GraphError, run_invoice
 from app.graph.deps import GraphDeps
 from app.graph.folder_batch import RULES_VERSION, repo_root_from_module
-from app.graph.tracing import TraceSession
+from app.graph.tracing import NullTrace, TraceSession
 from app.jev.decision_client import build_decision_client
 from app.llm import HttpTransport, get_llm, model_for_role
-from app.models.domain import DecisionRecord, HumanEvent
+from app.models.domain import DecisionRecord
 from app.models.rules_config import RulesConfig
 from app.persistence.sql_store import SqlStore
 from app.rules.agreements import (
@@ -43,11 +43,20 @@ DepsFactory = Callable[[Settings, RulesConfig, tuple[LedgerEntry, ...]], GraphDe
 _PROCESS_CHECKPOINTER = MemorySaver()
 
 
-def _approval_ledger_line(
-    record: DecisionRecord, event: HumanEvent, fx: FxTable
-) -> LedgerEntry | None:
-    if event.action != "aprobada_humano":
+def _approval_ledger_line(record: DecisionRecord, fx: FxTable) -> LedgerEntry | None:
+    """One line per approved decision, however many approval events it has.
+
+    Several approvers on one decision (T7.1 «x de N») approve a single payment:
+    counting one line per event double-counted its amount in R03/R07/R21.
+    The latest approval time is used: R20 ("an approval after added_at")
+    gives the same answer as with one line per event, and 30-day windows
+    (R05/R21) keep the line in view the longest. A later rejection does not
+    remove the line (conservative, unchanged from the per-event behavior).
+    """
+    approvals = [e for e in record.human_events if e.action == "aprobada_humano"]
+    if not approvals:
         return None
+    event = max(approvals, key=lambda e: e.at)
     ext = record.extracted
     beneficiary = (ext.beneficiary or "").strip()
     if not beneficiary:
@@ -101,11 +110,10 @@ def settled_ledger_from_store(store: SqlStore, fx: FxTable | None = None) -> Led
         settlement = _record_settlement(record, table)
         if settlement is not None:
             settled = settled.record_settlement(settlement, invoice_id=record.invoice_id)
-        for index, event in enumerate(record.human_events):
-            approval = _approval_ledger_line(record, event, table)
-            if approval is not None:
-                tie = f"{record.invoice_id}:aprobada:{index}"
-                settled = settled.record_settlement(approval, invoice_id=tie)
+        approval = _approval_ledger_line(record, table)
+        if approval is not None:
+            tie = f"{record.invoice_id}:aprobada:{record.id}"
+            settled = settled.record_settlement(approval, invoice_id=tie)
     return settled
 
 
@@ -194,6 +202,20 @@ class ProductionProcessorConfig:
     checkpointer: BaseCheckpointSaver
     tracer: TraceSession | None
     phase: Literal["demo"] = "demo"
+    # One fresh session per upload: a LangSmith session reports its own
+    # latest run, so sharing one across concurrent requests could mislabel traces.
+    tracer_factory: Callable[[], TraceSession] | None = None
+
+
+def _trace_session(config: ProductionProcessorConfig) -> TraceSession | None:
+    """Best-effort: a tracer that cannot be built never blocks the decision."""
+    if config.tracer_factory is None:
+        return config.tracer
+    try:
+        return config.tracer_factory()
+    except Exception:
+        _logger.warning("tracing unavailable for this upload; continuing without it")
+        return NullTrace()
 
 
 def process_upload(
@@ -223,7 +245,7 @@ def process_upload(
             received_at=upload.received_at,
             checkpointer=config.checkpointer,
             thread_id=upload.invoice_id,
-            tracer=config.tracer,
+            tracer=_trace_session(config),
             phase=config.phase,
             owner_id=owner_id,
         )
@@ -239,6 +261,7 @@ def make_production_processor(
     deps_factory: DepsFactory | None = None,
     checkpointer: BaseCheckpointSaver | None = None,
     tracer: TraceSession | None = None,
+    tracer_factory: Callable[[], TraceSession] | None = None,
 ) -> Processor:
     """Factory used by `create_production_app`. Tests may inject `deps_factory`."""
     root = data_root if data_root is not None else repo_root_from_module()
@@ -260,6 +283,7 @@ def make_production_processor(
         deps_factory=factory,
         checkpointer=saver,
         tracer=tracer,
+        tracer_factory=tracer_factory,
     )
 
     def processor(upload: InvoiceUpload, owner_id: str) -> DecisionRecord:

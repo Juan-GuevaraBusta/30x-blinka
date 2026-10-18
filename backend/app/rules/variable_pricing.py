@@ -25,10 +25,20 @@ def _strip_accents(text: str) -> str:
     return "".join(ch for ch in decomposed if not unicodedata.combining(ch))
 
 
+# Common unit spellings (Spanish/English, singular/plural, abbreviations) that
+# name the same unit. Anything not listed is compared as-is after casefolding,
+# so an unknown unit still mismatches (R19 INDETERMINADO, fail-closed).
+_UNIT_SYNONYMS: dict[str, str] = {
+    **dict.fromkeys(("hora", "horas", "hour", "hours", "h", "hr", "hrs"), "hora"),
+    **dict.fromkeys(("unidad", "unidades", "unit", "units"), "unidad"),
+    **dict.fromkeys(("dia", "dias", "day", "days"), "dia"),
+}
+
+
 def normalize_unit(raw: str) -> str:
-    collapsed = _strip_accents(raw).lower()
+    collapsed = _strip_accents(raw).casefold()
     collapsed = re.sub(r"\s+", " ", collapsed.strip())
-    return collapsed
+    return _UNIT_SYNONYMS.get(collapsed.rstrip("."), collapsed)
 
 
 def find_pricing_terms(rules: RulesConfig, beneficiary: str | None) -> PricingTerms | None:

@@ -84,6 +84,32 @@ class _ContractPayload(BaseModel):
             raise ValueError("json number required")
         return float(value)
 
+    @field_validator("quotes", mode="before")
+    @classmethod
+    def tolerant_quotes(cls, value: object) -> object:
+        """Models sometimes quote a number as a JSON number (`5000`) or send `null`.
+
+        A null quote means "no quote" (dropped: a non-null field then fails the
+        span check, fail-closed). An integer-valued number becomes its literal
+        text, which `_validate_quotes` still requires verbatim in the document.
+        Booleans and other types stay a schema mismatch.
+        """
+        if not isinstance(value, dict):
+            return value
+        cleaned: dict[object, object] = {}
+        for key, quote in value.items():
+            if quote is None:
+                continue
+            if isinstance(quote, bool):
+                raise ValueError("quote must be text")
+            if isinstance(quote, int):
+                cleaned[key] = str(quote)
+            elif isinstance(quote, float) and quote.is_integer():
+                cleaned[key] = str(int(quote))
+            else:
+                cleaned[key] = quote
+        return cleaned
+
 
 def parse_confirmed_marker(text: str) -> bool:
     lines = [line.strip() for line in text.splitlines()]

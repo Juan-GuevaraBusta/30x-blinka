@@ -14,8 +14,9 @@ never touches `on_fail`, `manual_blocks`, `limits`, or any existing
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, time
 
 from app.models.agreement import (
@@ -63,6 +64,9 @@ class ActiveAgreement:
     agreement: VendorAgreement
     version: int
     confirmed_by: str
+    # Literal quotes from the source document, validated at draft time and
+    # persisted with the confirmed version (`vendor_agreement_version.spans`).
+    spans: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -168,6 +172,74 @@ def contract_terms_for_agreement(agreement: VendorAgreement) -> ContractTerms | 
     )
 
 
+_PERIODICITY_ES = {
+    "monthly": "mensual",
+    "biweekly": "quincenal",
+    "quarterly": "trimestral",
+    "annual": "anual",
+}
+# Draft span keys that quote the amount (retainer) or the installments.
+_AMOUNT_SPAN_KEYS = ("amount_min", "amount_max", "items")
+_CLAUSE_ID = re.compile(r"^[\d.,;\s]+$")
+
+
+def _fmt_amount(value: float) -> str:
+    return str(int(value)) if float(value).is_integer() else f"{value:g}"
+
+
+def _terms_rendering(agreement: VendorAgreement) -> str:
+    """The confirmed amount as a plain contract sentence (no metadata, no ids)."""
+    currency = agreement.currency
+    if isinstance(agreement, RetainerAgreement):
+        low, high = agreement.amount.min, agreement.amount.max
+        period = _PERIODICITY_ES.get(agreement.periodicity, agreement.periodicity)
+        if low == high:
+            return f"La tarifa pactada es {_fmt_amount(low)} {currency} por periodo {period}."
+        return (
+            f"La tarifa pactada es de entre {_fmt_amount(low)} y {_fmt_amount(high)} "
+            f"{currency} por periodo {period}."
+        )
+    if isinstance(agreement, InstallmentsAgreement):
+        amounts = {item.amount for item in agreement.items}
+        if len(amounts) == 1:
+            amount = next(iter(amounts))
+            return f"El monto pactado por cuota es {_fmt_amount(amount)} {currency}."
+        listed = "; ".join(
+            f"cuota {item.key}: {_fmt_amount(item.amount)} {currency}"
+            for item in agreement.items
+        )
+        return f"Los montos pactados son {listed}."
+    return f"Acuerdo {agreement.kind} pactado en {currency}."
+
+
+def agreement_clause_text(active: ActiveAgreement) -> str:
+    """Deterministic clause text J6 reads for a human-confirmed agreement.
+
+    The UI does not send clause text, so citing `source_clauses` ids ("4.1")
+    or nothing made the live JEV answer J6 false and every matching invoice
+    escalate. Built only from the source document's literal quotes (draft
+    spans validated verbatim, or clause text the confirming human typed in
+    `source_clauses`) followed by the confirmed amount as a plain contract
+    sentence. Bare clause ids and provenance are left out on purpose: the
+    live JEV scored metadata-laden text below the J6 threshold. This only
+    feeds J6; R06 keeps comparing the confirmed amount deterministically. Pure.
+    """
+    agreement = active.agreement
+    parts: list[str] = []
+    for key in _AMOUNT_SPAN_KEYS:
+        quote = (active.spans.get(key) or "").strip()
+        if quote and quote not in parts:
+            parts.append(quote)
+    for value in sorted(agreement.source_clauses.values()):
+        text = value.strip()
+        if text and not _CLAUSE_ID.match(text) and text not in parts:
+            parts.append(text)
+    rendering = _terms_rendering(agreement)
+    if rendering not in parts:
+        parts.append(rendering)
+    return " ".join(parts)
+
+
 def agreement_contract_map(
     agreements: Sequence[ActiveAgreement],
 ) -> dict[str, ContractTerms]:
@@ -180,7 +252,9 @@ def agreement_contract_map(
     for active in agreements:
         terms = contract_terms_for_agreement(active.agreement)
         if terms is not None:
-            result[active.agreement.vendor_key] = terms
+            result[active.agreement.vendor_key] = terms.model_copy(
+                update={"clause_text": agreement_clause_text(active)}
+            )
     return result
 
 

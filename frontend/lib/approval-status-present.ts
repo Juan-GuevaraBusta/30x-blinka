@@ -12,13 +12,18 @@ export interface ApprovalStatusBody {
   pending_checks: string[];
 }
 
-/** "1 de 2 aprobaciones" (T7.5 §2). */
+/** "1 de 2 aprobaciones" (T7.5 §2); collected is clamped to required, extras noted. */
 export function approvalCountLabel(status: ApprovalStatusBody): string {
   if (status.required <= 0) {
     return "No se requieren aprobaciones adicionales.";
   }
   const word = status.required === 1 ? "aprobación" : "aprobaciones";
-  return `${status.collected} de ${status.required} ${word}`;
+  // Extra approvals beyond the requirement never read as "2 de 1".
+  const shown = Math.min(status.collected, status.required);
+  const extra = status.collected - shown;
+  const base = `${shown} de ${status.required} ${word}`;
+  if (extra <= 0) return base;
+  return `${base} (+${extra} ${extra === 1 ? "adicional" : "adicionales"})`;
 }
 
 /** "alto-monto" -> "Alto monto". Purely cosmetic: routes have no separate display name. */

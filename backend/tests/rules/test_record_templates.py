@@ -528,3 +528,84 @@ def test_enrich_check_details_r17_acumulado_excludes_reprocessed_invoice(
     assert r17.result == "FALLA"
     assert "USD 0" in r17.detail
     assert "USD 1500" not in r17.detail
+
+
+# --- Live scenario: R15 must explain the failing condition, not always the date -----
+
+
+def _globex_series(**overrides):
+    from app.models.rules_config import PaymentSeries
+
+    return PaymentSeries.model_validate(
+        {
+            "id": "agr-globex-v1",
+            "beneficiary": "Globex LLC",
+            "department": "Ingenieria",
+            "periodicity": "monthly",
+            "currency": "USD",
+            "expected_amount": {"min": 800, "max": 800},
+            "start": "2026-01-01",
+            "end": "2026-12-31",
+            **overrides,
+        }
+    )
+
+
+def test_r15_amount_out_of_range_explains_amount_not_date(rules, fx_table) -> None:
+    policy_rules = rules.model_copy(update={"payment_series": [_globex_series()]})
+    ctx = make_context(
+        policy_rules, fx_table, amount=950.0, amount_base=950.0, fee_amount=800.0,
+        due_date="2026-12-15",
+    )
+    checks = run_deterministic_checks(ctx)
+    enriched = enrich_check_details(checks, _record_ctx(ctx))
+    r15 = next(c for c in enriched if c.rule == "R15")
+    assert r15.result == "FALLA"
+    assert r15.detail == (
+        "Escalada: la factura cobra USD 950, fuera del monto pactado en la serie "
+        "agr-globex-v1 (USD 800) (regla R15)."
+    )
+    assert "fecha" not in r15.detail
+
+
+def test_r15_amount_range_shows_min_and_max(rules, fx_table) -> None:
+    series = _globex_series(expected_amount={"min": 700, "max": 900})
+    policy_rules = rules.model_copy(update={"payment_series": [series]})
+    ctx = make_context(
+        policy_rules, fx_table, amount=4200.0, amount_base=4200.0, fee_amount=800.0,
+        due_date="2026-10-30",
+    )
+    enriched = enrich_check_details(run_deterministic_checks(ctx), _record_ctx(ctx))
+    r15 = next(c for c in enriched if c.rule == "R15")
+    assert r15.detail == (
+        "Escalada: la factura cobra USD 4200, fuera del monto pactado en la serie "
+        "agr-globex-v1 (USD 700 a 900) (regla R15)."
+    )
+
+
+def test_r15_installment_amount_mismatch_explains_item_amount(rules, fx_table) -> None:
+    from app.models.rules_config import PaymentSeries
+
+    series = PaymentSeries.model_validate(
+        {
+            "id": "agr-cuotasur-v1",
+            "beneficiary": "Globex LLC",
+            "periodicity": "installments",
+            "currency": "USD",
+            "items": [
+                {"key": "1/3", "due_from": "2026-02-01", "due_to": "2026-02-28", "amount": 1000},
+            ],
+        }
+    )
+    policy_rules = rules.model_copy(update={"payment_series": [series]})
+    ctx = make_context(
+        policy_rules, fx_table, amount=1200.0, amount_base=1200.0, fee_amount=1200.0,
+        due_date="2026-02-20",
+    )
+    enriched = enrich_check_details(run_deterministic_checks(ctx), _record_ctx(ctx))
+    r15 = next(c for c in enriched if c.rule == "R15")
+    assert r15.result == "FALLA"
+    assert r15.detail == (
+        "Escalada: el ítem 1/3 de la serie agr-cuotasur-v1 espera USD 1000 y la factura "
+        "cobra USD 1200 (regla R15)."
+    )
