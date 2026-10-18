@@ -26,7 +26,7 @@ Total guionado: 175 s de 180 s.
 ## Supuestos a confirmar antes de grabar
 
 - Ambiente desplegado accesible: frontend `https://blinka-invoice-agent.vercel.app`, API `https://blinka-invoice-api.onrender.com` (`docs/STATUS.md`).
-- **Render en frío:** hacer `GET https://blinka-invoice-api.onrender.com/health` (`backend/app/api/app.py` línea del endpoint `/health`) **un minuto antes** de empezar a grabar, para que el primer `POST /invoices` en cámara no cargue con el arranque en frío del dyno.
+- **Render en frío:** el workflow `.github/workflows/keep-render-awake.yml` hace `GET /health` cada 7 minutos para que jueces no esperen el arranque en frío. Si aun así la API tarda, hacer `GET https://blinka-invoice-api.onrender.com/health` un minuto antes. Apagar el workflow desde GitHub → Actions → Disable cuando ya no haga falta.
 - **Reiniciar el estado de la demo antes de grabar** (deja PAGAR/FRENAR/ESCALAR listos para producirse igual cada vez): aplicar `backend/sql/reset_demo.sql` en Supabase y luego `cd backend && python scripts/seed_demo.py --apply --with-rules --member-user-id <uuid de sebas@pjgorman.com> --member-email sebas@pjgorman.com` (`data/demo/README.md`). Esto deja la política (4 rutas) y los 3 acuerdos confirmados, sin decisiones previas.
 - Los tres archivos de este guion están en `data/demo/` y se suben **en vivo** en los pasos 4–6, en ese orden exacto (el paso 5 depende de que el paso 4 ya haya corrido en esta misma sesión, porque el duplicado se detecta contra lo ya pagado).
 - Ensayar una vez completo antes de la grabación final (requisito de G6, `docs/TASK_BOARD.md`).
