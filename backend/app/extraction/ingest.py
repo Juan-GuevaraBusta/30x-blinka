@@ -37,6 +37,9 @@ _FILTER_PATTERN = re.compile(r"/Filter\s*(\[[^\]]*\]|/[A-Za-z0-9]+)")
 _FILTER_NAME = re.compile(r"/([A-Za-z0-9]+)")
 _ENCRYPT_SCAN = 8192
 _MAX_DECOMPRESSED_BYTES = 5 * 1024 * 1024  # 5 MB decompression-bomb guard (T5.12)
+# Whole-document budget: many streams just under the per-stream cap must not
+# add up to hundreds of MB of decode + regex work in one request.
+_MAX_DOCUMENT_DECODED_BYTES = 8 * 1024 * 1024
 _KNOWN_FILTERS = frozenset({"FlateDecode", "ASCII85Decode"})
 
 
@@ -116,12 +119,16 @@ def _ingest_pdf_text(data: bytes) -> str:
     doc = data.decode("latin-1", errors="replace")
 
     lines: list[str] = []
+    decoded_total = 0
     for raw, filters in _pdf_stream_chunks(doc):
         text = _decode_stream_filters(raw, filters)
         if text is None:
             # Unknown filter, corrupt payload, or decompression-bomb guard
             # tripped (T5.12): skip this stream, stay fail-closed overall.
             continue
+        decoded_total += len(text)
+        if decoded_total > _MAX_DOCUMENT_DECODED_BYTES:
+            raise IngestError("illegible")
         lines.extend(_extract_text_operators(text))
 
     if not lines:
@@ -162,8 +169,10 @@ def _pdf_stream_chunks(doc: str) -> list[tuple[bytes, tuple[str, ...]]]:
         raw = doc[content_start:end].encode("latin-1", errors="replace")
         chunks.append((raw, filters))
 
-        idx = end + 1
-        prev_end = end
+        # Skip the whole keyword: resuming at end + 1 re-matched the "stream"
+        # inside "endstream" and hid every later stream's /Filter.
+        idx = end + len("endstream")
+        prev_end = idx
 
 
 def _stream_filters(preceding: str) -> tuple[str, ...]:

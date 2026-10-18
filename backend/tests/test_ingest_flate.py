@@ -124,3 +124,33 @@ def test_uncompressed_pdf_path_unaffected() -> None:
     pdf = b"%PDF-1.4\n" + body + b"%%EOF\n"
     result = ingest_bytes(pdf, channel="pdf_text")
     assert result.text == line
+
+
+def _flate_pdf_multi(streams: list[bytes]) -> bytes:
+    """Build a PDF with one FlateDecode content stream object per entry."""
+    body = b""
+    for n, content in enumerate(streams, start=4):
+        compressed = zlib.compress(content)
+        body += (
+            f"{n} 0 obj\n<< /Filter /FlateDecode /Length {len(compressed)} >>\nstream\n".encode()
+            + compressed
+            + b"\nendstream\nendobj\n"
+        )
+    return b"%PDF-1.4\n" + body + b"%%EOF\n"
+
+
+def test_every_flate_stream_is_decoded_not_only_the_first() -> None:
+    pdf = _flate_pdf_multi([b"BT (first part) Tj ET", b"BT (second part) Tj ET"])
+    text = ingest_bytes(pdf, channel="pdf_text").text
+    assert "first part" in text
+    assert "second part" in text
+
+
+def test_document_level_decompression_cap_stays_illegible() -> None:
+    # Each stream stays under the per-stream cap; together they exceed the
+    # document-level budget, so the whole document must fail closed.
+    chunk = b"BT (A) Tj ET\n" * (4 * 1024 * 1024 // 13)
+    pdf = _flate_pdf_multi([chunk, chunk, chunk])
+    with pytest.raises(IngestError) as exc:
+        ingest_bytes(pdf, channel="pdf_text")
+    assert exc.value.code == "illegible"
