@@ -34,6 +34,9 @@ jobs:
       - name: Eval gate (unsafe_pay must be 0)
         run: python eval/run_motor.py
 
+      - name: Eval gate f7 (T7.6, synthetic series/variable-pay/approval split)
+        run: python eval/run_motor.py --split f7
+
   frontend:
     runs-on: ubuntu-latest
     defaults:

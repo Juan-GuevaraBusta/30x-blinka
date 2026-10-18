@@ -1,0 +1,9 @@
+Split: f7 / feature T7.2 / caso series_total_cap_exceeded
+Beneficiario: Cuotasur SAS
+Numero: INV-CS-F7-005
+Total: 1000 USD
+Vence: 2026-04-10
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Nota: Cuotas 1/3 y 2/3 ya pagadas (2000 USD); esta cuota 3/3 supera el tope total 2000 USD.
+Documento ficticio. No representa a ninguna empresa real.

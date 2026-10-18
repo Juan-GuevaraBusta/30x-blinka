@@ -93,3 +93,18 @@ Un texto por beneficiario permitido. Cada uno con tarifa, moneda, tope, periodic
 - Evidencia: `ruff check .` OK; `pytest -q` → 78 passed (incluye `test_domain_models`, `test_invoice_corpus`, `test_golden`).
 
 Cambios posteriores a esquemas, golden, contratos o corpus: Spec & Data + aprobación del Orquestador.
+
+## Split f7 (T7.6, D059) — series, pagos variables y política de aprobación
+
+Split nuevo, **separado** de dev y holdout, para ejercitar T7.1 (política de aprobación), T7.2 (series de pago) y T7.3 (pagos variables) antes de que esas reglas existan. Congelado al cerrar G7 junto con el resto de F1: nada fuera de T7.1–T7.3 debe modificarlo después.
+
+| Dataset | Ruta | Cantidad | Estado |
+|---|---|---|---|
+| Reglas f7 | `data/f7/rules.json` | 1 (copia de `data/rules.json` + `approval_policy`, `payment_series`, `variable_pricing`) | COMPLETO (secciones nuevas no validan aún contra `RulesConfig`; ver xfail) |
+| Contrato nuevo | `data/contracts/f7-cuotasur-sas.txt` | 1 (proveedor ficticio «Cuotasur SAS», solo en `data/f7/rules.json`) | COMPLETO |
+| Facturas f7 | `data/invoices/f7/` (txt, eml, PDF de texto) + `data/invoices/f7/catalog.json` | 16, generadas por `data/invoices/f7/generate_f7.py` (determinista) | COMPLETO |
+| Set dorado f7 | `data/golden/f7.json` | 16 filas; `feature` por entrada (T7.1/T7.2/T7.3); `expected_approval` en los casos de política; cabecera `enabled_features: []` | COMPLETO (ninguna entrada se evalúa hasta que cada T7.x agregue su id) |
+
+Reutiliza los 7 beneficiarios ya permitidos (Globex LLC, Norteclaro SpA, Andesbyte SAS, Pampaluz Ltda, Rioseco Servicios SAS, Luma Austral SA) salvo para la serie de cuotas, que usa el proveedor ficticio nuevo Cuotasur SAS (contrato con prefijo `f7-`, I6). `data/rules.json`, dev, holdout, `golden/dev.json`, `golden/holdout.json` y `catalog.json` no cambiaron.
+
+`eval/run_motor.py --split f7` lee `data/golden/f7.json`, `data/invoices/f7/catalog.json` y `data/f7/rules.json` de forma independiente de dev/holdout, y solo evalúa entradas cuyo `feature` esté en `enabled_features`; con la lista vacía reporta `total=0` sin tocar `data/f7/rules.json`. Casos y reglas esperadas: tabla completa en `docs/T7_6_SPEC.md` §2.

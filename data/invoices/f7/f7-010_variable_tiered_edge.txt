@@ -1,0 +1,9 @@
+Split: f7 / feature T7.3 / caso variable_tiered_edge
+Beneficiario: Pampaluz Ltda
+Numero: INV-PZ-F7-010
+Total: 1000 USD
+Vence: 2026-02-12
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Nota: 100 unidades justo en el borde del primer tramo (hasta 100 a USD 10).
+Documento ficticio. No representa a ninguna empresa real.

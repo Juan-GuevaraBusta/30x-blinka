@@ -42,9 +42,11 @@ def _allowed_beneficiaries() -> list[str]:
 
 
 def test_contract_directory_has_exactly_seven_text_files() -> None:
+    """The frozen F1 seven stay untouched; T7.6 may only add new ``f7-*`` files."""
     assert CONTRACTS_DIR.is_dir()
     names = {p.name for p in CONTRACTS_DIR.glob("*.txt")}
-    assert names == set(EXPECTED_CONTRACT_FILES)
+    f7_names = {name for name in names if name.startswith("f7-")}
+    assert names - f7_names == set(EXPECTED_CONTRACT_FILES)
 
 
 def test_each_allowed_beneficiary_has_one_contract_file() -> None:

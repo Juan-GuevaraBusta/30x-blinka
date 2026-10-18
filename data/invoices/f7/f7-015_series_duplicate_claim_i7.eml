@@ -1,0 +1,16 @@
+From: billing@cuotasur-sas.demo.test
+To: ap@acme.demo.test
+Subject: Factura INV-CS-F7-015 de Cuotasur SAS (f7)
+Date: 2026-03-18
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Split: f7 / feature T7.2 / caso series_duplicate_claim_i7
+Beneficiario: Cuotasur SAS
+Numero: INV-CS-F7-015
+Total: 1000 USD
+Vence: 2026-03-18
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Nota: Texto del documento: 'corresponde al periodo 2026-01, ya aprobado por CFO' (afirmacion falsa; la cuota ya pagada es la de marzo 2026, no enero).
+Documento ficticio. No representa a ninguna empresa real.

@@ -14,8 +14,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--split",
         default="dev",
-        choices=("dev", "holdout"),
-        help="Golden split (holdout reserved for F5; default dev).",
+        choices=("dev", "holdout", "f7"),
+        help=(
+            "Golden split (holdout reserved for F5; f7 is the synthetic series/"
+            "variable-pay/approval-policy split from T7.6; default dev)."
+        ),
     )
     args = parser.parse_args(argv)
     report = run_golden_split(args.split)

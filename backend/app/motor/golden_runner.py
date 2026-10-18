@@ -105,9 +105,9 @@ def build_rule_context(
     )
 
 
-def _catalog_notes(repo: Path) -> dict[str, str]:
-    catalog_path = repo / "data" / "invoices" / "catalog.json"
-    rows = json.loads(catalog_path.read_text(encoding="utf-8"))
+def _catalog_notes(repo: Path, catalog_path: Path | None = None) -> dict[str, str]:
+    path = catalog_path or (repo / "data" / "invoices" / "catalog.json")
+    rows = json.loads(path.read_text(encoding="utf-8"))
     return {row["id"]: row.get("notes", "") or "" for row in rows}
 
 
@@ -115,6 +115,19 @@ def _load_golden(repo: Path, split: str) -> list[dict]:
     path = repo / "data" / "golden" / f"{split}.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
     return list(payload["entries"])
+
+
+def _load_golden_f7_enabled(repo: Path) -> list[dict]:
+    """T7.6 — f7 entries whose ``feature`` is listed in the file's ``enabled_features``.
+
+    Each T7.x task appends its own id once it lands; until then the list is
+    empty and no f7 entry is evaluated (``run_motor.py --split f7`` reports
+    ``total=0``).
+    """
+    path = repo / "data" / "golden" / "f7.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    enabled = set(payload.get("enabled_features", []))
+    return [entry for entry in payload["entries"] if entry.get("feature") in enabled]
 
 
 def _case_ok(
@@ -136,15 +149,36 @@ def run_golden_split(
     *,
     repo_root: Path | None = None,
 ) -> MotorReport:
-    """Process golden entries in ledger order; compare decide() to labels."""
+    """Process golden entries in ledger order; compare decide() to labels.
+
+    ``split="f7"`` (T7.6) is a separate, synthetic-only split: it reads
+    ``data/golden/f7.json``, ``data/invoices/f7/catalog.json`` and
+    ``data/f7/rules.json`` instead of the dev/holdout paths, and only
+    evaluates entries whose ``feature`` is listed in f7's own
+    ``enabled_features`` header. With no features enabled yet, this returns a
+    trivial ``total=0`` report without touching ``data/f7/rules.json`` at
+    all, so T7.1-T7.3 landing their RulesConfig sections one at a time never
+    blocks this split from reporting green in the meantime. dev and holdout
+    keep reading exactly what they read before T7.6.
+    """
     repo = repo_root or _repo_root()
-    rules = load_rules_config(repo / "data" / "rules.json")
+    if split == "f7":
+        entries = sorted(
+            _load_golden_f7_enabled(repo),
+            key=lambda e: sort_key(e["received_at"], e["invoice_id"]),
+        )
+        if not entries:
+            return MotorReport(split="f7", total=0, matched=0, unsafe_pay=0, failures=())
+        rules = load_rules_config(repo / "data" / "f7" / "rules.json")
+        notes = _catalog_notes(repo, repo / "data" / "invoices" / "f7" / "catalog.json")
+    else:
+        rules = load_rules_config(repo / "data" / "rules.json")
+        notes = _catalog_notes(repo)
+        entries = sorted(
+            _load_golden(repo, split),
+            key=lambda e: sort_key(e["received_at"], e["invoice_id"]),
+        )
     fx_table = load_fx_table(repo / "data" / "fx.json")
-    notes = _catalog_notes(repo)
-    entries = sorted(
-        _load_golden(repo, split),
-        key=lambda e: sort_key(e["received_at"], e["invoice_id"]),
-    )
 
     settled = Ledger.empty()
     results: list[MotorCaseResult] = []

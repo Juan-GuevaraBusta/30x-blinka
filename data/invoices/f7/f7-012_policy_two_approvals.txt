@@ -1,0 +1,9 @@
+Split: f7 / feature T7.1 / caso policy_two_approvals
+Beneficiario: Norteclaro SpA
+Numero: INV-NC-F7-012
+Total: 4200 USD
+Vence: 2026-02-01
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Nota: Monto 4200 USD >= 3000; ruta alto-monto exige 2 aprobaciones de finanzas o cfo.
+Documento ficticio. No representa a ninguna empresa real.

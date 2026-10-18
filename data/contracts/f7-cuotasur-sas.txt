@@ -1,0 +1,20 @@
+CONTRATO SINTÉTICO DE SERVICIOS
+Documento ficticio. No representa a ninguna empresa real.
+confirmed: false
+
+1. Partes
+1.1 El beneficiario autorizado es Cuotasur SAS.
+1.2 La empresa contratante es Acme Demo Inc.
+
+2. Vigencia y cuotas
+2.1 El servicio se paga en 3 cuotas de 1000 USD cada una (1/3, 2/3, 3/3).
+2.2 La cuota 1/3 vence en febrero de 2026; la 2/3 en marzo de 2026; la 3/3 en abril de 2026.
+
+3. Tope
+3.1 El tope total pactado para pruebas de la serie (T7.6) es 2000 USD.
+
+4. Moneda
+4.1 La moneda del contrato es USD.
+
+5. Área
+5.1 El área interna de cargo es Ingeniería.

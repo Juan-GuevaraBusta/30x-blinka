@@ -1,0 +1,9 @@
+Split: f7 / feature T7.2 / caso series_period_skipped
+Beneficiario: Globex LLC
+Numero: INV-GX-F7-006
+Total: 800 USD
+Vence: 2026-03-05
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Nota: Sin facturas previas de enero ni febrero 2026 en el ledger de esta serie.
+Documento ficticio. No representa a ninguna empresa real.

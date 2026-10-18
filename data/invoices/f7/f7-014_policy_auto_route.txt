@@ -1,0 +1,9 @@
+Split: f7 / feature T7.1 / caso policy_auto_route
+Beneficiario: Luma Austral SA
+Numero: INV-LA-F7-014
+Total: 2000 BRL
+Vence: 2026-02-08
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Nota: Factura de Ingenieria bajo el umbral; ninguna ruta de aprobacion aplica (ruta default/auto).
+Documento ficticio. No representa a ninguna empresa real.

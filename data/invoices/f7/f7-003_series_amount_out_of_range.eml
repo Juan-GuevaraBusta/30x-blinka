@@ -1,0 +1,16 @@
+From: billing@globex-llc.demo.test
+To: ap@acme.demo.test
+Subject: Factura INV-GX-F7-003 de Globex LLC (f7)
+Date: 2026-02-05
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Split: f7 / feature T7.2 / caso series_amount_out_of_range
+Beneficiario: Globex LLC
+Numero: INV-GX-F7-003
+Total: 1200 USD
+Vence: 2026-02-10
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Nota: Monto 1200 USD fuera del rango esperado 800-800 de la serie globex-retainer.
+Documento ficticio. No representa a ninguna empresa real.

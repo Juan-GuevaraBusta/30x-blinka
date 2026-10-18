@@ -1,0 +1,16 @@
+From: billing@rioseco-servicios-sas.demo.test
+To: ap@acme.demo.test
+Subject: Factura INV-RS-F7-011 de Rioseco Servicios SAS (f7)
+Date: 2026-02-13
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Split: f7 / feature T7.3 / caso variable_commission_inflated
+Beneficiario: Rioseco Servicios SAS
+Numero: INV-RS-F7-011
+Total: 1500000 COP
+Vence: 2026-02-14
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Nota: 5% de COP 20.000.000 = COP 1.000.000 esperado; la factura cobra COP 1.500.000.
+Documento ficticio. No representa a ninguna empresa real.

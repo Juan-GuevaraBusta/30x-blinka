@@ -1,0 +1,9 @@
+Split: f7 / feature T7.2 / caso series_installment_in_window
+Beneficiario: Cuotasur SAS
+Numero: INV-CS-F7-007
+Total: 1000 USD
+Vence: 2026-03-20
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Nota: Cuota 2/3 sin pago previo, dentro de su ventana marzo 2026.
+Documento ficticio. No representa a ninguna empresa real.

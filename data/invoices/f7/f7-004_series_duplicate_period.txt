@@ -1,0 +1,9 @@
+Split: f7 / feature T7.2 / caso series_duplicate_period
+Beneficiario: Cuotasur SAS
+Numero: INV-CS-F7-004
+Total: 1000 USD
+Vence: 2026-03-10
+Departamento: Ingenieria
+Destinatario: Acme Demo Inc.
+Nota: Cuota 2/3 ya pagada (INV-CS-SEED-2); esta factura repite el periodo con otro numero.
+Documento ficticio. No representa a ninguna empresa real.
