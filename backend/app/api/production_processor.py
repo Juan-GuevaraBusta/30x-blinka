@@ -151,7 +151,11 @@ class ProductionProcessorConfig:
 def process_upload(
     config: ProductionProcessorConfig, upload: InvoiceUpload, owner_id: str
 ) -> DecisionRecord:
-    prior = settled_ledger_from_store(config.store)
+    # fx.json comes from the configured data root: the module-relative default
+    # path does not exist when the package is installed into site-packages.
+    fx_path = config.data_root / "data" / "fx.json"
+    fx_table = load_fx_table(fx_path) if fx_path.is_file() else load_fx_table()
+    prior = settled_ledger_from_store(config.store, fx_table)
     ledger_view = ledger_view_for_upload(upload, prior)
     rules = config.store.rules
     deps = config.deps_factory(config.settings, rules, ledger_view)

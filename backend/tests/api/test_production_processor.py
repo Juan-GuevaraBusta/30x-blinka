@@ -171,3 +171,51 @@ def test_production_app_post_persists_with_mocked_graph(
     got = client.get("/decisions/dec_boot")
     assert got.status_code == 200
     assert got.json()["summary"] == expected.summary
+
+
+def test_process_upload_reads_fx_from_data_root_not_package_path(tmp_path, monkeypatch) -> None:
+    # Render installs the package into site-packages, so the module-relative
+    # default fx.json path does not exist there (prod 500 FileNotFoundError).
+    import app.api.production_processor as mod
+    import app.rules.fx as fx_module
+
+    monkeypatch.setattr(fx_module, "_DEFAULT_FX_PATH", tmp_path / "missing" / "fx.json")
+    monkeypatch.setattr(fx_module, "_cached_table", None)
+
+    db = tmp_path / "proc.sqlite"
+    engine = create_engine(f"sqlite:///{db}")
+    from app.persistence import init_database, seed_rules
+
+    init_database(engine)
+    store = SqlStore(engine)
+    seed_rules(store, RULES_PATH)
+    expected = make_record(invoice_id="INV-G4-001", id="dec_g4")
+
+    def fake_factory(
+        _settings: object, rules: RulesConfig, _ledger: tuple[object, ...]
+    ) -> GraphDeps:
+        return GraphDeps(
+            extractor=object(),
+            verifier=object(),
+            jev=object(),
+            rules=rules,
+            fx=object(),
+            ledger=(),
+            company_name=rules.company.name,
+            rules_version="v1",
+            model_extractor="x",
+            model_verifier="y",
+            jev_label="z",
+        )
+
+    processor = make_production_processor(
+        store,
+        data_root=RULES_PATH.parents[1],
+        deps_factory=fake_factory,
+        checkpointer=MemorySaver(),
+    )
+    monkeypatch.setattr(mod, "run_invoice", lambda _deps, **_kw: expected)
+
+    record = processor(_upload(), "usr_synth_001")
+
+    assert record.id == "dec_g4"
