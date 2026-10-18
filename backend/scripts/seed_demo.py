@@ -12,7 +12,7 @@ independent of `--with-rules`, for the 3 demo vendors (see
 mode; it is sent as the `X-Admin-Key` header on every write request and is
 never printed anywhere (plan, logs, or errors).
 
-T9.8 (D067): every write is scoped to the demo company «Acme Demo Inc.».
+T9.8 (D067): every write is scoped to the demo company «P.J Gorman».
 The script first attaches its writer to that company through
 `PUT /admin/members` (X-Admin-Key only): the real Supabase user given with
 `--member-user-id/--member-email` (admin, approver groups finanzas+cfo), or a
@@ -122,7 +122,7 @@ def build_plan(
     *, with_rules: bool, demo_agreements: Mapping[str, VendorAgreement]
 ) -> list[PlannedCall]:
     plan: list[PlannedCall] = [
-        PlannedCall("PUT", "/admin/members", "attach the writer to «Acme Demo Inc.»")
+        PlannedCall("PUT", "/admin/members", "attach the writer to «P.J Gorman»")
     ]
     if with_rules:
         plan.append(PlannedCall("GET", "/rules", "check the current rules document"))
@@ -169,7 +169,7 @@ def _apply_member_step(
     }
     result = transport("PUT", f"{base_url}/admin/members", {"X-Admin-Key": admin_key}, body)
     if result.status_code == 200:
-        print(f"attached: {email} to «Acme Demo Inc.» as {role} (finanzas, cfo)")
+        print(f"attached: {email} to «P.J Gorman» as {role} (finanzas, cfo)")
         return True
     print(
         f"error: PUT /admin/members failed with status {result.status_code}: {result.body}",
@@ -263,7 +263,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--member-user-id",
-        help="Supabase user id to attach to «Acme Demo Inc.» (approver groups finanzas+cfo).",
+        help="Supabase user id to attach to «P.J Gorman» (approver groups finanzas+cfo).",
     )
     parser.add_argument("--member-email", help="Email of --member-user-id.")
     parser.add_argument(

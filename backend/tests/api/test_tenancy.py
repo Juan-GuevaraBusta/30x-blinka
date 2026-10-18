@@ -13,8 +13,10 @@ from app.api.tenancy import (
     UNCONFIGURED_SUMMARY_PREFIX,
     apply_unconfigured_guard,
 )
-from app.models.domain import DecisionRecord
+from app.models.domain import DecisionRecord, Extraction
 from app.persistence import SqlStore, init_database
+from app.rules.checks import check_r08
+from app.rules.context import RuleContext
 from app.rules.fx import load_fx_table, rebase_fx_table
 from sqlalchemy import create_engine
 from tests.api.support import (
@@ -63,7 +65,7 @@ def test_list_companies_includes_demo() -> None:
 
     names = [c["name"] for c in client.get("/companies", headers=_B).json()]
 
-    assert "Acme Demo Inc." in names
+    assert "P.J Gorman" in names
 
 
 def test_create_company_makes_creator_admin_and_approver() -> None:
@@ -259,6 +261,33 @@ def test_production_rules_for_unconfigured_company_fail_closed() -> None:
     assert rules.company.name == "Beta"
 
 
+def test_effective_rules_use_company_row_name_for_r08() -> None:
+    """T9.8: the `companies` row is the single source of truth for a
+    configured company's name, even though its rules were seeded from the
+    shared `data/rules.json` template (whose own `company.name` is frozen
+    eval data and never changes -- it stays «Acme Demo Inc.» on disk). R08
+    ("recipient is the company") must compare against *this* company's
+    row ("P.J Gorman", the live demo company), not the template's baked-in
+    name.
+    """
+    store = MemoryStore(load_rules())
+
+    rules, _contracts = effective_rules_and_contracts(store, company_id=DEMO_COMPANY_ID)
+
+    assert rules.company.name == "P.J Gorman"
+
+    def _r08_for(recipient: str) -> str:
+        ctx = RuleContext(
+            rules=rules,
+            fx_table=load_fx_table(),
+            extraction=Extraction(recipient=recipient),
+        )
+        return check_r08(ctx).result
+
+    assert _r08_for("P.J Gorman") == "OK"
+    assert _r08_for("Acme Demo Inc.") == "FALLA"
+
+
 # --- isolation --------------------------------------------------------------------
 
 
@@ -404,7 +433,7 @@ def test_migration_backfills_legacy_rows_to_demo_company(tmp_path) -> None:
     init_database(engine)
     store = SqlStore(engine)
 
-    assert store.get_company(DEMO_COMPANY_ID).name == "Acme Demo Inc."  # type: ignore[union-attr]
+    assert store.get_company(DEMO_COMPANY_ID).name == "P.J Gorman"  # type: ignore[union-attr]
     assert list(store.decisions_for(DEMO_COMPANY_ID)) == [record.id]
     assert store.rules_for(DEMO_COMPANY_ID) is not None
     with engine.connect() as raw:

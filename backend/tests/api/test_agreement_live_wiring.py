@@ -197,7 +197,7 @@ def test_confirmed_fixed_agreement_drives_r06_without_llm_contract_call(tmp_path
         "Monto: 800 USD\n"
         "Vencimiento: 2026-03-15\n"
         "Numero: GLX-100\n"
-        "Para: Acme Demo Inc.\n"
+        "Para: P.J Gorman\n"
         "Departamento: Ingenieria\n"
     )
     extractor = _FakeExtractor(
@@ -207,7 +207,7 @@ def test_confirmed_fixed_agreement_drives_r06_without_llm_contract_call(tmp_path
             "currency": "USD",
             "due_date": "2026-03-15",
             "invoice_number": "GLX-100",
-            "recipient": "Acme Demo Inc.",
+            "recipient": "P.J Gorman",
             "department": "Ingenieria",
             "invoice_type": None,
             "lines": [],
@@ -217,7 +217,7 @@ def test_confirmed_fixed_agreement_drives_r06_without_llm_contract_call(tmp_path
                 "currency": "Monto: 800 USD",
                 "due_date": "Vencimiento: 2026-03-15",
                 "invoice_number": "Numero: GLX-100",
-                "recipient": "Para: Acme Demo Inc.",
+                "recipient": "Para: P.J Gorman",
                 "department": "Departamento: Ingenieria",
             },
         }
@@ -245,7 +245,7 @@ def test_hourly_agreement_overbilling_frenar(tmp_path) -> None:
         "Monto: 3600 USD\n"
         "Vencimiento: 2026-04-01\n"
         "Numero: INIT-OVER-1\n"
-        "Para: Acme Demo Inc.\n"
+        "Para: P.J Gorman\n"
         "Departamento: Ingenieria\n"
     )
     extractor = _FakeExtractor(
@@ -255,7 +255,7 @@ def test_hourly_agreement_overbilling_frenar(tmp_path) -> None:
             "currency": "USD",
             "due_date": "2026-04-01",
             "invoice_number": "INIT-OVER-1",
-            "recipient": "Acme Demo Inc.",
+            "recipient": "P.J Gorman",
             "department": "Ingenieria",
             "invoice_type": None,
             "lines": [],
@@ -265,7 +265,7 @@ def test_hourly_agreement_overbilling_frenar(tmp_path) -> None:
                 "currency": "Monto: 3600 USD",
                 "due_date": "Vencimiento: 2026-04-01",
                 "invoice_number": "Numero: INIT-OVER-1",
-                "recipient": "Para: Acme Demo Inc.",
+                "recipient": "Para: P.J Gorman",
                 "department": "Departamento: Ingenieria",
             },
         },
@@ -308,7 +308,7 @@ def test_hourly_agreement_correct_billing_never_pays(tmp_path) -> None:
         "Monto: 3300 USD\n"
         "Vencimiento: 2026-04-01\n"
         "Numero: INIT-OK-1\n"
-        "Para: Acme Demo Inc.\n"
+        "Para: P.J Gorman\n"
         "Departamento: Ingenieria\n"
     )
     extractor = _FakeExtractor(
@@ -318,7 +318,7 @@ def test_hourly_agreement_correct_billing_never_pays(tmp_path) -> None:
             "currency": "USD",
             "due_date": "2026-04-01",
             "invoice_number": "INIT-OK-1",
-            "recipient": "Acme Demo Inc.",
+            "recipient": "P.J Gorman",
             "department": "Ingenieria",
             "invoice_type": None,
             "lines": [],
@@ -328,7 +328,7 @@ def test_hourly_agreement_correct_billing_never_pays(tmp_path) -> None:
                 "currency": "Monto: 3300 USD",
                 "due_date": "Vencimiento: 2026-04-01",
                 "invoice_number": "Numero: INIT-OK-1",
-                "recipient": "Para: Acme Demo Inc.",
+                "recipient": "Para: P.J Gorman",
                 "department": "Departamento: Ingenieria",
             },
         },
@@ -366,7 +366,7 @@ def test_unknown_vendor_without_agreement_still_frenar(tmp_path) -> None:
         "Monto: 500 USD\n"
         "Vencimiento: 2026-03-20\n"
         "Numero: GHOST-1\n"
-        "Para: Acme Demo Inc.\n"
+        "Para: P.J Gorman\n"
         "Departamento: Ingenieria\n"
     )
     extractor = _FakeExtractor(
@@ -376,7 +376,7 @@ def test_unknown_vendor_without_agreement_still_frenar(tmp_path) -> None:
             "currency": "USD",
             "due_date": "2026-03-20",
             "invoice_number": "GHOST-1",
-            "recipient": "Acme Demo Inc.",
+            "recipient": "P.J Gorman",
             "department": "Ingenieria",
             "invoice_type": None,
             "lines": [],
@@ -386,7 +386,7 @@ def test_unknown_vendor_without_agreement_still_frenar(tmp_path) -> None:
                 "currency": "Monto: 500 USD",
                 "due_date": "Vencimiento: 2026-03-20",
                 "invoice_number": "Numero: GHOST-1",
-                "recipient": "Para: Acme Demo Inc.",
+                "recipient": "Para: P.J Gorman",
                 "department": "Departamento: Ingenieria",
             },
         }
@@ -402,12 +402,16 @@ def test_unknown_vendor_without_agreement_still_frenar(tmp_path) -> None:
 
 def test_without_agreements_rules_are_byte_identical_to_base(tmp_path) -> None:
     """T9.1 §4: `compile_rules(base, [])` leaves `base` untouched -- the live
-    pipeline with no agreements must behave exactly as before T9.1."""
+    pipeline with no agreements must behave exactly as before T9.1, except
+    for the company identity (T9.8), which always comes from the
+    `companies` row («P.J Gorman») rather than whatever is baked into the
+    seeded rules document (the shared `data/rules.json` template)."""
     from app.api.production_processor import effective_rules_and_contracts
 
     store = _store(tmp_path)
     rules, contracts = effective_rules_and_contracts(store)
-    assert rules == store.rules
+    assert rules.company.name == "P.J Gorman"
+    assert rules.model_copy(update={"company": store.rules.company}) == store.rules
     assert contracts == {}
 
 
@@ -482,7 +486,7 @@ def _globex_invoice(amount: str) -> tuple[str, _FakeExtractor]:
         f"Monto: {amount} USD\n"
         "Vencimiento: 2026-03-15\n"
         "Numero: GLX-J6\n"
-        "Para: Acme Demo Inc.\n"
+        "Para: P.J Gorman\n"
         "Departamento: Ingenieria\n"
     )
     extractor = _FakeExtractor(
@@ -492,7 +496,7 @@ def _globex_invoice(amount: str) -> tuple[str, _FakeExtractor]:
             "currency": "USD",
             "due_date": "2026-03-15",
             "invoice_number": "GLX-J6",
-            "recipient": "Acme Demo Inc.",
+            "recipient": "P.J Gorman",
             "department": "Ingenieria",
             "invoice_type": None,
             "lines": [],
@@ -502,7 +506,7 @@ def _globex_invoice(amount: str) -> tuple[str, _FakeExtractor]:
                 "currency": f"Monto: {amount} USD",
                 "due_date": "Vencimiento: 2026-03-15",
                 "invoice_number": "Numero: GLX-J6",
-                "recipient": "Para: Acme Demo Inc.",
+                "recipient": "Para: P.J Gorman",
                 "department": "Departamento: Ingenieria",
             },
         }
@@ -580,7 +584,7 @@ def _hourly_invoice(*, invoice_number: str, hours: int, amount: int, unit: str):
         f"Monto: {amount} USD\n"
         "Vencimiento: 2026-04-01\n"
         f"Numero: {invoice_number}\n"
-        "Para: Acme Demo Inc.\n"
+        "Para: P.J Gorman\n"
         "Departamento: Ingenieria\n"
     )
     extractor = _FakeExtractor(
@@ -590,7 +594,7 @@ def _hourly_invoice(*, invoice_number: str, hours: int, amount: int, unit: str):
             "currency": "USD",
             "due_date": "2026-04-01",
             "invoice_number": invoice_number,
-            "recipient": "Acme Demo Inc.",
+            "recipient": "P.J Gorman",
             "department": "Ingenieria",
             "invoice_type": None,
             "lines": [],
@@ -600,7 +604,7 @@ def _hourly_invoice(*, invoice_number: str, hours: int, amount: int, unit: str):
                 "currency": f"Monto: {amount} USD",
                 "due_date": "Vencimiento: 2026-04-01",
                 "invoice_number": f"Numero: {invoice_number}",
-                "recipient": "Para: Acme Demo Inc.",
+                "recipient": "Para: P.J Gorman",
                 "department": "Departamento: Ingenieria",
             },
         },

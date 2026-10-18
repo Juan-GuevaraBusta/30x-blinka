@@ -33,7 +33,7 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE_URL = "https://blinka-invoice-api.onrender.com"
-COMPANY = "Acme Demo Inc."
+COMPANY = "P.J Gorman"
 VENDOR = "Globex LLC"
 
 

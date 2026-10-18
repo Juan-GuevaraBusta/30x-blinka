@@ -97,7 +97,7 @@ class _ChainEntry:
 class MemoryStore:
     """In-memory backend. T9.8 (D067): every company-owned method takes a
     `company_id` keyword that defaults to the demo company, so pre-T9.8
-    callers (tests, CLI) keep operating on «Acme Demo Inc.»."""
+    callers (tests, CLI) keep operating on «P.J Gorman»."""
 
     def __init__(self, rules: RulesConfig) -> None:
         self._template_rules = rules

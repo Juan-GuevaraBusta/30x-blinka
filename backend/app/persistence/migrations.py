@@ -106,10 +106,15 @@ _COMPANY_SCOPED_TABLES = (
 
 def ensure_company_tenancy(engine: Engine) -> None:
     """T9.8 (D067), idempotent: add `company_id` to legacy tables, create the
-    demo company «Acme Demo Inc.» (USD) and assign it every legacy row whose
+    demo company «P.J Gorman» (USD) and assign it every legacy row whose
     `company_id` is still NULL. On Postgres, also swap the pre-T9.8 agreement
     uniqueness `(vendor_key, version)` for `(company_id, vendor_key, version)`
     so two companies can each confirm v1 for the same vendor.
+
+    Also idempotently renames an existing demo-company row created under an
+    older display name (e.g. «Acme Demo Inc.») back to the current
+    `DEMO_COMPANY_NAME`, so a rename of the live demo's name does not require
+    a fresh database.
     """
     from datetime import UTC, datetime
 
@@ -127,10 +132,22 @@ def ensure_company_tenancy(engine: Engine) -> None:
                 conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN company_id VARCHAR'))
 
     with engine.begin() as conn:
-        exists = conn.execute(
-            text("SELECT 1 FROM companies WHERE id = :id"), {"id": DEMO_COMPANY_ID}
+        existing = conn.execute(
+            text("SELECT name FROM companies WHERE id = :id"), {"id": DEMO_COMPANY_ID}
         ).first()
-        if exists is None:
+        if existing is not None and existing[0] != DEMO_COMPANY_NAME:
+            conn.execute(
+                text(
+                    "UPDATE companies SET name = :name, name_key = :key "
+                    "WHERE id = :id"
+                ),
+                {
+                    "id": DEMO_COMPANY_ID,
+                    "name": DEMO_COMPANY_NAME,
+                    "key": _normalize(DEMO_COMPANY_NAME),
+                },
+            )
+        if existing is None:
             conn.execute(
                 text(
                     "INSERT INTO companies (id, name, name_key, base_currency, is_demo, "

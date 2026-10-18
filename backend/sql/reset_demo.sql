@@ -6,7 +6,7 @@
 --
 -- Después de correrlo:
 --   1. Reinicia el servicio en Render: al arrancar recrea la empresa demo
---      «Acme Demo Inc.» (USD) y vuelve a sembrar sus reglas desde data/rules.json.
+--      «P.J Gorman» (USD) y vuelve a sembrar sus reglas desde data/rules.json.
 --   2. Siembra política, acuerdos y adjunta tu usuario de Supabase a la demo:
 --        ADMIN_API_KEY=<clave> python backend/scripts/seed_demo.py --apply --with-rules \
 --          --member-user-id <uuid de Supabase> --member-email <correo> --role admin

@@ -1,5 +1,5 @@
 Beneficiario: Andesbyte SAS
-Para: Acme Demo Inc.
+Para: P.J Gorman
 Numero: AB-2026-10-017
 Concepto: 50 horas de desarrollo en octubre 2026 a 45 USD por hora
 Horas: 50

@@ -14,7 +14,13 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 
 from app.api.schemas import InvoiceRejected, InvoiceUpload
-from app.api.tenancy import CURRENT_COMPANY, DEMO_COMPANY_ID, Company, fallback_rules
+from app.api.tenancy import (
+    CURRENT_COMPANY,
+    DEMO_COMPANY_ID,
+    Company,
+    fallback_rules,
+    with_company_identity,
+)
 from app.config import Settings, load_settings, resolve_backend
 from app.extraction.ingest import IngestChannel
 from app.graph.build import GraphError, run_invoice
@@ -214,14 +220,19 @@ def effective_rules_and_contracts(
     unmodified base rules with no agreement contract for this request.
     """
     base = store.rules_for(company_id)
+    company = store.get_company(company_id) or Company(
+        id=company_id, name="", base_currency="USD", is_demo=False,
+        created_by=None, created_at="",
+    )
     if base is None:
         # T9.8 (D067): unconfigured company -> fail-closed fallback rules
         # (R01 fails with ESCALAR), no agreements compiled in. Never PAGAR.
-        company = store.get_company(company_id) or Company(
-            id=company_id, name="", base_currency="USD", is_demo=False,
-            created_by=None, created_at="",
-        )
         return fallback_rules(store.template_rules, company), {}
+    # T9.8: the `companies` row is the single source of truth for name/base
+    # currency, regardless of whatever was baked into the stored rules
+    # document (a shared template, or an older `PUT /rules`). R08 and every
+    # explanation must use the company row.
+    base = with_company_identity(base, company)
     active = store.list_active_agreements(company_id=company_id)
     if not active:
         return base, {}

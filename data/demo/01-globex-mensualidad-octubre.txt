@@ -1,5 +1,5 @@
 Beneficiario: Globex LLC
-Para: Acme Demo Inc.
+Para: P.J Gorman
 Numero: GX-2026-10-001
 Concepto: Mensualidad de servicios de octubre 2026
 Total: 1200 USD

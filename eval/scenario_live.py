@@ -31,7 +31,7 @@ from typing import Any, Protocol
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_WEB = "https://blinka-invoice-agent.vercel.app"
 DEFAULT_API = "https://blinka-invoice-api.onrender.com"
-COMPANY = "Acme Demo Inc."
+COMPANY = "P.J Gorman"
 FINANZAS = "finanzas@demo.test"
 CFO = "cfo@demo.test"
 

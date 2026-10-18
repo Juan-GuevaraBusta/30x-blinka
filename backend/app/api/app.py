@@ -59,6 +59,7 @@ from app.api.tenancy import (
     approver_groups_for,
     draft_rules_payload,
     fallback_rules,
+    with_company_identity,
 )
 from app.api.user_scope import require_user_id
 from app.extraction.agreement_draft import draft_agreement
@@ -175,10 +176,13 @@ def create_app(
 
     def _base_rules(company_id: str) -> RulesConfig:
         rules = store.rules_for(company_id)
-        if rules is not None:
-            return rules
         company = store.get_company(company_id)
         assert company is not None
+        if rules is not None:
+            # T9.8: the `companies` row is the single source of truth for
+            # name/base currency -- never whatever is baked into the stored
+            # rules document.
+            return with_company_identity(rules, company)
         return fallback_rules(store.template_rules, company)
 
     @app.get("/health")

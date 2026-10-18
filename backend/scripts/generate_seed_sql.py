@@ -19,6 +19,9 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from app.api.tenancy import DEMO_BASE_CURRENCY, DEMO_COMPANY_ID, DEMO_COMPANY_NAME
+from app.api.tenancy import normalize_company_name as _normalize_company_name
+
 from scripts._demo_fixtures import (
     REPO_ROOT,
     build_demo_agreements,
@@ -31,7 +34,6 @@ DEFAULT_OUTPUT: Path = REPO_ROOT / "backend" / "sql" / "seed_demo.sql"
 # Fixed, deterministic `confirmed_at` for the SQL-only demo rows (no clock, no
 # network -- this script is pure except for the final file write in `main`).
 _SEED_CONFIRMED_AT = "2026-01-01T00:00:00+00:00"
-DEMO_COMPANY_ID = "demo-acme"
 
 _HEADER = """\
 -- Semilla de demo para Postgres/Supabase (bypassa la cadena de auditoria) --------------------
@@ -70,12 +72,15 @@ def render_sql() -> str:
     confirmed_by = pick_approver_email()
 
     company = _sql_string_literal(DEMO_COMPANY_ID)
+    company_name = _sql_string_literal(DEMO_COMPANY_NAME)
+    company_name_key = _sql_string_literal(_normalize_company_name(DEMO_COMPANY_NAME))
+    base_currency = _sql_string_literal(DEMO_BASE_CURRENCY)
     lines: list[str] = [_HEADER, "", "-- 0. Empresa demo (T9.8)", ""]
     lines.append(
         "INSERT INTO companies (id, name, name_key, base_currency, is_demo, created_by, "
         "created_at)\n"
-        f"VALUES ({company}, 'Acme Demo Inc.', 'acme demo inc.', 'USD', TRUE, NULL, "
-        f"{_sql_string_literal(_SEED_CONFIRMED_AT)})\n"
+        f"VALUES ({company}, {company_name}, {company_name_key}, {base_currency}, TRUE, "
+        f"NULL, {_sql_string_literal(_SEED_CONFIRMED_AT)})\n"
         "ON CONFLICT (id) DO NOTHING;"
     )
     lines += ["", "-- 1. Reglas base (rules_document)", ""]

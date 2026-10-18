@@ -15,10 +15,10 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from app.models.domain import DecisionRecord
-from app.models.rules_config import RulesConfig
+from app.models.rules_config import CompanyRef, RulesConfig
 
 DEMO_COMPANY_ID = "demo-acme"
-DEMO_COMPANY_NAME = "Acme Demo Inc."
+DEMO_COMPANY_NAME = "P.J Gorman"
 DEMO_BASE_CURRENCY = "USD"
 CREATOR_GROUPS: tuple[str, ...] = ("finanzas", "cfo")
 
@@ -104,6 +104,20 @@ def draft_rules_payload(template: RulesConfig, company: Company) -> dict[str, An
         }
     )
     return base
+
+
+def with_company_identity(rules: RulesConfig, company: Company) -> RulesConfig:
+    """T9.8: the `companies` row is the single source of truth for a company's
+    display name and base currency. A rules document may have been seeded
+    from a shared template (`data/rules.json`, frozen eval data) or edited
+    via `PUT /rules`; either way, R08 ("recipient is the company") and every
+    explanation must compare against *this* company's name, not whatever
+    name happens to be baked into the stored document."""
+    if rules.company.name == company.name and rules.company.base_currency == company.base_currency:
+        return rules
+    return rules.model_copy(
+        update={"company": CompanyRef(name=company.name, base_currency=company.base_currency)}
+    )
 
 
 def fallback_rules(template: RulesConfig, company: Company) -> RulesConfig:

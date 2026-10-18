@@ -105,7 +105,7 @@ ALTER TABLE decision_record          ADD COLUMN IF NOT EXISTS company_id VARCHAR
 ALTER TABLE chain_entries            ADD COLUMN IF NOT EXISTS company_id VARCHAR;
 
 INSERT INTO companies (id, name, name_key, base_currency, is_demo, created_by, created_at)
-VALUES ('demo-acme', 'Acme Demo Inc.', 'acme demo inc.', 'USD', TRUE, NULL, now()::text)
+VALUES ('demo-acme', 'P.J Gorman', 'p.j gorman', 'USD', TRUE, NULL, now()::text)
 ON CONFLICT (id) DO NOTHING;
 
 UPDATE rules_document           SET company_id = 'demo-acme' WHERE company_id IS NULL;

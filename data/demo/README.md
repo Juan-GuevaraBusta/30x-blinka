@@ -1,6 +1,6 @@
 # Paquete de demo (3 casos)
 
-Empresa: **Acme Demo Inc.** (USD), con acuerdo mensual fijo de **Globex LLC** (1200 USD) y acuerdo por horas de **Andesbyte SAS** (45 USD/hora, 160 h incluidas, recargo 1,5×).
+Empresa: **P.J Gorman** (USD), con acuerdo mensual fijo de **Globex LLC** (1200 USD) y acuerdo por horas de **Andesbyte SAS** (45 USD/hora, 160 h incluidas, recargo 1,5×).
 
 | Archivo | Qué muestra | Resultado esperado |
 |---|---|---|

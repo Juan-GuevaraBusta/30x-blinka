@@ -139,19 +139,22 @@ def test_draft_with_fake_llm_returns_cited_fields() -> None:
 
 
 def test_draft_vendor_equal_to_paying_company_is_left_missing() -> None:
-    """The endpoint passes `store.rules.company.name` into `draft_agreement`
-    (main 55ec605): a model that proposes the paying company itself as the
-    vendor must never auto-fill that field -- it stays in `missing` for a
-    human to correct, never silently confirmed.
+    """The endpoint passes the `companies` row's name (T9.8: the single
+    source of truth for company identity, never whatever is baked into the
+    seeded rules document) into `draft_agreement` (main 55ec605): a model
+    that proposes the paying company itself as the vendor must never
+    auto-fill that field -- it stays in `missing` for a human to correct,
+    never silently confirmed.
     """
     from datetime import UTC, datetime
 
     from app.api.store import MemoryStore
+    from app.api.tenancy import DEMO_COMPANY_NAME
     from fastapi.testclient import TestClient
     from tests.api.support import load_approver_emails, load_approver_groups, load_rules
 
-    company_name = load_rules().company.name
-    assert company_name == "Acme Demo Inc."
+    company_name = DEMO_COMPANY_NAME
+    assert company_name == "P.J Gorman"
 
     llm = FakeAgreementLlm(
         {

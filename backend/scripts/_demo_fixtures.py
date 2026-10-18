@@ -17,6 +17,7 @@ import json
 from pathlib import Path
 from typing import Final
 
+from app.api.tenancy import DEMO_BASE_CURRENCY, DEMO_COMPANY_NAME
 from app.models.agreement import (
     AgreementInstallmentItem,
     HourlyAgreement,
@@ -28,6 +29,7 @@ from app.models.agreement import (
 from app.models.rules_config import (
     ApprovalPolicy,
     ApprovalRoute,
+    CompanyRef,
     RouteMatch,
     RouteRequire,
     RulesConfig,
@@ -88,9 +90,13 @@ def pick_approver_email(company: dict | None = None) -> str:
 
 
 def build_demo_rules_config(base: RulesConfig | None = None) -> RulesConfig:
-    """Demo `RulesConfig`: the real `data/rules.json`, plus the 3 demo vendors
-    on `allowed_beneficiaries`, plus an `approval_policy` with a 2-of-N
-    high-amount route ending in the mandatory catch-all route."""
+    """Demo `RulesConfig`: the real `data/rules.json` (frozen eval data, left
+    on disk unmodified), with its `company` identity swapped to the live
+    demo company (`DEMO_COMPANY_NAME`/`DEMO_BASE_CURRENCY` -- the
+    `data/rules.json` template keeps its own frozen company name, used only
+    by the eval motor), plus the 3 demo vendors on `allowed_beneficiaries`,
+    plus an `approval_policy` with a 2-of-N high-amount route ending in the
+    mandatory catch-all route."""
     source = base if base is not None else load_rules_config(RULES_PATH)
     allowed = list(source.allowed_beneficiaries)
     for name in DEMO_VENDOR_NAMES:
@@ -111,7 +117,11 @@ def build_demo_rules_config(base: RulesConfig | None = None) -> RulesConfig:
         ]
     )
     updated = source.model_copy(
-        update={"allowed_beneficiaries": allowed, "approval_policy": policy}
+        update={
+            "company": CompanyRef(name=DEMO_COMPANY_NAME, base_currency=DEMO_BASE_CURRENCY),
+            "allowed_beneficiaries": allowed,
+            "approval_policy": policy,
+        }
     )
     # Re-validate through the real model instead of trusting `model_copy`.
     return RulesConfig.model_validate(updated.model_dump(mode="json"))
