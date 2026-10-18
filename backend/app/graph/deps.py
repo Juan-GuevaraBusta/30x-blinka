@@ -36,3 +36,7 @@ class GraphDeps:
     # `GraphDeps(...)` call site (dev motor, folder batch, tests) keeps
     # today's behavior untouched.
     pending_ledger: tuple[LedgerEntry, ...] = ()
+    # Contract file names (``data/contracts/<name>.txt``) a human confirmed
+    # outside the frozen text (D015 keeps the marker ``confirmed: false``).
+    # Empty by default: only the file marker confirms, as before.
+    confirmed_contracts: frozenset[str] = frozenset()

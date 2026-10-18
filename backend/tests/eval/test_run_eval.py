@@ -266,3 +266,44 @@ def test_run_uses_injected_graph_runner_without_network(tmp_path: Path) -> None:
 def test_run_skip_graph_requires_decisions_dev(tmp_path: Path) -> None:
     code = run_eval.main(["--output", str(tmp_path / "latest.md"), "--skip-graph"])
     assert code == 2
+
+
+def test_confirmed_contracts_from_golden_is_per_file_and_fail_closed() -> None:
+    golden = {
+        "entries": [
+            {"contract_path": "data/contracts/a.txt", "contract_confirmed": True},
+            {"contract_path": "data/contracts/a.txt", "contract_confirmed": True},
+            {"contract_path": "data/contracts/b.txt", "contract_confirmed": True},
+            {"contract_path": "data/contracts/b.txt", "contract_confirmed": False},
+            {"contract_path": "data/contracts/c.txt"},
+            {"contract_path": None, "contract_confirmed": True},
+        ]
+    }
+    assert run_eval.confirmed_contracts_from_golden(golden) == frozenset({"a.txt"})
+
+
+def test_run_passes_dev_golden_confirmations_to_graph_runner(tmp_path: Path) -> None:
+    golden = {
+        "schema_version": 1,
+        "entries": [
+            {"contract_path": "data/contracts/globex-llc.txt", "contract_confirmed": True}
+        ],
+    }
+    golden_path = tmp_path / "dev.json"
+    golden_path.write_text(json.dumps(golden), encoding="utf-8")
+    seen: dict = {}
+
+    def fake_graph_runner(invoices_dir, output_path, **kwargs):
+        seen.update(kwargs)
+        raise run_eval.FolderBatchError("stop_here")
+
+    rc = run_eval.run(
+        [
+            "--output", str(tmp_path / "r.md"),
+            "--data-root", str(tmp_path),
+            "--golden-dev", str(golden_path),
+        ],
+        graph_runner=fake_graph_runner,
+    )
+    assert rc == 2
+    assert seen["confirmed_contracts"] == frozenset({"globex-llc.txt"})

@@ -123,7 +123,15 @@ def lookup_contract(
     llm: Any,
     *,
     contracts_dir: Path | None = None,
+    confirmed_contracts: frozenset[str] = frozenset(),
 ) -> ContractRecord:
+    """Look up and ingest the single contract for ``beneficiary``.
+
+    ``confirmed`` is True only when the file's own marker says
+    ``confirmed: true`` or a human confirmation recorded outside the frozen
+    ``.txt`` (``confirmed_contracts``, contract file names) names this exact
+    file. The model never decides confirmation (D020).
+    """
     if beneficiary is None or not beneficiary.strip():
         return ContractRecord(found=False)
 
@@ -131,20 +139,20 @@ def lookup_contract(
     if root is None:
         root = Path(__file__).resolve().parents[3] / "data" / "contracts"
 
-    matched: list[str] = []
+    matched: list[tuple[str, str]] = []
     for path in sorted(root.glob("*.txt"), key=lambda item: item.name):
         text = path.read_text(encoding="utf-8")
         if _matches_beneficiary(text, beneficiary):
-            matched.append(text)
+            matched.append((path.name, text))
 
     if len(matched) != 1:
         return ContractRecord(found=False)
 
-    text = matched[0]
+    name, text = matched[0]
     if not text.strip():
         raise ContractLookupError("empty_document")
 
-    confirmed = parse_confirmed_marker(text)
+    confirmed = parse_confirmed_marker(text) or name in confirmed_contracts
     try:
         raw = llm.complete_json(CONTRACT_EXTRACTOR_SYSTEM_PROMPT, text)
     except (DecisionClientError, ConfigError):
@@ -172,6 +180,20 @@ def lookup_contract(
         cited_clauses=list(payload.cited_clauses),
         quotes=dict(payload.quotes),
     )
+
+
+def fee_clause_citation(record: ContractRecord) -> str | None:
+    """Text JEV J6 reads as ``cited_clause`` for a file contract.
+
+    The verbatim fee quote (already checked as a substring of the contract by
+    ``_validate_quotes``) so J6 can judge whether the clause supports the
+    charged amount; a bare clause id like ``4.1`` carries no tariff. Falls back
+    to the first cited clause id when there is no fee quote.
+    """
+    quote = record.quotes.get("fee_amount")
+    if quote is not None and quote.strip():
+        return quote
+    return record.cited_clauses[0] if record.cited_clauses else None
 
 
 def _matches_beneficiary(text: str, beneficiary: str) -> bool:

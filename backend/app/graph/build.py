@@ -10,7 +10,11 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command
 
-from app.extraction.contracts import ContractLookupError, lookup_contract
+from app.extraction.contracts import (
+    ContractLookupError,
+    fee_clause_citation,
+    lookup_contract,
+)
 from app.extraction.extract import ExtractError, extract_document
 from app.extraction.ingest import IngestChannel, IngestError, ingest_bytes
 from app.extraction.metered import extract_metered_lines
@@ -219,6 +223,7 @@ def _make_nodes(deps: GraphDeps):
                 extraction.beneficiary,
                 deps.extractor,
                 contracts_dir=deps.contracts_dir,
+                confirmed_contracts=deps.confirmed_contracts,
             )
         except ContractLookupError:
             return _tech_escalate()
@@ -235,7 +240,7 @@ def _make_nodes(deps: GraphDeps):
                 },
             )
 
-        cited = record.cited_clauses[0] if record.cited_clauses else None
+        cited = fee_clause_citation(record)
         return Command(
             goto="jev_checks",
             update={

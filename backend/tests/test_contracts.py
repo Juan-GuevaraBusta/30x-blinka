@@ -10,6 +10,7 @@ from app.extraction.contracts import (
     CONTRACT_EXTRACTOR_SYSTEM_PROMPT,
     ContractLookupError,
     ContractRecord,
+    fee_clause_citation,
     lookup_contract,
     parse_confirmed_marker,
 )
@@ -410,3 +411,65 @@ def test_boolean_quote_is_schema_mismatch() -> None:
     with pytest.raises(ContractLookupError) as exc:
         lookup_contract("Initech SAS", FakeLlm(response=raw))
     assert exc.value.code == "schema_mismatch"
+
+
+def test_external_confirmation_of_globex_file_makes_r06_ok(
+    rules: RulesConfig, fx_table: FxTable
+) -> None:
+    # The frozen file keeps `confirmed: false` (D015); a human confirmation
+    # recorded outside it, naming this exact file, confirms the contract.
+    record = lookup_contract(
+        "Globex LLC",
+        FakeLlm(response=_globex_payload()),
+        confirmed_contracts=frozenset({"globex-llc.txt"}),
+    )
+    assert record.confirmed is True
+    ctx = _rule_context(rules, fx_table, terms=record.terms, confirmed=record.confirmed)
+    assert check_r06(ctx).result == "OK"
+
+
+def test_external_confirmation_still_fails_r06_on_wrong_amount(
+    rules: RulesConfig, fx_table: FxTable
+) -> None:
+    record = lookup_contract(
+        "Globex LLC",
+        FakeLlm(response=_globex_payload()),
+        confirmed_contracts=frozenset({"globex-llc.txt"}),
+    )
+    ctx = _rule_context(
+        rules, fx_table, terms=record.terms, confirmed=record.confirmed, amount=900.0
+    )
+    assert check_r06(ctx).result == "FALLA"
+
+
+def test_confirmation_of_another_file_does_not_confirm_globex() -> None:
+    record = lookup_contract(
+        "Globex LLC",
+        FakeLlm(response=_globex_payload()),
+        confirmed_contracts=frozenset({"pampaluz-ltda.txt", "globex-llc"}),
+    )
+    assert record.found is True
+    assert record.confirmed is False
+
+
+def test_external_confirmation_does_not_bypass_quote_check() -> None:
+    payload = _globex_payload()
+    payload["quotes"]["fee_amount"] = "La tarifa pactada es 1 USD."
+    with pytest.raises(ContractLookupError):
+        lookup_contract(
+            "Globex LLC",
+            FakeLlm(response=payload),
+            confirmed_contracts=frozenset({"globex-llc.txt"}),
+        )
+
+
+def test_fee_clause_citation_is_verbatim_fee_quote() -> None:
+    record = lookup_contract("Globex LLC", FakeLlm(response=_globex_payload()))
+    citation = fee_clause_citation(record)
+    assert citation == "La tarifa pactada es 800 USD por periodo mensual."
+    assert citation in GLOBEX_PATH.read_text(encoding="utf-8")
+
+
+def test_fee_clause_citation_falls_back_to_clause_id_then_none() -> None:
+    assert fee_clause_citation(ContractRecord(found=True, cited_clauses=["4.1"])) == "4.1"
+    assert fee_clause_citation(ContractRecord(found=False)) is None

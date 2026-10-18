@@ -84,6 +84,7 @@ def build_runtime_graph_deps(
     *,
     data_root: Path,
     transport: HttpTransport | None = None,
+    confirmed_contracts: frozenset[str] = frozenset(),
 ) -> GraphDeps:
     rules = load_rules_config(data_root / "data" / "rules.json")
     fx_table = load_fx_table(data_root / "data" / "fx.json")
@@ -106,6 +107,7 @@ def build_runtime_graph_deps(
         model_verifier=settings.verifier_model,
         jev_label=jev_label,
         contracts_dir=data_root / "data" / "contracts",
+        confirmed_contracts=confirmed_contracts,
     )
 
 
@@ -145,13 +147,14 @@ def run_invoice_folder(
     deps_factory: DepsFactory | None = None,
     tracer: TraceSession | None = None,
     checkpointer: BaseCheckpointSaver | None = None,
+    confirmed_contracts: frozenset[str] = frozenset(),
 ) -> FolderRunReport:
     root = repo_root or repo_root_from_module()
     catalog_file = catalog_path or (root / "data" / "invoices" / "catalog.json")
     effective_settings = settings or Settings()
     factory = deps_factory or (
         lambda s, ledger: build_runtime_graph_deps(
-            s, ledger, data_root=root
+            s, ledger, data_root=root, confirmed_contracts=confirmed_contracts
         )
     )
     saver = checkpointer or MemorySaver()

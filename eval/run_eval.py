@@ -95,6 +95,25 @@ def build_cases(golden_payload: dict, decisions_payload: dict) -> list[EvalCase]
     ]
 
 
+def confirmed_contracts_from_golden(golden_payload: dict) -> frozenset[str]:
+    """Contract file names the dev golden records as human-confirmed.
+
+    D015 keeps ``confirmed: false`` in the frozen ``data/contracts/*.txt``; the
+    human confirmation lives in the golden's ``contract_confirmed``. It is a
+    per-contract fact, so a contract counts only if every entry citing it says
+    ``true`` (fail-closed on any disagreement). Only the contract file name is
+    passed to the graph: terms are still read from the text and quoted.
+    """
+    seen: dict[str, bool] = {}
+    for entry in golden_payload.get("entries", []):
+        path = entry.get("contract_path")
+        if not path:
+            continue
+        name = Path(path).name
+        seen[name] = seen.get(name, True) and entry.get("contract_confirmed") is True
+    return frozenset(name for name, ok in seen.items() if ok)
+
+
 def _versions_tuples(decisions_payload: dict) -> list[tuple[str, str, str, str]]:
     tuples: list[tuple[str, str, str, str]] = []
     for record in decisions_payload.get("records", []):
@@ -163,6 +182,7 @@ def _run_split(
     phase: str,
     output_path: Path,
     graph_runner: GraphRunner,
+    confirmed_contracts: frozenset[str] = frozenset(),
 ) -> dict:
     tmp_decisions = output_path.parent / f"{output_path.stem}.{split}.decisions.json"
     from app.config import load_settings
@@ -178,6 +198,7 @@ def _run_split(
         phase=phase,
         settings=settings,
         tracer=tracer,
+        confirmed_contracts=confirmed_contracts,
     )
     return _load_json(Path(report.output_path))
 
@@ -214,6 +235,9 @@ def run(argv: list[str] | None = None, *, graph_runner: GraphRunner | None = Non
 
     try:
         golden_dev = _load_json(_resolve(root, args.golden_dev))
+        # Contract confirmations come from the dev golden only, for both splits:
+        # the holdout golden is never read before scoring.
+        confirmed_contracts = confirmed_contracts_from_golden(golden_dev)
         if args.skip_graph:
             decisions_dev = _load_json(_resolve(root, args.decisions_dev))
         else:
@@ -225,6 +249,7 @@ def run(argv: list[str] | None = None, *, graph_runner: GraphRunner | None = Non
                 phase=args.phase,
                 output_path=output_path,
                 graph_runner=graph_runner or _default_graph_runner(),
+                confirmed_contracts=confirmed_contracts,
             )
 
         holdout_score = None
@@ -243,6 +268,7 @@ def run(argv: list[str] | None = None, *, graph_runner: GraphRunner | None = Non
                     phase=args.phase,
                     output_path=output_path,
                     graph_runner=graph_runner or _default_graph_runner(),
+                    confirmed_contracts=confirmed_contracts,
                 )
             holdout_cases = build_cases(golden_holdout, decisions_holdout)
             holdout_score = score_split(holdout_cases, "holdout")
