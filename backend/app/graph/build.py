@@ -13,6 +13,7 @@ from langgraph.types import Command
 from app.extraction.contracts import ContractLookupError, lookup_contract
 from app.extraction.extract import ExtractError, extract_document
 from app.extraction.ingest import IngestChannel, IngestError, ingest_bytes
+from app.extraction.metered import extract_metered_lines
 from app.gate.final_gate import GateInput, run_final_gate
 from app.graph.deps import GraphDeps
 from app.graph.state import InvoiceState
@@ -29,6 +30,7 @@ from app.models.domain import (
     TraceRef,
     VerifierReport,
 )
+from app.models.metered import MeteredLine
 from app.records.build import (
     RecordContext,
     build_admin_notice,
@@ -40,6 +42,7 @@ from app.records.build import (
 from app.rules.context import ContractTerms, RuleContext
 from app.rules.decide import decide
 from app.rules.run_checks import run_deterministic_checks
+from app.rules.variable_pricing import find_pricing_terms
 from app.verifier.run import VerifierError, verify_decision
 
 
@@ -62,6 +65,8 @@ def _rule_context(deps: GraphDeps, state: InvoiceState) -> RuleContext:
     terms_raw = state.get("contract_terms")
     terms = ContractTerms.model_validate(terms_raw) if terms_raw else None
     jev = [JevSignal.model_validate(item) for item in state.get("jev_signals", [])]
+    metered_raw = state.get("metered_lines") or []
+    metered = tuple(MeteredLine.model_validate(item) for item in metered_raw)
     return RuleContext(
         rules=deps.rules,
         fx_table=deps.fx,
@@ -73,6 +78,7 @@ def _rule_context(deps: GraphDeps, state: InvoiceState) -> RuleContext:
         ledger=deps.ledger,
         received_at=_parse_received_at(state["received_at"]),
         manual_block=False,
+        metered_lines=metered,
     )
 
 
@@ -169,10 +175,12 @@ def _make_nodes(deps: GraphDeps):
     def extract(state: InvoiceState) -> Command[Literal["contract_lookup", "escalate_technical"]]:
         try:
             extraction = extract_document(state["doc_text"], deps.extractor)
-            return Command(
-                goto="contract_lookup",
-                update={"extraction": extraction.model_dump(mode="json")},
-            )
+            update: dict = {"extraction": extraction.model_dump(mode="json")}
+            pricing = find_pricing_terms(deps.rules, extraction.beneficiary)
+            if pricing is not None:
+                metered = extract_metered_lines(state["doc_text"], deps.extractor)
+                update["metered_lines"] = [line.model_dump(mode="json") for line in metered]
+            return Command(goto="contract_lookup", update=update)
         except (ExtractError, Exception):
             return _tech_escalate()
 

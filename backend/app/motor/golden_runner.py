@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app.models.domain import Extraction, JevSignal
+from app.models.metered import MeteredLine
 from app.models.rules_config import RulesConfig, load_rules_config
 from app.rules.context import ContractTerms, LedgerEntry, RuleContext
 from app.rules.decide import decide
@@ -91,6 +92,8 @@ def build_rule_context(
     terms_raw = entry.get("contract_terms")
     terms = ContractTerms.model_validate(terms_raw) if terms_raw else None
     received = datetime.fromisoformat(entry["received_at"].replace("Z", "+00:00"))
+    metered_raw = entry.get("metered_lines") or []
+    metered = tuple(MeteredLine.model_validate(row) for row in metered_raw)
     return RuleContext(
         rules=rules,
         fx_table=fx_table,
@@ -102,6 +105,7 @@ def build_rule_context(
         ledger=ledger,
         received_at=received,
         manual_block=bool(entry.get("manual_block", False)),
+        metered_lines=metered,
     )
 
 

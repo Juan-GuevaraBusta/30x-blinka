@@ -15,9 +15,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
 from app.models.rules_config import load_rules_config
-from pydantic import ValidationError
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 F7_DIR = REPO_ROOT / "data" / "invoices" / "f7"
@@ -137,13 +135,12 @@ def test_dev_holdout_corpus_regeneration_still_unaffected() -> None:
     assert dev_catalog.read_bytes() == before
 
 
-def test_f7_golden_has_sixteen_entries_with_t71_and_t72_enabled() -> None:
-    """T7.1 and T7.2 (D059) land and enable their own features; T7.3 stays
-    disabled until it lands too (docs/T7_6_SPEC.md §2)."""
+def test_f7_golden_has_sixteen_entries_with_t71_t72_and_t73_enabled() -> None:
+    """T7.1–T7.3 (D059) enable their own features once landed (docs/T7_6_SPEC.md §2)."""
     golden = _load_golden()
     assert golden["schema_version"] == 1
     assert golden["split"] == "f7"
-    assert golden["enabled_features"] == ["T7.1", "T7.2"]
+    assert golden["enabled_features"] == ["T7.1", "T7.2", "T7.3"]
     assert golden["dataset_review"]["review_passes"] == 2
     assert len(golden["entries"]) == 16
     assert {e["invoice_id"] for e in golden["entries"]} == set(EXPECTED_CASE_BY_ID)
@@ -199,27 +196,5 @@ def test_f7_rules_json_is_base_rules_plus_new_sections() -> None:
         assert f7[key] == value
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "data/f7/rules.json declares variable_pricing, which RulesConfig does "
-        "not accept yet (extra=forbid); approval_policy landed with T7.1 and "
-        "payment_series with T7.2. Once T7.3 lands too, this should start "
-        "passing and the xfail must be removed."
-    ),
-)
 def test_f7_rules_json_validates_against_rules_config() -> None:
     load_rules_config(F7_RULES_PATH)
-
-
-def test_f7_rules_json_fails_only_on_the_remaining_new_sections() -> None:
-    """Pin down *why* the xfail above fails, so a schema drift elsewhere is caught."""
-    with pytest.raises(ValidationError) as excinfo:
-        load_rules_config(F7_RULES_PATH)
-    errors = excinfo.value.errors()
-    extra_fields = {
-        err["loc"][0]
-        for err in errors
-        if err["type"] == "extra_forbidden" and err["loc"]
-    }
-    assert extra_fields == {"variable_pricing"}

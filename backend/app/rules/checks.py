@@ -22,6 +22,12 @@ from app.rules.payment_series import (
     period_key,
     resolve_item_key,
 )
+from app.rules.variable_pricing import (
+    expected_amount,
+    format_calculation_detail,
+    invoice_amount_in_terms,
+    validate_metered_for_terms,
+)
 
 RULE_NAMES: dict[str, str] = {
     "R01": "Beneficiario permitido",
@@ -42,6 +48,7 @@ RULE_NAMES: dict[str, str] = {
     "R16": "Periodo ya pagado",
     "R17": "Total de la serie",
     "R18": "Periodo esperado sin factura",
+    "R19": "Cuadra con la fórmula pactada",
 }
 
 # T7.2 follow-up (R3-float-equality-installment) — tolerance in base-currency
@@ -449,6 +456,51 @@ def check_r18(ctx: RuleContext, series: PaymentSeries) -> CheckResult:
         return _ok("R18", f'Serie "{series.id}": sin periodos previos pendientes.')
     listed = ", ".join(missing)
     return _ok("R18", f'Serie "{series.id}": faltan facturas de los periodos {listed}.')
+
+
+def check_r19(ctx: RuleContext, terms) -> CheckResult:
+    """T7.3 (D059): deterministic recomputation; never enables PAGAR on its own."""
+    from app.models.rules_config import PricingTerms
+
+    assert isinstance(terms, PricingTerms)
+    inv_cur = normalize_currency(ctx.extraction.currency)
+    terms_cur = normalize_currency(terms.currency)
+    if inv_cur is None or terms_cur is None:
+        return _indeterminate("R19", "Moneda de la factura no disponible.")
+    if inv_cur != terms_cur:
+        return _indeterminate("R19", "La moneda de la factura no coincide con la fórmula pactada.")
+
+    indet = validate_metered_for_terms(terms, ctx.metered_lines, ctx.doc_text)
+    if indet is not None:
+        return _indeterminate("R19", indet)
+
+    expected = expected_amount(terms, ctx.metered_lines)
+    assert expected is not None
+    billed = invoice_amount_in_terms(ctx, terms)
+    if billed is None:
+        return _indeterminate("R19", "Monto de la factura no disponible en la moneda pactada.")
+
+    tol = terms.tolerance.abs if terms.tolerance is not None else 0.0
+    calc = format_calculation_detail(terms, ctx.metered_lines, expected)
+    quote = ctx.metered_lines[0].source_span
+    evidence = CheckEvidence(clause=terms.contract_clause, quote=quote)
+
+    if billed > expected + tol + _AMOUNT_TOLERANCE:
+        detail = f"{calc} La factura cobra {terms.currency} {billed:g}."
+        return CheckResult(  # type: ignore[arg-type]
+            rule="R19",
+            name=RULE_NAMES["R19"],
+            result="FALLA",
+            detail=detail,
+            on_fail=ctx.rules.on_fail.R19,
+            evidence=evidence,
+        )
+
+    if billed < expected - _AMOUNT_TOLERANCE:
+        detail = f"{calc} La factura cobra {terms.currency} {billed:g} (por debajo del esperado)."
+        return _ok("R19", detail)
+
+    return _ok("R19", f"{calc} La factura cobra {terms.currency} {billed:g}.")
 
 
 CHECKS = (

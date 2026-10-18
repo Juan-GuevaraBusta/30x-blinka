@@ -13,6 +13,10 @@ emitted -- the check list stays exactly what it was before T7.2 (criterion
 4 of docs/T7_2_SPEC.md). An ambiguous match (more than one series matches)
 emits only R15 as INDETERMINADO -- R16-R18 need a single resolved series to
 mean anything, and decide() already escalates on R15 alone (fail-closed, I3).
+
+T7.3 (D059): R19 is appended only when `variable_pricing` lists terms for
+this invoice's beneficiary. Without a match, R19 is never emitted (criterion
+2 of docs/T7_3_SPEC.md).
 """
 
 from __future__ import annotations
@@ -26,9 +30,11 @@ from app.rules.checks import (
     check_r16,
     check_r17,
     check_r18,
+    check_r19,
 )
 from app.rules.context import RuleContext
 from app.rules.payment_series import find_matching_series
+from app.rules.variable_pricing import find_pricing_terms
 
 
 def run_deterministic_checks(ctx: RuleContext) -> list[CheckResult]:
@@ -45,4 +51,7 @@ def run_deterministic_checks(ctx: RuleContext) -> list[CheckResult]:
             results.append(check_r16(ctx, series))
             results.append(check_r17(ctx, series))
             results.append(check_r18(ctx, series))
+    pricing = find_pricing_terms(ctx.rules, ctx.extraction.beneficiary)
+    if pricing is not None:
+        results.append(check_r19(ctx, pricing))
     return results

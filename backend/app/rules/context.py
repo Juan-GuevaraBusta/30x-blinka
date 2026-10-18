@@ -8,6 +8,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.domain import Extraction, JevSignal
+from app.models.metered import MeteredLine
 from app.models.rules_config import RulesConfig
 from app.rules.fx import FxTable
 
@@ -50,3 +51,4 @@ class RuleContext:
     ledger: tuple[LedgerEntry, ...] = ()
     received_at: datetime | None = None
     manual_block: bool = False
+    metered_lines: tuple[MeteredLine, ...] = ()

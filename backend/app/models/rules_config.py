@@ -70,6 +70,7 @@ class OnFail(BaseModel):
     R15: FailAction = "ESCALAR"
     R16: FailAction = "FRENAR"
     R17: FailAction = "FRENAR"
+    R19: FailAction = "FRENAR"
     # R18 is informational only and never fails (docs/T7_2_SPEC.md §3); no on_fail key.
 
 
@@ -226,6 +227,61 @@ class PaymentSeries(BaseModel):
         return self
 
 
+class PricingTolerance(BaseModel):
+    """Absolute slack on variable-pricing recomputation (T7.3 §2)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    abs: float = Field(default=0.0, ge=0)
+
+
+class UnitRateFormula(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["unit_rate"]
+    unit: str = Field(min_length=1)
+    rate: float = Field(gt=0)
+    cap: float | None = Field(default=None, gt=0)
+
+
+class TieredTier(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    up_to: float | None = Field(default=None, gt=0)
+    rate: float = Field(gt=0)
+
+
+class TieredFormula(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["tiered"]
+    unit: str = Field(min_length=1)
+    tiers: list[TieredTier] = Field(min_length=1)
+
+
+class CommissionFormula(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["commission"]
+    pct: float = Field(gt=0, le=100)
+    base_label: str = Field(min_length=1)
+
+
+PricingFormula = UnitRateFormula | TieredFormula | CommissionFormula
+
+
+class PricingTerms(BaseModel):
+    """Declared variable-pricing formula for one vendor (T7.3 §2, D059)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    beneficiary: str = Field(min_length=1)
+    currency: str = Field(min_length=1)
+    contract_clause: str = Field(min_length=1)
+    formula: PricingFormula = Field(discriminator="kind")
+    tolerance: PricingTolerance | None = None
+
+
 class JevThresholds(BaseModel):
     """J1, J2, J3, J4, J6, J7 only. J5 is not a payment threshold."""
 
@@ -253,6 +309,7 @@ class RulesConfig(BaseModel):
     jev_thresholds: JevThresholds
     approval_policy: ApprovalPolicy | None = None
     payment_series: list[PaymentSeries] = Field(default_factory=list)
+    variable_pricing: list[PricingTerms] = Field(default_factory=list)
 
     @field_validator("allowed_beneficiaries")
     @classmethod

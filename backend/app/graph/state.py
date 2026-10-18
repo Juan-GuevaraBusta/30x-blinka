@@ -21,6 +21,7 @@ class InvoiceState(TypedDict, total=False):
     contract_confirmed: bool
     cited_clause: str | None
     jev_signals: list[dict]
+    metered_lines: list[dict]
     check_results: list[dict]
     proposed_decision: Decision
     elevated_decision: Decision
