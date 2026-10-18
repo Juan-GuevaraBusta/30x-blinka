@@ -46,12 +46,15 @@ function CiteHint({ field, draft }: { field: string; draft: AgreementDraftRespon
 const inputClass =
   "block w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink focus-ring";
 
-export default function NuevoAcuerdoScreen() {
+export default function NuevoAcuerdoScreen({ initialVendorName }: { initialVendorName?: string } = {}) {
   const router = useRouter();
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [draft, setDraft] = useState<AgreementDraftResponse | null>(null);
-  const [form, setForm] = useState<AgreementFormState>(emptyFormState());
+  const [form, setForm] = useState<AgreementFormState>(() => ({
+    ...emptyFormState(),
+    vendor_name: initialVendorName?.trim() ?? "",
+  }));
   const [confirmedBy, setConfirmedBy] = useState("");
   const [loadingDraft, setLoadingDraft] = useState(false);
   const [confirming, setConfirming] = useState(false);

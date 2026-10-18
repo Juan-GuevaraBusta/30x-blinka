@@ -16,8 +16,11 @@ import {
   type VendorSeriesCalendar,
 } from "@/lib/payment-series-calendar";
 import { apiFetch } from "@/lib/session";
+import { normalizeVendorKey } from "@/lib/agreement-form";
+import { vendorProvenanceLabel } from "@/lib/vendor-aggregate";
 
 type RulesDocument = { payment_series?: unknown };
+type EffectiveRulesResponse = { rules: RulesDocument; provenance?: Record<string, string> };
 
 /** Mirrors `statusToneClass` (`lib/decisions-list.ts`) tones, applied to calendar period states. */
 const PERIOD_STATE_TONE: Record<PeriodState, string> = {
@@ -30,7 +33,7 @@ const PERIOD_STATE_TONE: Record<PeriodState, string> = {
 type LoadState =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "ready"; calendar: VendorSeriesCalendar | null };
+  | { status: "ready"; calendar: VendorSeriesCalendar | null; provenanceLabel: string | null };
 
 function isPaymentSeriesArray(value: unknown): value is PaymentSeries[] {
   return Array.isArray(value);
@@ -38,12 +41,12 @@ function isPaymentSeriesArray(value: unknown): value is PaymentSeries[] {
 
 async function loadVendorCalendar(vendorName: string): Promise<LoadState> {
   try {
-    const [rulesRes, decisionsRes] = await Promise.all([
-      fetch("/api/rules", { cache: "no-store" }),
+    const [effectiveRes, decisionsRes] = await Promise.all([
+      fetch("/api/rules/effective", { cache: "no-store" }),
       apiFetch("/api/decisions", { cache: "no-store" }),
     ]);
-    if (!rulesRes.ok) {
-      return { status: "error", message: `No se pudieron cargar las reglas (HTTP ${rulesRes.status}).` };
+    if (!effectiveRes.ok) {
+      return { status: "error", message: `No se pudieron cargar las reglas (HTTP ${effectiveRes.status}).` };
     }
     if (!decisionsRes.ok) {
       return {
@@ -51,16 +54,33 @@ async function loadVendorCalendar(vendorName: string): Promise<LoadState> {
         message: `No se pudieron cargar las decisiones (HTTP ${decisionsRes.status}).`,
       };
     }
-    const rulesDocument = (await rulesRes.json()) as RulesDocument;
+    const effective = (await effectiveRes.json()) as EffectiveRulesResponse;
     const decisions = (await decisionsRes.json()) as DecisionRecord[];
-    const allSeries = isPaymentSeriesArray(rulesDocument.payment_series) ? rulesDocument.payment_series : [];
+    const allSeries = isPaymentSeriesArray(effective.rules?.payment_series) ? effective.rules.payment_series : [];
     const series = seriesForVendor(allSeries, vendorName);
+
+    const vendorKey = normalizeVendorKey(vendorName);
+    const agreementVersion = effective.provenance?.[`payment_series:${vendorKey}`] ?? null;
+    const provenanceLabel = vendorProvenanceLabel({
+      name: vendorName,
+      vendorKey,
+      source: agreementVersion ? "agreement" : "base",
+      agreementVersion,
+      agreementKind: null,
+      hasPaymentSeries: Boolean(series),
+      hasVariablePricing: false,
+    });
+
     if (!series) {
-      return { status: "ready", calendar: null };
+      return { status: "ready", calendar: null, provenanceLabel: agreementVersion ? provenanceLabel : null };
     }
     const matching = decisions.filter((record) => record.extracted.beneficiary === vendorName);
     const todayIso = new Date().toISOString().slice(0, 10);
-    return { status: "ready", calendar: buildVendorCalendar(series, matching, todayIso) };
+    return {
+      status: "ready",
+      calendar: buildVendorCalendar(series, matching, todayIso),
+      provenanceLabel: agreementVersion ? provenanceLabel : null,
+    };
   } catch {
     return {
       status: "error",
@@ -101,16 +121,30 @@ export default function VendorDetailScreen({ vendorNameParam }: { vendorNamePara
       <PageHeader
         title={vendorName}
         description={
-          <p>
-            <Link href="/reglas/proveedores" className="text-accent hover:underline focus-ring">
-              Proveedores
-            </Link>
-          </p>
+          <>
+            <p>
+              <Link href="/reglas/proveedores" className="text-accent hover:underline focus-ring">
+                Proveedores
+              </Link>
+            </p>
+            {state.provenanceLabel ? (
+              <p className="text-sm text-accent">{state.provenanceLabel}</p>
+            ) : null}
+          </>
         }
       />
 
       {!state.calendar ? (
-        <p className="text-sm text-ink-muted">Este proveedor no tiene un calendario de pagos.</p>
+        <p className="text-sm text-ink-muted">
+          Este proveedor no tiene un calendario de pagos.{" "}
+          <Link
+            href={`/reglas/acuerdos/nuevo?proveedor=${encodeURIComponent(vendorName)}`}
+            className="text-accent hover:underline focus-ring"
+          >
+            Cree un acuerdo para empezar a programar sus pagos
+          </Link>
+          .
+        </p>
       ) : (
         <Section title="Calendario de la serie">
           <ul className="space-y-2">

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { AlertPanel } from "@/components/ui/AlertPanel";
@@ -379,7 +380,10 @@ export default function AprobacionesScreen() {
 
       {queueEmpty ? (
         <p className="rounded-md border border-line/80 bg-surface/90 px-4 py-6 text-sm text-ink-muted">
-          No hay decisiones ESCALAR en cola en este momento.
+          No hay decisiones ESCALAR en cola en este momento.{" "}
+          <Link href="/bandeja" className="text-accent hover:underline focus-ring">
+            Revisa la bandeja de entrada
+          </Link>
         </p>
       ) : null}
 

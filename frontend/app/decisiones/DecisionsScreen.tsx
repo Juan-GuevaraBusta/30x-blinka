@@ -195,7 +195,10 @@ export default function DecisionsScreen({
         <AlertPanel>{error}</AlertPanel>
       ) : rows.length === 0 ? (
         <p className="text-ink-muted" role="status">
-          {emptyStateMessage(filter)}
+          {emptyStateMessage(filter)}{" "}
+          <Link href="/subir" className="text-accent hover:underline focus-ring">
+            Sube tu primera factura
+          </Link>
         </p>
       ) : (
         <>

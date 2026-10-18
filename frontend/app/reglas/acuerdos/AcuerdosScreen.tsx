@@ -68,7 +68,12 @@ export default function AcuerdosScreen() {
       ) : state.status === "error" ? (
         <AlertPanel>{state.message}</AlertPanel>
       ) : state.entries.length === 0 ? (
-        <p className="text-sm text-ink-muted">No hay acuerdos confirmados todavía.</p>
+        <p className="text-sm text-ink-muted">
+          No hay acuerdos confirmados todavía.{" "}
+          <Link href="/reglas/acuerdos/nuevo" className="text-accent hover:underline focus-ring">
+            Crear el primer acuerdo
+          </Link>
+        </p>
       ) : (
         <ul className="space-y-2">
           {state.entries.map((entry) => (

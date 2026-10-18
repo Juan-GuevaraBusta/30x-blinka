@@ -5,51 +5,64 @@ import { useEffect, useState } from "react";
 
 import { AlertPanel } from "@/components/ui/AlertPanel";
 import { PageHeader } from "@/components/ui/PageHeader";
+import type { AgreementListEntry } from "@/lib/agreement-types";
+import { mergeVendorData, vendorProvenanceLabel, type EffectiveRulesResponse, type VendorSummary } from "@/lib/vendor-aggregate";
 
-type RulesDocument = { allowed_beneficiaries?: unknown };
+type LoadState =
+  | { status: "loading" }
+  | { status: "error"; message: string }
+  | { status: "ready"; vendors: VendorSummary[] };
 
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === "string");
+async function loadVendors(): Promise<LoadState> {
+  try {
+    const [effectiveRes, agreementsRes] = await Promise.all([
+      fetch("/api/rules/effective", { cache: "no-store" }),
+      fetch("/api/agreements", { cache: "no-store" }),
+    ]);
+    if (!effectiveRes.ok) {
+      return { status: "error", message: `No se pudieron cargar los proveedores (HTTP ${effectiveRes.status}).` };
+    }
+    if (!agreementsRes.ok) {
+      return { status: "error", message: `No se pudieron cargar los acuerdos (HTTP ${agreementsRes.status}).` };
+    }
+    const effective = (await effectiveRes.json()) as EffectiveRulesResponse;
+    const agreements = (await agreementsRes.json()) as AgreementListEntry[];
+    return { status: "ready", vendors: mergeVendorData(effective, agreements) };
+  } catch {
+    return {
+      status: "error",
+      message: "No se pudo contactar con el servidor. Comprueba que el API esté en marcha.",
+    };
+  }
 }
 
 export default function ProveedoresScreen() {
-  const [vendors, setVendors] = useState<string[] | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [state, setState] = useState<LoadState>({ status: "loading" });
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const res = await fetch("/api/rules", { cache: "no-store" });
-        if (!res.ok) {
-          throw new Error(`No se pudieron cargar los proveedores (HTTP ${res.status}).`);
-        }
-        const document = (await res.json()) as RulesDocument;
-        if (!cancelled) {
-          setVendors(isStringArray(document.allowed_beneficiaries) ? document.allowed_beneficiaries : []);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setLoadError(err instanceof Error ? err.message : "Error al cargar proveedores.");
-        }
-      }
+      const next = await loadVendors();
+      if (!cancelled) setState(next);
     })();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  if (loadError) {
-    return <AlertPanel>{loadError}</AlertPanel>;
+  if (state.status === "error") {
+    return <AlertPanel>{state.message}</AlertPanel>;
   }
 
-  if (vendors === null) {
+  if (state.status === "loading") {
     return (
       <p className="text-sm text-ink-muted" role="status">
         Cargando proveedores…
       </p>
     );
   }
+
+  const { vendors } = state;
 
   return (
     <div className="space-y-6">
@@ -58,16 +71,28 @@ export default function ProveedoresScreen() {
         description={<p>Proveedores permitidos. Abra uno para ver su calendario de pagos.</p>}
       />
       {vendors.length === 0 ? (
-        <p className="text-sm text-ink-muted">No hay proveedores permitidos configurados.</p>
+        <p className="text-sm text-ink-muted">
+          Aún no hay proveedores.{" "}
+          <Link href="/reglas/acuerdos/nuevo" className="text-accent hover:underline focus-ring">
+            Crea el primero subiendo un acuerdo
+          </Link>
+        </p>
       ) : (
         <ul className="space-y-2">
-          {vendors.map((name) => (
-            <li key={name}>
+          {vendors.map((vendor) => (
+            <li key={vendor.name}>
               <Link
-                href={`/reglas/proveedores/${encodeURIComponent(name)}`}
-                className="panel block px-4 py-3 text-sm font-medium text-ink hover:bg-paper focus-ring"
+                href={`/reglas/proveedores/${encodeURIComponent(vendor.name)}`}
+                className="panel flex flex-wrap items-baseline justify-between gap-2 px-4 py-3 text-sm font-medium text-ink hover:bg-paper focus-ring"
               >
-                {name}
+                <span>{vendor.name}</span>
+                <span
+                  className={`text-xs font-normal ${
+                    vendor.source === "agreement" ? "text-accent" : "text-ink-muted"
+                  }`}
+                >
+                  {vendorProvenanceLabel(vendor)}
+                </span>
               </Link>
             </li>
           ))}

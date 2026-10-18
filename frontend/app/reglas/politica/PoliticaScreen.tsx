@@ -255,7 +255,14 @@ export default function PoliticaScreen() {
       />
 
       <p className="text-sm text-ink-muted">{FIXED_NOTE}</p>
-      {!hasCustomRoutes ? <p className="text-sm text-ink-muted">{EMPTY_POLICY_NOTE}</p> : null}
+      {!hasCustomRoutes ? (
+        <div className="rounded-md border border-line/80 bg-surface/90 px-4 py-4">
+          <p className="text-sm text-ink-muted">{EMPTY_POLICY_NOTE}</p>
+          <button type="button" onClick={handleAdd} className="btn-primary mt-3">
+            Crear la primera ruta
+          </button>
+        </div>
+      ) : null}
 
       {validationErrors.length > 0 || saveMessage || saveErrorDetail ? (
         <div
