@@ -63,3 +63,13 @@ class MetricsBody(BaseModel):
     unsafe_pay: int | float | None
     autonomy_pct: int | float | None
     source: Literal["none", "report"]
+
+
+class ChainVerificationBody(BaseModel):
+    """GET /decisions/verify-chain response (T5.10, D055). Public, read-only."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    ok: bool
+    length: int
+    first_broken_id: str | None

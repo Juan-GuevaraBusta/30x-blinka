@@ -154,6 +154,25 @@
         }
       }
     },
+    "/decisions/verify-chain": {
+      "get": {
+        "summary": "Verify Chain",
+        "description": "Public, read-only (T5.10, D055). Must stay registered before\n`/decisions/{id}` below -- Starlette matches routes in registration\norder, and `{id}` would otherwise swallow the literal \"verify-chain\"\npath and 404 as \"not_found\" instead of reaching this handler.",
+        "operationId": "verify_chain_decisions_verify_chain_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChainVerificationBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/decisions/{id}": {
       "get": {
         "summary": "Get Decision",
@@ -430,6 +449,38 @@
           "received_at"
         ],
         "title": "Body_post_invoice_invoices_post"
+      },
+      "ChainVerificationBody": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "length": {
+            "type": "integer",
+            "title": "Length"
+          },
+          "first_broken_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Broken Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "ok",
+          "length",
+          "first_broken_id"
+        ],
+        "title": "ChainVerificationBody",
+        "description": "GET /decisions/verify-chain response (T5.10, D055). Public, read-only."
       },
       "CheckEvidence": {
         "properties": {

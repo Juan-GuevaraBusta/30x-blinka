@@ -16,6 +16,8 @@ import {
   statusToneClass,
 } from "@/lib/decisions-list";
 
+import ChainIntegrityBadge from "./ChainIntegrityBadge";
+
 const MONEY_NOTE =
   "Consultar esta lista no mueve dinero; solo refleja decisiones ya registradas.";
 
@@ -149,6 +151,7 @@ export default function DecisionsScreen({
         <p className="text-sm text-ink-muted">Puesto de control · Acme Demo Inc.</p>
         <h1 className="font-display mt-1 text-3xl text-ink">Decisiones registradas</h1>
         <p className="mt-2 max-w-prose text-sm text-ink-muted">{MONEY_NOTE}</p>
+        <ChainIntegrityBadge />
       </header>
 
       <fieldset>

@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from app.api.rate_limit import FixedWindowLimiter, RateLimitMiddleware
 from app.api.schemas import (
     MAX_INVOICE_BYTES,
+    ChainVerificationBody,
     HumanDecisionBody,
     InvoiceMeta,
     InvoiceRejected,
@@ -102,6 +103,18 @@ def create_app(
         if decision is None:
             return records
         return [item for item in records if item.decision == decision]
+
+    @app.get("/decisions/verify-chain")
+    def verify_chain() -> ChainVerificationBody:
+        """Public, read-only (T5.10, D055). Must stay registered before
+        `/decisions/{id}` below -- Starlette matches routes in registration
+        order, and `{id}` would otherwise swallow the literal "verify-chain"
+        path and 404 as "not_found" instead of reaching this handler.
+        """
+        result = store.verify_chain()
+        return ChainVerificationBody(
+            ok=result.ok, length=result.length, first_broken_id=result.first_broken_id
+        )
 
     @app.get("/decisions/{id}")
     def get_decision(id: str) -> DecisionRecord:
