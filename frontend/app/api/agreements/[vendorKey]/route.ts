@@ -8,13 +8,14 @@ const ADMIN_API_KEY = process.env.ADMIN_API_KEY;
 
 /** GET /agreements/{vendor_key} (T9.1, D061 §3): current version + full history. */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ vendorKey: string }> },
 ): Promise<NextResponse> {
   const { vendorKey } = await context.params;
+  // T9.8 (D067): agreements are per company; the API resolves it from X-User-Id.
   const result = await fetchUpstreamText(
     `${API_URL}/agreements/${encodeURIComponent(vendorKey)}`,
-    { cache: "no-store" },
+    upstreamInitFromRequest(request, { cache: "no-store" }),
   );
   if (!result.ok) {
     return result.errorResponse;
