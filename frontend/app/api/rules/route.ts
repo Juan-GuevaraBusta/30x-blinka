@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { upstreamUnreachableResponse } from "@/lib/upstream-error";
+import { fetchUpstreamText } from "@/lib/upstream-error";
 
 const API_URL = process.env.API_URL ?? "http://127.0.0.1:8000";
 // T5.9 (D055): server-side only. Never read as NEXT_PUBLIC_*; the browser never sees it.
@@ -14,20 +14,17 @@ async function proxy(method: "GET" | "PUT", body?: string): Promise<NextResponse
   if (method === "PUT" && ADMIN_API_KEY) {
     headers["X-Admin-Key"] = ADMIN_API_KEY;
   }
-  let upstream: Response;
-  try {
-    upstream = await fetch(`${API_URL}/rules`, {
-      method,
-      headers: Object.keys(headers).length > 0 ? headers : undefined,
-      body,
-      cache: "no-store",
-    });
-  } catch {
-    return upstreamUnreachableResponse();
+  const result = await fetchUpstreamText(`${API_URL}/rules`, {
+    method,
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
+    body,
+    cache: "no-store",
+  });
+  if (!result.ok) {
+    return result.errorResponse;
   }
-  const text = await upstream.text();
-  return new NextResponse(text, {
-    status: upstream.status,
+  return new NextResponse(result.text, {
+    status: result.response.status,
     headers: { "Content-Type": "application/json" },
   });
 }

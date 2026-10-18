@@ -43,4 +43,19 @@ describe("proxy /api/metrics (T6.7, D057)", () => {
     expect(response.status).toBe(502);
     expect(await response.json()).toEqual({ detail: "upstream_unreachable" });
   });
+
+  it("returns 502 upstream_unreachable when the upstream connection resets after headers (R4)", async () => {
+    const fetchMock = vi.fn(async () => ({
+      status: 200,
+      headers: new Headers({ "Content-Type": "application/json" }),
+      text: () => Promise.reject(new Error("ECONNRESET")),
+    })) as unknown as typeof fetch;
+    vi.stubGlobal("fetch", fetchMock);
+    const { GET } = await import("./route");
+
+    const response = await GET();
+
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({ detail: "upstream_unreachable" });
+  });
 });

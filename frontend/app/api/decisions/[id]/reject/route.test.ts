@@ -66,4 +66,23 @@ describe("proxy /api/decisions/[id]/reject (T5.9, D055)", () => {
     const source = readFileSync(ROUTE_FILE, "utf8");
     expect(source).not.toMatch(/NEXT_PUBLIC_ADMIN_API_KEY/);
   });
+
+  it("returns 502 upstream_unreachable when the upstream connection resets after headers (R4)", async () => {
+    const fetchMock = vi.fn(async () => ({
+      status: 200,
+      headers: new Headers({ "Content-Type": "application/json" }),
+      text: () => Promise.reject(new Error("ECONNRESET")),
+    })) as unknown as typeof fetch;
+    vi.stubGlobal("fetch", fetchMock);
+    const { POST } = await import("./route");
+
+    const request = new NextRequest("http://localhost/api/decisions/dec_0042/reject", {
+      method: "POST",
+      body: JSON.stringify({ author: "cfo@demo.test", reason: "ok" }),
+    });
+    const response = await POST(request, contextFor("dec_0042"));
+
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({ detail: "upstream_unreachable" });
+  });
 });

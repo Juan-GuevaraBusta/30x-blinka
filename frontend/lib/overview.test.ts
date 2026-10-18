@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { DECISION_LIST_FILTERS, filterToApiDecision } from "./decisions-list";
 import {
   HOW_IT_WORKS_STEPS,
   OVERVIEW_CARDS,
@@ -17,10 +18,18 @@ describe("OVERVIEW_EXPLANATION", () => {
 describe("OVERVIEW_CARDS", () => {
   it("has exactly three cards mapped to the right decision and filtered link", () => {
     expect(OVERVIEW_CARDS).toHaveLength(3);
-    expect(OVERVIEW_CARDS.map((c) => c.key)).toEqual(["pagadas", "frenadas", "pendientes"]);
-    expect(OVERVIEW_CARDS.map((c) => c.decision)).toEqual(["PAGAR", "FRENAR", "ESCALAR"]);
+    expect(OVERVIEW_CARDS.map((c) => c.key)).toEqual(["pendientes", "frenadas", "pagadas"]);
+    expect(OVERVIEW_CARDS.map((c) => c.decision)).toEqual(["ESCALAR", "FRENAR", "PAGAR"]);
     for (const card of OVERVIEW_CARDS) {
       expect(card.href.startsWith("/decisiones?estado=")).toBe(true);
+    }
+  });
+
+  it("derives its key order and decision mapping from decisions-list.ts (R2, single source)", () => {
+    expect(OVERVIEW_CARDS.map((c) => c.key)).toEqual([...DECISION_LIST_FILTERS]);
+    for (const card of OVERVIEW_CARDS) {
+      expect(card.decision).toBe(filterToApiDecision(card.key));
+      expect(card.href).toBe(`/decisiones?estado=${card.key}`);
     }
   });
 });
