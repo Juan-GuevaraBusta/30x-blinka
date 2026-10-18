@@ -118,3 +118,38 @@ def test_source_sha256_is_deterministic_over_normalized_text() -> None:
     second = draft_agreement(DOC.replace("\n", "\r\n"), FakeLlm(_valid_response()))
 
     assert first.source_sha256 == second.source_sha256
+
+
+def test_null_quotes_for_absent_fields_do_not_empty_the_draft() -> None:
+    # Real models return "quotes": {"unit": null, ...} for fields that do not
+    # apply; that used to fail validation and return an empty draft.
+    response = _valid_response()
+    response["quotes"] = {**response["quotes"], "unit": None, "rate": None, "tiers": None}
+    result = draft_agreement(DOC, FakeLlm(response))
+
+    assert result.draft["vendor_name"] == "Globex LLC"
+    assert result.draft["kind"] == "retainer"
+    assert "unit" not in result.draft
+
+
+def test_vendor_equal_to_paying_company_is_dropped() -> None:
+    # The real model proposed the client company as vendor for globex-llc.txt;
+    # confirming that would put the company on its own allowlist.
+    response = _valid_response()
+    response["vendor_name"] = "Acme Demo Inc."
+    response["quotes"]["vendor_name"] = "El beneficiario autorizado es Globex LLC."
+    result = draft_agreement(DOC, FakeLlm(response), company_name="Acme Demo Inc")
+
+    assert "vendor_name" not in result.draft
+    assert "vendor_name" in result.missing
+
+
+def test_spanish_periodicity_is_normalized_and_unknown_is_dropped() -> None:
+    response = _valid_response()
+    response["periodicity"] = "mensual"
+    assert draft_agreement(DOC, FakeLlm(response)).draft["periodicity"] == "monthly"
+
+    response["periodicity"] = "cada luna llena"
+    result = draft_agreement(DOC, FakeLlm(response))
+    assert "periodicity" not in result.draft
+    assert "periodicity" in result.missing

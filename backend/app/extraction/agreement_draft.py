@@ -21,6 +21,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.extraction.text_normalize import normalize_document_text
+from app.rules.normalize import normalize_beneficiary
 
 AGREEMENT_DRAFT_SYSTEM_PROMPT = (
     "You extract a vendor agreement's commercial terms from a document.\n"
@@ -97,7 +98,9 @@ class _DraftPayload(BaseModel):
     period_cap: float | None = None
     items: list[dict[str, Any]] | None = None
     tiers: list[dict[str, Any]] | None = None
-    quotes: dict[str, str] = Field(default_factory=dict)
+    # Models send null for fields that do not apply; a null quote is treated as
+    # "no quote" (the field then lands in `missing`), never as a validation error.
+    quotes: dict[str, str | None] = Field(default_factory=dict)
 
 
 def _sha256(text: str) -> str:
@@ -114,7 +117,19 @@ def _quote_valid(quote: str | None, doc_text: str) -> bool:
     return bool(quote) and quote.strip() != "" and quote in doc_text
 
 
-def draft_agreement(text: str, llm: Any) -> AgreementDraftResult:
+_PERIODICITY_ALIASES = {
+    "monthly": "monthly",
+    "mensual": "monthly",
+    "biweekly": "biweekly",
+    "quincenal": "biweekly",
+    "quarterly": "quarterly",
+    "trimestral": "quarterly",
+}
+
+
+def draft_agreement(
+    text: str, llm: Any, *, company_name: str | None = None
+) -> AgreementDraftResult:
     """§3 `POST /agreements/draft`. Never persists anything; never raises for
     the caller to turn into a 500 -- every failure path returns an (at worst
     fully) empty draft instead (fail-closed, I3).
@@ -148,6 +163,19 @@ def draft_agreement(text: str, llm: Any) -> AgreementDraftResult:
             continue
         quote = payload.quotes.get(field)
         if not _quote_valid(quote, normalized):
+            missing.append(field)
+            continue
+        if field == "periodicity":
+            value = _PERIODICITY_ALIASES.get(str(value).strip().lower())
+            if value is None:
+                missing.append(field)
+                continue
+        if (
+            field == "vendor_name"
+            and company_name
+            and normalize_beneficiary(str(value)) == normalize_beneficiary(company_name)
+        ):
+            # The paying company is never its own vendor; leave it for the human.
             missing.append(field)
             continue
         draft[field] = value
