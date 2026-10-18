@@ -26,8 +26,22 @@ def _base_settings(**overrides: str) -> Settings:
 def test_get_llm_unknown_role_raises() -> None:
     s = _base_settings()
     with pytest.raises(ConfigError) as exc:
-        get_llm("jev", s)
+        get_llm("verifier-typo", s)
     assert exc.value.code == "unknown_role"
+
+
+def test_get_llm_jev_role_unset_falls_back_to_extractor_model() -> None:
+    s = _base_settings()
+    client = get_llm("jev", s, transport=lambda _: HttpResponse(status=200, body=b"{}"))
+    assert client.role == "jev"
+    assert client.model == "extractor-v1"
+
+
+def test_get_llm_jev_role_uses_configured_planb_model() -> None:
+    s = _base_settings(JEV_PLANB_MODEL="typesafe/jev-router")
+    client = get_llm("jev", s, transport=lambda _: HttpResponse(status=200, body=b"{}"))
+    assert client.role == "jev"
+    assert client.model == "typesafe/jev-router"
 
 
 def test_get_llm_polisher_disabled_raises_without_transport() -> None:

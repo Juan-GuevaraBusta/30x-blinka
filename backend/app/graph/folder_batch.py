@@ -12,13 +12,13 @@ from typing import Literal
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 
-from app.config import Settings
+from app.config import Settings, resolve_backend
 from app.extraction.ingest import IngestChannel
 from app.graph.build import run_invoice
 from app.graph.deps import GraphDeps
 from app.graph.tracing import TraceSession
 from app.jev.decision_client import build_decision_client
-from app.llm import HttpTransport, get_llm
+from app.llm import HttpTransport, get_llm, model_for_role
 from app.models.domain import DecisionRecord
 from app.models.rules_config import load_rules_config
 from app.motor.golden_runner import enrich_ledger_seed
@@ -87,6 +87,11 @@ def build_runtime_graph_deps(
     rules = load_rules_config(data_root / "data" / "rules.json")
     fx_table = load_fx_table(data_root / "data" / "fx.json")
     jev_client = build_decision_client(settings, transport=transport)
+    jev_label = (
+        settings.jev_model
+        if resolve_backend(settings) == "jev"
+        else model_for_role("jev", settings)
+    )
     return GraphDeps(
         extractor=get_llm("extractor", settings, transport=transport),
         verifier=get_llm("verifier", settings, transport=transport),
@@ -98,7 +103,7 @@ def build_runtime_graph_deps(
         rules_version=RULES_VERSION,
         model_extractor=settings.extractor_model,
         model_verifier=settings.verifier_model,
-        jev_label=settings.jev_model,
+        jev_label=jev_label,
         contracts_dir=data_root / "data" / "contracts",
     )
 

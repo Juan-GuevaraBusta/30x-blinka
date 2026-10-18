@@ -241,7 +241,7 @@ class PlanBDecisionClient:
 
     def ask(self, state: str, questions: Sequence[JevQuestion]) -> list[JevSignal]:
         _check_duplicate_ids(questions)
-        llm = get_llm("extractor", self._settings, transport=self._transport)
+        llm = get_llm("jev", self._settings, transport=self._transport)
         questions_json = [
             {
                 "id": q.id,
@@ -282,5 +282,5 @@ def build_decision_client(
             raise DecisionClientError("missing_credentials")
         return JevDecisionClient(settings, effective_transport)
 
-    get_llm("extractor", settings, transport=effective_transport)
+    get_llm("jev", settings, transport=effective_transport)
     return PlanBDecisionClient(settings, effective_transport)

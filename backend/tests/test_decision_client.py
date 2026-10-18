@@ -174,6 +174,40 @@ def test_plan_b_order_and_prompts() -> None:
     assert [s.id for s in result] == ["J1", "J2"]
 
 
+def test_plan_b_uses_dedicated_jev_model_when_configured() -> None:
+    s = _settings(DECISION_BACKEND="plan_b", JEV_PLANB_MODEL="typesafe/jev-router")
+    questions = [INVOICE_QUESTIONS[0]]
+    captured: dict[str, object] = {}
+
+    def transport(req: HttpRequest) -> HttpResponse:
+        captured.update(json.loads(req.body))
+        signals = [{"id": "J1", "answer": True, "probability": 0.91}]
+        content = json.dumps({"signals": signals})
+        body = {"choices": [{"message": {"content": content}}]}
+        return HttpResponse(status=200, body=json.dumps(body).encode())
+
+    client = build_decision_client(s, transport=transport)
+    client.ask("state-block", questions)
+    assert captured["model"] == "typesafe/jev-router"
+
+
+def test_plan_b_falls_back_to_extractor_model_when_jev_model_unset() -> None:
+    s = _settings(DECISION_BACKEND="plan_b")
+    questions = [INVOICE_QUESTIONS[0]]
+    captured: dict[str, object] = {}
+
+    def transport(req: HttpRequest) -> HttpResponse:
+        captured.update(json.loads(req.body))
+        signals = [{"id": "J1", "answer": True, "probability": 0.91}]
+        content = json.dumps({"signals": signals})
+        body = {"choices": [{"message": {"content": content}}]}
+        return HttpResponse(status=200, body=json.dumps(body).encode())
+
+    client = build_decision_client(s, transport=transport)
+    client.ask("state-block", questions)
+    assert captured["model"] == s.extractor_model
+
+
 def test_plan_b_markdown_fences_invalid_json() -> None:
     s = _settings(DECISION_BACKEND="plan_b")
     questions = [INVOICE_QUESTIONS[0]]

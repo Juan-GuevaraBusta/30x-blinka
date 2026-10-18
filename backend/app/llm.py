@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.config import ConfigError, Settings
 
-Role = Literal["extractor", "verifier", "polisher"]
+Role = Literal["extractor", "verifier", "polisher", "jev"]
 
 
 class DecisionClientError(Exception):
@@ -103,7 +103,7 @@ def get_llm(
     *,
     transport: HttpTransport | None = None,
 ) -> LlmClient:
-    if role not in ("extractor", "verifier", "polisher"):
+    if role not in ("extractor", "verifier", "polisher", "jev"):
         raise ConfigError("unknown_role")
     if role == "polisher" and not settings.polisher_enabled:
         raise ConfigError("polisher_disabled")
@@ -121,11 +121,18 @@ def _model_for_role(role: Role, settings: Settings) -> str:
         model = settings.extractor_model
     elif role == "verifier":
         model = settings.verifier_model
+    elif role == "jev":
+        model = settings.jev_planb_model or settings.extractor_model
     else:
         model = settings.polisher_model
     if not model.strip():
         raise ConfigError("missing_model")
     return model
+
+
+def model_for_role(role: Role, settings: Settings) -> str:
+    """Public resolver, used to label which model backs a given LLM role."""
+    return _model_for_role(role, settings)
 
 
 def _parse_json_object_content(content: str) -> dict | None:

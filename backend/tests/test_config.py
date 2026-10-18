@@ -17,8 +17,14 @@ def test_settings_defaults_from_empty_mapping() -> None:
     assert s.jev_api_key == ""
     assert s.jev_base_url == "https://api.typesafe.ai"
     assert s.jev_model == "jev-latest"
+    assert s.jev_planb_model == ""
     assert s.decision_backend == "auto"
     assert s.http_timeout_seconds == 30.0
+
+
+def test_jev_planb_model_from_env() -> None:
+    s = Settings.from_mapping({"JEV_PLANB_MODEL": "typesafe/jev-router"})
+    assert s.jev_planb_model == "typesafe/jev-router"
 
 
 def test_settings_ignores_unrelated_env_keys() -> None:

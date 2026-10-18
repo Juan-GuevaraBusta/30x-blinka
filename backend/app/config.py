@@ -20,6 +20,7 @@ _ENV_KEYS: dict[str, str] = {
     "JEV_API_KEY": "jev_api_key",
     "JEV_BASE_URL": "jev_base_url",
     "JEV_MODEL": "jev_model",
+    "JEV_PLANB_MODEL": "jev_planb_model",
     "DECISION_BACKEND": "decision_backend",
     "HTTP_TIMEOUT_SECONDS": "http_timeout_seconds",
     "LANGSMITH_TRACING": "langsmith_tracing",
@@ -47,6 +48,7 @@ class Settings(BaseModel):
     jev_api_key: str = ""
     jev_base_url: str = "https://api.typesafe.ai"
     jev_model: str = "jev-latest"
+    jev_planb_model: str = ""
     decision_backend: str = "auto"
     http_timeout_seconds: float = 30.0
     langsmith_tracing: bool = False

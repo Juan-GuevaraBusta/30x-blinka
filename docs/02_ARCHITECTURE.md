@@ -67,6 +67,7 @@ JEV devuelve respuestas **tipadas con probabilidad**, no texto. Preguntas candid
 - Acceso: API directa de TypeSafe (lista de espera) o vías sin espera (Vercel AI Gateway `typesafe-ai/jev`, Cloudflare Workers AI `typesafe/jev`, AI/ML API `typesafe/jev`). **Verificar el formato exacto de la petición en la documentación oficial antes de codificar** (tipos de pregunta documentados: sí/no, elección, puntaje).
 - Se factura por tokens de entrada. Revisar la nota pública de "jaggedness" (modos de fallo conocidos) antes de confiar en una pregunta crítica.
 - **Plan B:** `DecisionClient` tiene dos implementaciones (JEV y un LLM barato con salida estructurada que devuelve la misma forma). Si JEV no es accesible, el resto del sistema no cambia.
+- **Modelo del plan B:** el rol `jev` del plan B usa `settings.jev_planb_model` si está configurado (variable `JEV_PLANB_MODEL`), y si no cae de vuelta al modelo del `extractor`. El equipo puede apuntarlo a `typesafe/jev-router` vía OpenRouter (modelo verificado en el listado oficial de OpenRouter). Es un *router* según su propia descripción oficial: enruta cada llamada a un modelo distinto por debajo, de forma no determinista. Eso no compromete el diseño porque las señales del plan B solo pueden **subir** la severidad (igual que en JEV nativo, invariante I4); la decisión final sigue siendo una función pura y determinista de `check_results` (invariante I2), nunca del LLM.
 
 ### Verificador: qué audita
 Recibe texto fuente, extracción, reglas vigentes, chequeos, señales JEV y la decisión propuesta. Responde en esquema fijo:
