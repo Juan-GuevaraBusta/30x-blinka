@@ -74,7 +74,7 @@ _SEVERITY: dict[str, int] = {"PAGAR": 0, "ESCALAR": 1, "FRENAR": 2}
 
 
 class Processor(Protocol):
-    def __call__(self, upload: InvoiceUpload) -> DecisionRecord: ...
+    def __call__(self, upload: InvoiceUpload, owner_id: str) -> DecisionRecord: ...
 
 
 class MutableClock:
@@ -144,7 +144,7 @@ def build_client(
     rules_store = store if store is not None else MemoryStore(load_rules())
     frozen = clock if clock is not None else MutableClock(datetime(2026, 3, 4, 12, 0, tzinfo=UTC))
 
-    def default_processor(upload: InvoiceUpload) -> DecisionRecord:
+    def default_processor(upload: InvoiceUpload, owner_id: str) -> DecisionRecord:
         return make_record(invoice_id=upload.invoice_id)
 
     chosen = processor if processor is not None else default_processor

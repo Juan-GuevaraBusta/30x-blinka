@@ -27,7 +27,7 @@ from app.rules.context import LedgerEntry
 from app.rules.fx import load_fx_table
 from app.rules.ledger import Ledger, ledger_view_for_invoice
 
-Processor = Callable[[InvoiceUpload], DecisionRecord]
+Processor = Callable[[InvoiceUpload, str], DecisionRecord]
 DepsFactory = Callable[[Settings, RulesConfig, tuple[LedgerEntry, ...]], GraphDeps]
 
 _PROCESS_CHECKPOINTER = MemorySaver()
@@ -108,7 +108,9 @@ class ProductionProcessorConfig:
     phase: Literal["demo"] = "demo"
 
 
-def process_upload(config: ProductionProcessorConfig, upload: InvoiceUpload) -> DecisionRecord:
+def process_upload(
+    config: ProductionProcessorConfig, upload: InvoiceUpload, owner_id: str
+) -> DecisionRecord:
     prior = settled_ledger_from_store(config.store)
     ledger_view = ledger_view_for_upload(upload, prior)
     rules = config.store.rules
@@ -125,6 +127,7 @@ def process_upload(config: ProductionProcessorConfig, upload: InvoiceUpload) -> 
             thread_id=upload.invoice_id,
             tracer=config.tracer,
             phase=config.phase,
+            owner_id=owner_id,
         )
     except GraphError as exc:
         raise InvoiceRejected(exc.code) from exc
@@ -161,8 +164,8 @@ def make_production_processor(
         tracer=tracer,
     )
 
-    def processor(upload: InvoiceUpload) -> DecisionRecord:
-        return process_upload(config, upload)
+    def processor(upload: InvoiceUpload, owner_id: str) -> DecisionRecord:
+        return process_upload(config, upload, owner_id)
 
     return processor
 

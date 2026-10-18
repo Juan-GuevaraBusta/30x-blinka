@@ -36,7 +36,7 @@ def test_post_invoice_returns_processor_record() -> None:
     expected = make_record()
     seen: list[InvoiceUpload] = []
 
-    def processor(upload: InvoiceUpload) -> DecisionRecord:
+    def processor(upload: InvoiceUpload, owner_id: str) -> DecisionRecord:
         seen.append(upload)
         return expected
 
@@ -59,7 +59,7 @@ def test_post_invoice_returns_processor_record() -> None:
 def test_duplicate_invoice_returns_409_without_second_call() -> None:
     calls = {"n": 0}
 
-    def processor(upload: InvoiceUpload) -> DecisionRecord:
+    def processor(upload: InvoiceUpload, owner_id: str) -> DecisionRecord:
         calls["n"] += 1
         return make_record(invoice_id=upload.invoice_id)
 
@@ -77,7 +77,7 @@ def test_duplicate_invoice_returns_409_without_second_call() -> None:
 def test_empty_file_returns_422_without_calling_processor() -> None:
     calls = {"n": 0}
 
-    def processor(_upload: InvoiceUpload) -> DecisionRecord:
+    def processor(_upload: InvoiceUpload, _owner_id: str) -> DecisionRecord:
         calls["n"] += 1
         return make_record()
 
@@ -93,7 +93,7 @@ def test_empty_file_returns_422_without_calling_processor() -> None:
 def test_oversize_file_returns_422() -> None:
     calls = {"n": 0}
 
-    def processor(_upload: InvoiceUpload) -> DecisionRecord:
+    def processor(_upload: InvoiceUpload, _owner_id: str) -> DecisionRecord:
         calls["n"] += 1
         return make_record()
 
@@ -117,7 +117,7 @@ def test_max_file_size_is_accepted() -> None:
 def test_invoice_id_with_space_returns_422() -> None:
     calls = {"n": 0}
 
-    def processor(_upload: InvoiceUpload) -> DecisionRecord:
+    def processor(_upload: InvoiceUpload, _owner_id: str) -> DecisionRecord:
         calls["n"] += 1
         return make_record()
 
@@ -132,7 +132,7 @@ def test_invoice_id_with_space_returns_422() -> None:
 def test_naive_received_at_returns_422() -> None:
     calls = {"n": 0}
 
-    def processor(_upload: InvoiceUpload) -> DecisionRecord:
+    def processor(_upload: InvoiceUpload, _owner_id: str) -> DecisionRecord:
         calls["n"] += 1
         return make_record()
 
@@ -153,7 +153,7 @@ def test_unknown_channel_returns_422() -> None:
 
 
 def test_processor_domain_error_returns_422_without_traceback() -> None:
-    def processor(_upload: InvoiceUpload) -> DecisionRecord:
+    def processor(_upload: InvoiceUpload, _owner_id: str) -> DecisionRecord:
         raise InvoiceRejected("rejected")
 
     client, store, _clock = build_client(processor=processor)

@@ -29,7 +29,7 @@ from app.api.user_scope import require_user_id
 from app.models.domain import DecisionRecord, HumanAction, HumanEvent
 from app.models.rules_config import RulesConfig
 
-Processor = Callable[[InvoiceUpload], DecisionRecord]
+Processor = Callable[[InvoiceUpload, str], DecisionRecord]
 Clock = Callable[[], datetime]
 MetricsReader = Callable[[], MetricsReading | None]
 
@@ -222,7 +222,7 @@ def _decide_and_store_invoice(
 ) -> DecisionRecord:
     """Serialize decide + persist so a concurrent invoice always sees this one (T5.8)."""
     with _INVOICE_LOCK:
-        record = processor(upload)
+        record = processor(upload, owner_id)
         return store.add_decision(record, owner_id)
 
 

@@ -70,6 +70,7 @@ def test_process_upload_happy_path_uses_store_rules(tmp_path) -> None:
     def fake_run_invoice(_deps: GraphDeps, **kwargs: object) -> DecisionRecord:
         assert kwargs["phase"] == "demo"
         assert kwargs["invoice_id"] == "INV-G4-001"
+        assert kwargs["owner_id"] == "usr_synth_001"
         return expected
 
     processor = make_production_processor(
@@ -82,7 +83,7 @@ def test_process_upload_happy_path_uses_store_rules(tmp_path) -> None:
     original = mod.run_invoice
     mod.run_invoice = fake_run_invoice
     try:
-        record = processor(_upload())
+        record = processor(_upload(), "usr_synth_001")
     finally:
         mod.run_invoice = original
 
@@ -131,7 +132,7 @@ def test_graph_error_maps_to_invoice_rejected(tmp_path) -> None:
     mod.run_invoice = raise_graph
     try:
         with pytest.raises(InvoiceRejected) as exc:
-            processor(_upload())
+            processor(_upload(), "usr_synth_001")
     finally:
         mod.run_invoice = original
 
@@ -146,7 +147,7 @@ def test_production_app_post_persists_with_mocked_graph(
     mapping = {"DATABASE_URL": f"sqlite:///{db}"}
     expected = make_record(invoice_id="INV-G4-BOOT", id="dec_boot")
 
-    def fake_processor(upload: InvoiceUpload) -> DecisionRecord:
+    def fake_processor(upload: InvoiceUpload, owner_id: str) -> DecisionRecord:
         return expected.model_copy(update={"invoice_id": upload.invoice_id})
 
     monkeypatch.setattr(

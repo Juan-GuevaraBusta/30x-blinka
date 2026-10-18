@@ -86,7 +86,7 @@ def test_external_pdf_ingest_and_processor_schema(tmp_path: Path, pdf_path: Path
     original = mod.run_invoice
     mod.run_invoice = fake_run_invoice
     try:
-        record = processor(_upload(pdf_path, invoice_id=f"garage-{pdf_path.stem}"))
+        record = processor(_upload(pdf_path, invoice_id=f"garage-{pdf_path.stem}"), "test-user-id")
     finally:
         mod.run_invoice = original
 
@@ -137,6 +137,6 @@ def test_external_pdf_graph_error_fail_closed(tmp_path: Path) -> None:
     mod.run_invoice = raise_graph
     try:
         with pytest.raises(InvoiceRejected):
-            processor(_upload(pdf_path, invoice_id="garage-smoke-err"))
+            processor(_upload(pdf_path, invoice_id="garage-smoke-err"), "test-user-id")
     finally:
         mod.run_invoice = original
