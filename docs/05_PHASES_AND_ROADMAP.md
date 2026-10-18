@@ -120,8 +120,9 @@ Dirección del cofundador de Blinka: política → acuerdos por proveedor → co
 - [ ] **T9.3** (P0) Empresa semilla con política, 3 acuerdos e inbox que cubre cada historia; comando de reinicio; guion actualizado. *(Spec & Data + Docs & Judge)*
 - [ ] **T9.4** (P1) Subir documento de política → borrador con citas → diferencias → confirmación humana. *(Agent Graph + Frontend)*
 - [ ] **T9.5** (P1) Línea de tiempo del proveedor: último pago, próximo esperado, cadencia y horas extra. *(Frontend)*
+- [ ] **T9.6** (P0) Configuración por cuenta: cuenta nueva con borrador vacío `configuracion_incompleta`, nunca PAGAR hasta completarla, aprobadores por dueño con token de Supabase verificado en el proxy; la global pasa al dueño semilla. *(API + Frontend)*
 
-**G9:** demo end-to-end con la empresa semilla; `unsafe_pay = 0` en dev, f7 y el inbox semilla; motor dev 34/34. Specs: `docs/T9_1_SPEC.md` a `docs/T9_5_SPEC.md`.
+**G9:** demo end-to-end con la empresa semilla; `unsafe_pay = 0` en dev, f7 y el inbox semilla; motor dev 34/34. Specs: `docs/T9_1_SPEC.md` a `docs/T9_6_SPEC.md`.
 
 ---
 ## Líneas de corte (si vamos tarde)

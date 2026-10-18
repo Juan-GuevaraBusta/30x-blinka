@@ -10,13 +10,13 @@
 ## Flujo (LangGraph)
 ```mermaid
 flowchart TD
-  A[Entrada: PDF / imagen / email / chat] --> B[ingest: texto normalizado + OCR]
+  A[Entrada: PDF / email / chat; imagen = ilegible] --> B[ingest: texto normalizado, PDF con FlateDecode]
   B --> C[extract: LLM barato -> JSON Pydantic + source_span]
-  C -->|esquema invalido| X[ESCALAR: extraccion no fiable]
+  C -->|esquema invalido| X[escalate_technical: ESCALAR]
   C --> D[contract_lookup: terminos estructurados del proveedor]
-  D --> E[det_checks: R01-R13 + FX + duplicados + periodo + presupuesto]
-  E --> F[jev_checks: preguntas tipadas con probabilidad]
-  F --> G[aggregate: decide - funcion pura, mas restrictivo gana]
+  D --> F[jev_checks: preguntas tipadas con probabilidad]
+  F --> E[det_checks: R01-R20 + FX + duplicados + periodo + presupuesto]
+  E --> G[aggregate: decide - funcion pura, mas restrictivo gana]
   G --> H[record: DecisionRecord + explicacion por plantillas]
   H --> I[verify: LLM fuerte audita el registro - solo sube severidad]
   I --> J[final_gate: invariantes en codigo]
@@ -25,16 +25,18 @@ flowchart TD
   K -->|FRENAR| M[estado: frenada]
   K -->|ESCALAR| N[cola de aprobacion humana]
 ```
-Cualquier excepción en cualquier nodo desvía a **ESCALAR** con motivo `error_tecnico`.
+Cualquier excepción en cualquier nodo desvía a `escalate_technical` (**ESCALAR** con motivo `error_tecnico`), `backend/app/graph/build.py`.
+
+**Orden real de los nodos:** `jev_checks` corre **antes** de `det_checks` porque R09 (extracción fiable) y R13 (inyección) consumen las señales de JEV (D023). El diagrama y la tabla siguen ese orden.
 
 ## Nodos
 | Nodo | Tipo | Entrada → Salida | Si falla |
 |---|---|---|---|
-| `ingest` | determinista | archivo → texto + metadatos (PDF texto; OCR para imagen; parse de email/chat) | ESCALAR (ilegible) |
+| `ingest` | determinista | archivo → texto + metadatos (PDF con streams sin comprimir, FlateDecode y ASCII85, tope de 8 MB decodificados por documento; parse de email/chat). Imagen → `illegible` (sin OCR, D018) | ESCALAR (ilegible) |
 | `extract` | LLM barato | texto → `Extraction` (beneficiario, monto, moneda, vencimiento, nº factura, destinatario, depto, tipo, líneas) con `source_span` por campo | ESCALAR |
 | `contract_lookup` | determinista | beneficiario → términos del contrato confirmados | R06 = indeterminado → ESCALAR |
-| `det_checks` | determinista | Extraction + reglas + ledger → `CheckResult[]` | indeterminado = no pasa |
-| `jev_checks` | JEV | Extraction + texto → señales con probabilidad | prob < umbral o error → ESCALAR |
+| `jev_checks` | JEV o plan B | Extraction + texto → señales con probabilidad | prob < umbral o error → ESCALAR |
+| `det_checks` | determinista | Extraction + reglas + ledger + señales → `CheckResult[]` (R01–R13 siempre; R14–R20 solo si la configuración trae la sección correspondiente) | indeterminado = no pasa |
 | `aggregate` | determinista | CheckResult[] + señales → decisión propuesta | — |
 | `record` | determinista | todo → `DecisionRecord` + explicación | — |
 | `verify` | LLM fuerte | registro + reglas + texto fuente → `VerifierReport` | error → ESCALAR; hallazgo concreto → FRENAR + aviso |
@@ -46,10 +48,12 @@ Cualquier excepción en cualquier nodo desvía a **ESCALAR** con motivo `error_t
 ## Roles de modelos
 | Rol | Modelo | Tarea | Notas |
 |---|---|---|---|
-| `extractor` | económico (OpenCode u otro) | extraer campos con salida estructurada | temperatura 0; sin acceso a reglas de pago |
-| `jev` | JEV (`jev-latest` o fijado `jev-1.13.0`) | preguntas tipadas | detrás de `DecisionClient`; ver plan B |
-| `verifier` | el más fuerte que el presupuesto permita | auditar coherencia del registro | recibe texto fuente + reglas + registro; no puede bajar severidad |
+| `extractor` | económico (`EXTRACTOR_MODEL`; en la demo `openai/gpt-4o-mini` vía OpenRouter) | extraer campos con salida estructurada | temperatura 0; sin acceso a reglas de pago |
+| `jev` | JEV nativo (`JEV_MODEL`, con `JEV_API_KEY`) o plan B (`JEV_PLANB_MODEL`; en la demo `typesafe/jev-router` vía OpenRouter) | preguntas tipadas | detrás de `DecisionClient`; ver plan B |
+| `verifier` | el más fuerte que el presupuesto permita (`VERIFIER_MODEL`; en la demo `anthropic/claude-sonnet-5` vía OpenRouter) | auditar coherencia del registro | recibe texto fuente + reglas + registro; no puede bajar severidad |
 | `polisher` (opcional) | económico | pulir redacción de explicación | desactivable; nunca altera hechos |
+
+Los IDs de modelo en OpenRouter llevan prefijo de proveedor (`anthropic/…`, `openai/…`); un ID sin prefijo no existe y hace que el rol falle con `error_tecnico`. Verificar contra `https://openrouter.ai/api/v1/models`.
 
 ### JEV: cómo se usa
 JEV devuelve respuestas **tipadas con probabilidad**, no texto. Preguntas candidatas:
@@ -67,7 +71,7 @@ JEV devuelve respuestas **tipadas con probabilidad**, no texto. Preguntas candid
 - Acceso: API directa de TypeSafe (lista de espera) o vías sin espera (Vercel AI Gateway `typesafe-ai/jev`, Cloudflare Workers AI `typesafe/jev`, AI/ML API `typesafe/jev`). **Verificar el formato exacto de la petición en la documentación oficial antes de codificar** (tipos de pregunta documentados: sí/no, elección, puntaje).
 - Se factura por tokens de entrada. Revisar la nota pública de "jaggedness" (modos de fallo conocidos) antes de confiar en una pregunta crítica.
 - **Plan B:** `DecisionClient` tiene dos implementaciones (JEV y un LLM barato con salida estructurada que devuelve la misma forma). Si JEV no es accesible, el resto del sistema no cambia.
-- **Modelo del plan B:** el rol `jev` del plan B usa `settings.jev_planb_model` si está configurado (variable `JEV_PLANB_MODEL`), y si no cae de vuelta al modelo del `extractor`. El equipo puede apuntarlo a `typesafe/jev-router` vía OpenRouter (modelo verificado en el listado oficial de OpenRouter). Es un *router* según su propia descripción oficial: enruta cada llamada a un modelo distinto por debajo, de forma no determinista. Eso no compromete el diseño porque las señales del plan B solo pueden **subir** la severidad (igual que en JEV nativo, invariante I4); la decisión final sigue siendo una función pura y determinista de `check_results` (invariante I2), nunca del LLM.
+- **Modelo del plan B:** el rol `jev` del plan B usa `settings.jev_planb_model` si está configurado (variable `JEV_PLANB_MODEL`), y si no cae de vuelta al modelo del `extractor`. El equipo lo apunta a `typesafe/jev-router` vía OpenRouter (modelo verificado en el listado oficial de OpenRouter). Su descripción oficial dice que «elige el mejor modelo y nivel de razonamiento para cada pedido» y que corre sobre Jev, el modelo System One de TypeSafe; no publica qué modelos usa por debajo, así que se asume que sus respuestas pueden variar entre corridas. Eso no compromete el diseño porque las señales del plan B solo pueden **subir** la severidad (igual que en JEV nativo, invariante I4); la decisión final sigue siendo una función pura y determinista de `check_results` (invariante I2), nunca del LLM.
 
 ### Verificador: qué audita
 Recibe texto fuente, extracción, reglas vigentes, chequeos, señales JEV y la decisión propuesta. Responde en esquema fijo:
@@ -98,12 +102,26 @@ Salida: `{consistent: bool, issues: [{code, kind: "violation"|"uncertainty", evi
 | Backend | FastAPI + Pydantic v2 | contratos tipados y OpenAPI para el frontend |
 | Persistencia | SQLAlchemy; SQLite en dev, Postgres gestionado en prod | los discos de hosting gratuito suelen ser efímeros |
 | Tests | pytest (+ hypothesis para property tests) | invariantes y reglas |
-| OCR / lectura | extracción de texto PDF (pdfplumber/pypdf) → OCR (tesseract) → visión del modelo como último recurso | costo creciente |
+| OCR / lectura | Implementado: lector PDF propio con `zlib` de la stdlib (sin dependencias). Sin OCR: las imágenes terminan en `illegible` → ESCALAR (D018). OCR o visión del modelo quedan como trabajo futuro | sin dependencias nuevas; fail-closed |
 | Frontend | Next.js + TypeScript en Vercel | requerido |
-| Backend deploy | Railway / Render / Fly (a elegir) | URL pública |
+| Backend deploy | Render (un solo worker, por el candado de T5.8) | URL pública |
+| Autenticación demo | Supabase en el frontend | identidad por usuario; verificación del token en el servidor pendiente (T9.6.0) |
 | Config | variables de entorno por rol de modelo | cambiar de modelo sin tocar código |
 
 Aprobación humana: **v1 simple** — la decisión ESCALAR deja la factura en estado `pendiente`; un endpoint registra la decisión humana como **evento nuevo** (quién, cuándo, motivo). No se usa pausa/reanudación del grafo salvo que sobre tiempo.
+
+## Componentes añadidos después del diseño inicial
+| Componente | Qué garantiza | Dónde |
+|---|---|---|
+| Candado de proceso | Leer el ledger, decidir y persistir van en serie, así dos facturas simultáneas no superan juntas el límite del periodo (requiere un solo worker) | T5.8, `backend/app/api/app.py` (`_decide_and_store_invoice`) |
+| Clave de administrador | `PUT /rules`, aprobar y rechazar exigen `X-Admin-Key`; sin clave configurada → 503; la clave se valida antes del cuerpo | T5.9, `backend/app/api/app.py` |
+| Aprobadores | Lista fija desde `data/company.json`; editar reglas no la amplía | T5.9, `backend/app/api/asgi.py` (`load_approver_emails`) |
+| Cadena de huellas | Registro solo-anexar (`chain_entries`): cada decisión y cada evento humano encadena el hash anterior; `GET /decisions/verify-chain` detecta alteración o borrado. Hoy es **una sola cadena global**, no por usuario | T5.10, `backend/app/records/chain.py` |
+| Política de aprobación | Rutas por monto, proveedor, categoría y departamento que exigen «N de M» aprobadores (R14); si la ruta no se puede resolver, no se puede aprobar | T7.1, `backend/app/rules/approval_policy.py`, `backend/app/api/approval.py` |
+| Series y pagos variables | R15–R18 (calendario, periodo duplicado, tope) y R19 (tarifa × cantidad, escalones, tope); solo suben severidad | T7.2, T7.3 |
+| Proveedor nuevo | Agregar a la lista permitida queda auditado en la cadena; la factura que lo disparó no se paga sola (R20) | T7.4 |
+| Alcance por usuario | Las decisiones se filtran por `X-User-Id`, que hoy envía el navegador **sin verificar el token de Supabase** en el servidor (pendiente en T9.6.0) | `backend/app/api/user_scope.py`, `frontend/lib/upstream-request.ts` |
+| Registro de acuerdos | En implementación: el modelo propone términos con cita literal, una persona los confirma y se compilan de forma determinista a series y precios variables | T9.1 (`docs/T9_1_SPEC.md`) |
 
 ## Estructura del repo
 Ver `AGENTS.md §8`.
