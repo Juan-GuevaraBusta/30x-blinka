@@ -1,5 +1,13 @@
 # Tachyon — agente de pagos a proveedores (Hackathon 30x · reto Blinka)
 
+## Probar la plataforma
+
+- **Entrar:** https://blinka-invoice-agent.vercel.app/entrar
+- **Usuario:** `sebas@pjgorman.com`
+- **Contraseña:** `A1b2c3!`
+
+Cuenta de demo de la empresa ficticia **P.J Gorman** (administrador y aprobador). Ya trae facturas pagadas, frenadas y escaladas, y los archivos para subir están en `data/demo/`.
+
 > **Estado (T5.5, D046).** `T5.1` (`docs/TASK_BOARD.md`) está **HECHA**. Las
 > cifras de este README citan `eval/reports/latest.md` (corrida oficial dev +
 > holdout) y `eval/reports/post_t51_dev.md` (rerun de dev tras el arreglo de
