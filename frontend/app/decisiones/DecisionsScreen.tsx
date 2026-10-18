@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { AlertPanel } from "@/components/ui/AlertPanel";
 import { PageHeader } from "@/components/ui/PageHeader";
 import type { Decision, DecisionRecord, Extraction } from "@/lib/decision-types";
+import { apiFetch } from "@/lib/session";
 import {
   DECISION_LIST_FILTERS,
   DEFAULT_DECISION_LIST_FILTER,
@@ -68,7 +69,7 @@ function parseDecisionList(payload: unknown): DecisionRow[] {
 }
 
 async function fetchDecisions(decision: Decision): Promise<DecisionRow[]> {
-  const res = await fetch(`/api/decisions?decision=${decision}`, { cache: "no-store" });
+  const res = await apiFetch(`/api/decisions?decision=${decision}`, { cache: "no-store" });
   if (!res.ok) {
     throw new Error(`HTTP_${res.status}`);
   }

@@ -26,7 +26,7 @@ timestamp/ordering to place it at. Only its decision gets backfilled.
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import inspect, select, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
@@ -74,3 +74,39 @@ def ensure_decision_chain_backfilled(engine: Engine) -> None:
             )
             prev_hash = record_hash
         session.commit()
+
+
+_LEGACY_OWNER = "legacy"
+
+
+def ensure_owner_id_column(engine: Engine) -> None:
+    """Add `owner_id` to pre-existing `decision_record` tables (idempotent)."""
+    inspector = inspect(engine)
+    if "decision_record" not in inspector.get_table_names():
+        return
+    columns = {col["name"] for col in inspector.get_columns("decision_record")}
+    if "owner_id" in columns:
+        return
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                f"ALTER TABLE decision_record ADD COLUMN owner_id VARCHAR NOT NULL "
+                f"DEFAULT '{_LEGACY_OWNER}'"
+            )
+        )
+
+
+_API_TABLES = ("rules_document", "decision_record", "chain_entries")
+
+
+def ensure_postgres_api_lockdown(engine: Engine) -> None:
+    """Supabase demo: RLS on, no grants to anon/authenticated (API uses DATABASE_URL)."""
+    if not engine.dialect.name.startswith("postgres"):
+        return
+    statements = []
+    for table in _API_TABLES:
+        statements.append(f'ALTER TABLE "{table}" ENABLE ROW LEVEL SECURITY')
+        statements.append(f'REVOKE ALL ON TABLE "{table}" FROM anon, authenticated')
+    with engine.begin() as conn:
+        for stmt in statements:
+            conn.execute(text(stmt))

@@ -26,6 +26,9 @@ COMPANY_PATH = REPO_ROOT / "data" / "company.json"
 TEST_ADMIN_KEY = "test-admin-key"
 ADMIN_HEADERS = {"X-Admin-Key": TEST_ADMIN_KEY}
 
+TEST_USER_ID = "test-user-id"
+USER_HEADERS = {"X-User-Id": TEST_USER_ID}
+
 _EXAMPLE: dict[str, object] = {
     "id": "dec_0042",
     "invoice_id": "INV-0042",
@@ -157,4 +160,4 @@ def build_client(
         approver_emails=allowed_approvers,
         approver_groups=chosen_groups,
     )
-    return TestClient(app), rules_store, frozen
+    return TestClient(app, headers=USER_HEADERS), rules_store, frozen

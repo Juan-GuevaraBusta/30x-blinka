@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { isActiveNavLink, NAV_LINKS } from "@/lib/nav";
+import { clearStoredUserId, getStoredUserId } from "@/lib/session";
 
 const RAIL_DISCLAIMER = "Esta mesa registra la decisión. No mueve dinero.";
 
@@ -38,6 +39,25 @@ function NavLinks({ orientation }: { orientation: "vertical" | "horizontal" }) {
   );
 }
 
+function SignOutButton() {
+  const pathname = usePathname();
+  if (pathname === "/entrar" || !getStoredUserId()) {
+    return null;
+  }
+  return (
+    <button
+      type="button"
+      className="mt-2 w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-ink-muted hover:bg-paper hover:text-ink focus-ring"
+      onClick={() => {
+        clearStoredUserId();
+        window.location.href = "/entrar";
+      }}
+    >
+      Salir
+    </button>
+  );
+}
+
 export default function GlobalNav() {
   return (
     <>
@@ -65,6 +85,7 @@ export default function GlobalNav() {
         </div>
         <nav className="flex-1 px-3">
           <NavLinks orientation="vertical" />
+          <SignOutButton />
         </nav>
         <p className="border-t border-line px-5 py-4 text-xs leading-relaxed text-ink-muted">
           {RAIL_DISCLAIMER}

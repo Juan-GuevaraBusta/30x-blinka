@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Section } from "@/components/ui/Section";
 import type { DecisionRecord } from "@/lib/decision-types";
 import { isValidDecisionId, severityLabel } from "@/lib/decision-present";
+import { apiFetch } from "@/lib/session";
 
 const I8_DISCLAIMER =
   "PAGAR es una decisión registrada. Esta pantalla no mueve dinero.";
@@ -32,7 +33,7 @@ async function loadDecision(id: string): Promise<LoadState> {
     return { status: "not_found" };
   }
   try {
-    const res = await fetch(`/api/decisions/${encodeURIComponent(id)}`, {
+    const res = await apiFetch(`/api/decisions/${encodeURIComponent(id)}`, {
       cache: "no-store",
     });
     if (res.status === 404) {

@@ -155,7 +155,9 @@ def test_production_app_post_persists_with_mocked_graph(
         lambda _store, **_: fake_processor,
     )
     app = create_production_app(mapping, rules_path=RULES_PATH, cors_origins="")
-    client = TestClient(app)
+    from tests.api.support import USER_HEADERS
+
+    client = TestClient(app, headers=USER_HEADERS)
 
     response = client.post(
         "/invoices",

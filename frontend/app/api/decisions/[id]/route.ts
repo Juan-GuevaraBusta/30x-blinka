@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { isValidDecisionId } from "@/lib/decision-present";
 import { fetchUpstreamText } from "@/lib/upstream-error";
+import { upstreamInitFromRequest } from "@/lib/upstream-request";
 
 const API_URL = process.env.API_URL ?? "http://127.0.0.1:8000";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   const { id } = await context.params;
@@ -14,10 +15,13 @@ export async function GET(
     return NextResponse.json({ detail: "not_found" }, { status: 404 });
   }
 
-  const result = await fetchUpstreamText(`${API_URL}/decisions/${encodeURIComponent(id)}`, {
-    method: "GET",
-    cache: "no-store",
-  });
+  const result = await fetchUpstreamText(
+    `${API_URL}/decisions/${encodeURIComponent(id)}`,
+    upstreamInitFromRequest(request, {
+      method: "GET",
+      cache: "no-store",
+    }),
+  );
   if (!result.ok) {
     return result.errorResponse;
   }

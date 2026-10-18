@@ -96,7 +96,9 @@ def test_decisions_empty_after_seed(tmp_path) -> None:
     db = tmp_path / "boot.sqlite"
     mapping = {"DATABASE_URL": f"sqlite:///{db}"}
     app = create_production_app(mapping, rules_path=RULES_PATH, cors_origins="")
-    client = TestClient(app)
+    from tests.api.support import USER_HEADERS
+
+    client = TestClient(app, headers=USER_HEADERS)
 
     assert client.get("/decisions").json() == []
 

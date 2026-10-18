@@ -47,7 +47,8 @@ class MemoryStore:
     def __init__(self, rules: RulesConfig) -> None:
         self.rules = rules
         self.decisions: dict[str, DecisionRecord] = {}
-        self._invoice_ids: set[str] = set()
+        self._owners: dict[str, str] = {}
+        self._invoice_keys: set[tuple[str, str]] = set()
         # T5.10 (D055): append-only chain, same shape as SqlStore's
         # `chain_entries` table. Entries are appended in `add_decision` and
         # `add_human_event` and never rewritten afterward -- see
@@ -59,17 +60,36 @@ class MemoryStore:
         self.rules = rules
         return self.rules
 
-    def has_invoice(self, invoice_id: str) -> bool:
-        return invoice_id in self._invoice_ids
+    def has_invoice(self, invoice_id: str, owner_id: str) -> bool:
+        return (owner_id, invoice_id) in self._invoice_keys
+
+    def list_decisions_for_owner(
+        self, owner_id: str, decision: str | None = None
+    ) -> list[DecisionRecord]:
+        records = [
+            record
+            for record_id, record in self.decisions.items()
+            if self._owners.get(record_id) == owner_id
+        ]
+        if decision is None:
+            return records
+        return [item for item in records if item.decision == decision]
+
+    def get_for_owner(self, decision_id: str, owner_id: str) -> DecisionRecord | None:
+        if self._owners.get(decision_id) != owner_id:
+            return None
+        return self.decisions.get(decision_id)
 
     def _chain_tip(self) -> str:
         return self._chain[-1].record_hash if self._chain else GENESIS_PREV_HASH
 
-    def add_decision(self, record: DecisionRecord) -> DecisionRecord:
-        if record.id in self.decisions or record.invoice_id in self._invoice_ids:
+    def add_decision(self, record: DecisionRecord, owner_id: str = "test-user-id") -> DecisionRecord:
+        key = (owner_id, record.invoice_id)
+        if record.id in self.decisions or key in self._invoice_keys:
             raise DuplicateDecisionError(record.invoice_id)
         self.decisions[record.id] = record
-        self._invoice_ids.add(record.invoice_id)
+        self._owners[record.id] = owner_id
+        self._invoice_keys.add(key)
         # Append-only: chain from the current tip, inside the same call
         # `SqlStore.add_decision` chains inside its session -- both run
         # under the T5.8 `_INVOICE_LOCK`, so ordering is deterministic.

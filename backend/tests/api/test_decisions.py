@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from app.models.domain import Decision
 from fastapi.testclient import TestClient
-from tests.api.support import ADMIN_HEADERS, build_client, make_record
+from tests.api.support import ADMIN_HEADERS, USER_HEADERS, build_client, make_record
 
 
 def test_list_decisions_empty(client: TestClient) -> None:
@@ -13,6 +13,26 @@ def test_list_decisions_empty(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_list_decisions_requires_user_header() -> None:
+    client, _store, _clock = build_client()
+    bare = TestClient(client.app)
+    response = bare.get("/decisions")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "missing_user_id"
+
+
+def test_list_decisions_isolated_by_owner() -> None:
+    client, store, _clock = build_client()
+    store.add_decision(make_record(id="dec_a", invoice_id="INV-A"), owner_id="owner-a")
+    store.add_decision(make_record(id="dec_b", invoice_id="INV-B"), owner_id="owner-b")
+
+    as_a = client.get("/decisions", headers={**USER_HEADERS, "X-User-Id": "owner-a"})
+    as_b = client.get("/decisions", headers={**USER_HEADERS, "X-User-Id": "owner-b"})
+
+    assert [item["id"] for item in as_a.json()] == ["dec_a"]
+    assert [item["id"] for item in as_b.json()] == ["dec_b"]
 
 
 def test_list_decisions_filters_escalar() -> None:

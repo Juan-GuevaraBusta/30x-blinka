@@ -13,6 +13,7 @@ import {
   type UploadSuccessPayload,
   validateUploadForm,
 } from "@/lib/invoice-upload";
+import { apiFetch } from "@/lib/session";
 
 const I8_NOTE =
   "Subir una factura registra una decisión simulada en el sistema; no se mueve dinero.";
@@ -63,7 +64,7 @@ export default function SubirScreen() {
 
       setSubmitting(true);
       try {
-        const res = await fetch("/api/invoices", {
+        const res = await apiFetch("/api/invoices", {
           method: "POST",
           body: formData,
         });

@@ -14,6 +14,7 @@ import {
   parseErrorDetail,
   validateHumanDecisionInput,
 } from "@/lib/approvals";
+import { apiFetch } from "@/lib/session";
 
 const I8_NOTE =
   "Aprobar o rechazar registra un evento humano. No se mueve dinero; la decisión del agente sigue siendo ESCALAR.";
@@ -208,7 +209,7 @@ export default function AprobacionesScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadQueue = useCallback(async () => {
-    const res = await fetch(QUEUE_URL, { cache: "no-store" });
+    const res = await apiFetch(QUEUE_URL, { cache: "no-store" });
     if (!res.ok) {
       throw new Error(`No se pudo cargar la cola (HTTP ${res.status}).`);
     }
@@ -266,7 +267,7 @@ export default function AprobacionesScreen() {
 
     const path = kind === "approve" ? "approve" : "reject";
     try {
-      const res = await fetch(`/api/decisions/${encodeURIComponent(record.id)}/${path}`, {
+      const res = await apiFetch(`/api/decisions/${encodeURIComponent(record.id)}/${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(validated.body),

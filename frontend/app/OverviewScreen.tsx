@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { PageHeader } from "@/components/ui/PageHeader";
 import { HOW_IT_WORKS_STEPS, OVERVIEW_CARDS, OVERVIEW_EXPLANATION, parseDecisionCount } from "@/lib/overview";
+import { apiFetch } from "@/lib/session";
 
 type CardState = Record<string, { status: "loading" | "ready" | "error"; count: number | null }>;
 
@@ -17,7 +18,7 @@ function initialCardState(): CardState {
 }
 
 async function fetchCount(decision: string): Promise<number> {
-  const res = await fetch(`/api/decisions?decision=${decision}`, { cache: "no-store" });
+  const res = await apiFetch(`/api/decisions?decision=${decision}`, { cache: "no-store" });
   if (!res.ok) {
     throw new Error(`HTTP_${res.status}`);
   }

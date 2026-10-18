@@ -13,6 +13,7 @@ from pydantic import ValidationError
 
 from app.api.approval import build_approval_status, enforce_route_approval
 from app.api.rate_limit import FixedWindowLimiter, RateLimitMiddleware
+from app.api.user_scope import require_user_id
 from app.api.schemas import (
     MAX_INVOICE_BYTES,
     ApprovalStatusBody,
@@ -106,12 +107,10 @@ def create_app(
 
     @app.get("/decisions")
     def list_decisions(
+        owner_id: Annotated[str, Depends(require_user_id)],
         decision: Annotated[Literal["PAGAR", "ESCALAR", "FRENAR"] | None, Query()] = None,
     ) -> list[DecisionRecord]:
-        records = list(store.decisions.values())
-        if decision is None:
-            return records
-        return [item for item in records if item.decision == decision]
+        return store.list_decisions_for_owner(owner_id, decision)
 
     @app.get("/decisions/verify-chain")
     def verify_chain() -> ChainVerificationBody:
@@ -126,14 +125,18 @@ def create_app(
         )
 
     @app.get("/decisions/{id}")
-    def get_decision(id: str) -> DecisionRecord:
-        found = store.get(id)
+    def get_decision(
+        owner_id: Annotated[str, Depends(require_user_id)],
+        id: str,
+    ) -> DecisionRecord:
+        found = store.get_for_owner(id, owner_id)
         if found is None:
             raise HTTPException(status_code=404, detail="not_found")
         return found
 
     @app.post("/invoices", status_code=201)
     async def post_invoice(
+        owner_id: Annotated[str, Depends(require_user_id)],
         file: Annotated[UploadFile, File()],
         invoice_id: Annotated[str, Form()],
         channel: Annotated[str, Form()],
@@ -152,7 +155,7 @@ def create_app(
         content = await _read_capped(file)
         if content is None:
             raise HTTPException(status_code=422, detail="invalid_file_size")
-        if store.has_invoice(meta.invoice_id):
+        if store.has_invoice(meta.invoice_id, owner_id):
             raise HTTPException(status_code=409, detail="duplicate_invoice")
         upload = InvoiceUpload(
             invoice_id=meta.invoice_id,
@@ -161,7 +164,7 @@ def create_app(
             content=content,
         )
         try:
-            return _decide_and_store_invoice(processor, store, upload)
+            return _decide_and_store_invoice(processor, store, upload, owner_id)
         except InvoiceRejected as exc:
             raise HTTPException(status_code=422, detail=exc.detail) from exc
         except DuplicateDecisionError as exc:
@@ -215,12 +218,12 @@ def create_app(
 
 
 def _decide_and_store_invoice(
-    processor: Processor, store: MemoryStore, upload: InvoiceUpload
+    processor: Processor, store: MemoryStore, upload: InvoiceUpload, owner_id: str
 ) -> DecisionRecord:
     """Serialize decide + persist so a concurrent invoice always sees this one (T5.8)."""
     with _INVOICE_LOCK:
         record = processor(upload)
-        return store.add_decision(record)
+        return store.add_decision(record, owner_id)
 
 
 def _require_admin_key(configured: str | None, provided: str | None) -> None:

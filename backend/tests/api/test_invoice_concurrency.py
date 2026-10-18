@@ -118,7 +118,9 @@ def _run_concurrently(tmp_path, db_name: str) -> list[Decision]:
 
     def _run(upload: InvoiceUpload) -> None:
         try:
-            results[upload.invoice_id] = _decide_and_store_invoice(processor, store, upload)
+            results[upload.invoice_id] = _decide_and_store_invoice(
+                processor, store, upload, "test-user-id"
+            )
         except BaseException as exc:  # noqa: BLE001 - captured for the assertion below
             results[upload.invoice_id] = exc
 

@@ -50,14 +50,35 @@ class SqlStore:
             session.commit()
         return rules
 
-    def has_invoice(self, invoice_id: str) -> bool:
+    def has_invoice(self, invoice_id: str, owner_id: str) -> bool:
         with Session(self._engine) as session:
             found = session.scalar(
-                select(DecisionRecordRow.id).where(DecisionRecordRow.invoice_id == invoice_id)
+                select(DecisionRecordRow.id).where(
+                    DecisionRecordRow.invoice_id == invoice_id,
+                    DecisionRecordRow.owner_id == owner_id,
+                )
             )
             return found is not None
 
-    def add_decision(self, record: DecisionRecord) -> DecisionRecord:
+    def list_decisions_for_owner(
+        self, owner_id: str, decision: str | None = None
+    ) -> list[DecisionRecord]:
+        with Session(self._engine) as session:
+            stmt = select(DecisionRecordRow).where(DecisionRecordRow.owner_id == owner_id)
+            if decision is not None:
+                stmt = stmt.where(DecisionRecordRow.decision == decision)
+            stmt = stmt.order_by(DecisionRecordRow.position)
+            rows = session.scalars(stmt).all()
+            return [DecisionRecord.model_validate_json(row.payload) for row in rows]
+
+    def get_for_owner(self, decision_id: str, owner_id: str) -> DecisionRecord | None:
+        with Session(self._engine) as session:
+            row = session.get(DecisionRecordRow, decision_id)
+            if row is None or row.owner_id != owner_id:
+                return None
+            return DecisionRecord.model_validate_json(row.payload)
+
+    def add_decision(self, record: DecisionRecord, owner_id: str = "test-user-id") -> DecisionRecord:
         payload = record.model_dump_json()
         with Session(self._engine) as session:
             next_position = session.scalar(
@@ -72,6 +93,7 @@ class SqlStore:
             prev_hash = self._chain_tip(session)
             row = DecisionRecordRow(
                 id=record.id,
+                owner_id=owner_id,
                 invoice_id=record.invoice_id,
                 decision=record.decision,
                 position=position,

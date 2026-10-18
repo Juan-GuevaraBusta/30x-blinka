@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { isValidDecisionId } from "@/lib/decision-present";
 import { fetchUpstreamText } from "@/lib/upstream-error";
+import { upstreamInitFromRequest } from "@/lib/upstream-request";
 
 const API_URL = process.env.API_URL ?? "http://127.0.0.1:8000";
 // T5.9 (D055): server-side only. Never read as NEXT_PUBLIC_*; the browser never sees it.
@@ -21,12 +22,15 @@ export async function POST(
   if (ADMIN_API_KEY) {
     headers["X-Admin-Key"] = ADMIN_API_KEY;
   }
-  const result = await fetchUpstreamText(`${API_URL}/decisions/${encodeURIComponent(id)}/approve`, {
-    method: "POST",
-    headers,
-    body,
-    cache: "no-store",
-  });
+  const result = await fetchUpstreamText(
+    `${API_URL}/decisions/${encodeURIComponent(id)}/approve`,
+    upstreamInitFromRequest(request, {
+      method: "POST",
+      headers,
+      body,
+      cache: "no-store",
+    }),
+  );
   if (!result.ok) {
     return result.errorResponse;
   }

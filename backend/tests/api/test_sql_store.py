@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from tests.api.support import (
     ADMIN_HEADERS,
     TEST_ADMIN_KEY,
+    USER_HEADERS,
     load_approver_emails,
     load_rules,
     make_record,
@@ -148,6 +149,7 @@ def test_invalid_payload_raises_on_read(tmp_path) -> None:
         session.add(
             DecisionRecordRow(
                 id="bad",
+                owner_id="test-user-id",
                 invoice_id="INV-BAD",
                 decision="PAGAR",
                 position=1,

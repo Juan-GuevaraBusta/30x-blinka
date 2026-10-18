@@ -40,8 +40,8 @@ describe("proxy /api/decisions/[id]/reject (T5.9, D055)", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    const headers = init.headers as Record<string, string>;
-    expect(headers["X-Admin-Key"]).toBe("server-secret");
+    const headers = new Headers(init.headers);
+    expect(headers.get("X-Admin-Key")).toBe("server-secret");
   });
 
   it("omits the header when ADMIN_API_KEY is unset (backend fails closed)", async () => {

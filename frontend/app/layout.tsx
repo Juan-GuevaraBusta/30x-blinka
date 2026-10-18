@@ -3,6 +3,7 @@ import { Geist_Mono, Inter } from "next/font/google";
 
 import "./globals.css";
 
+import AuthGate from "./AuthGate";
 import GlobalNav from "./GlobalNav";
 
 const inter = Inter({
@@ -32,7 +33,7 @@ export default function RootLayout({
           <GlobalNav />
           <div className="flex min-w-0 flex-1 flex-col">
             <main className="mx-auto w-full max-w-content flex-1 px-4 py-8 sm:px-8 sm:py-10">
-              {children}
+              <AuthGate>{children}</AuthGate>
             </main>
           </div>
         </div>

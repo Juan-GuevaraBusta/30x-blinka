@@ -3,7 +3,7 @@ append-only hash chain."""
 
 from __future__ import annotations
 
-from sqlalchemy import Integer, MetaData, String, Text
+from sqlalchemy import Integer, MetaData, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 metadata = MetaData()
@@ -22,9 +22,11 @@ class RulesDocument(Base):
 
 class DecisionRecordRow(Base):
     __tablename__ = "decision_record"
+    __table_args__ = (UniqueConstraint("owner_id", "invoice_id", name="uq_decision_owner_invoice"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    invoice_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    owner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    invoice_id: Mapped[str] = mapped_column(String, nullable=False)
     decision: Mapped[str] = mapped_column(String, nullable=False)
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     payload: Mapped[str] = mapped_column(Text, nullable=False)
