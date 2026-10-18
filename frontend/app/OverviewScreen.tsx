@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { PageHeader } from "@/components/ui/PageHeader";
 import { HOW_IT_WORKS_STEPS, OVERVIEW_CARDS, OVERVIEW_EXPLANATION, parseDecisionCount } from "@/lib/overview";
 
 type CardState = Record<string, { status: "loading" | "ready" | "error"; count: number | null }>;
@@ -57,24 +58,20 @@ export default function OverviewScreen() {
 
   return (
     <div className="space-y-10">
-      <header className="border-b border-line pb-6">
-        <p className="text-sm text-ink-muted">Puesto de control · Acme Demo Inc.</p>
-        <h1 className="font-display mt-1 text-3xl text-ink">Agente de pagos</h1>
-        <p className="mt-3 max-w-prose text-base leading-relaxed text-ink">{OVERVIEW_EXPLANATION}</p>
-      </header>
+      <PageHeader title="Agente de pagos" description={<p>{OVERVIEW_EXPLANATION}</p>} />
 
       <section aria-labelledby="overview-counts-heading" className="space-y-4">
-        <h2 id="overview-counts-heading" className="font-display text-lg text-ink">
+        <h2 id="overview-counts-heading" className="text-base font-semibold text-ink">
           Decisiones registradas
         </h2>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-3">
           {OVERVIEW_CARDS.map((card) => {
             const state = cards[card.key];
             return (
               <Link
                 key={card.key}
                 href={card.href}
-                className="rounded-md border border-line bg-surface px-4 py-5 shadow-sm ring-1 ring-line/60 transition-colors hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="panel px-4 py-5 transition-colors hover:border-accent/30 focus-ring"
               >
                 <p className="text-sm font-medium text-ink-muted">{card.label}</p>
                 {state.status === "loading" ? (
@@ -90,7 +87,7 @@ export default function OverviewScreen() {
                     Sin registros.
                   </p>
                 ) : (
-                  <p className="font-display mt-2 text-4xl text-ink">{state.count}</p>
+                  <p className="mt-2 font-mono text-3xl font-medium text-ink">{state.count}</p>
                 )}
               </Link>
             );
@@ -99,15 +96,12 @@ export default function OverviewScreen() {
       </section>
 
       <section aria-labelledby="how-it-works-heading" className="space-y-4">
-        <h2 id="how-it-works-heading" className="font-display text-lg text-ink">
+        <h2 id="how-it-works-heading" className="text-base font-semibold text-ink">
           Cómo funciona
         </h2>
-        <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <ol className="grid gap-3 sm:grid-cols-2">
           {HOW_IT_WORKS_STEPS.map((step) => (
-            <li
-              key={step.title}
-              className="rounded-md border border-line/80 bg-canvas/40 px-4 py-4 text-sm"
-            >
+            <li key={step.title} className="rounded-xl border border-line bg-paper px-4 py-4 text-sm">
               <p className="font-medium text-ink">{step.title}</p>
               <p className="mt-1 text-ink-muted">{step.description}</p>
             </li>

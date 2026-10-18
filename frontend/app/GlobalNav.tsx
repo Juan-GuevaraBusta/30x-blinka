@@ -5,42 +5,71 @@ import { usePathname } from "next/navigation";
 
 import { isActiveNavLink, NAV_LINKS } from "@/lib/nav";
 
-const BRAND = "Agente de pagos · Hackathon Blinka";
+const RAIL_DISCLAIMER = "Esta mesa registra la decisión. No mueve dinero.";
 
-export default function GlobalNav() {
+function NavLinks({ orientation }: { orientation: "vertical" | "horizontal" }) {
   const pathname = usePathname();
+  const listClass =
+    orientation === "vertical"
+      ? "flex flex-col gap-0.5"
+      : "flex flex-wrap gap-x-1 gap-y-1";
 
   return (
-    <header className="border-b border-line bg-surface">
-      <nav
-        aria-label="Principal"
-        className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4 sm:px-6"
+    <ul className={listClass}>
+      {NAV_LINKS.map((link) => {
+        const active = isActiveNavLink(pathname ?? "/", link.href);
+        return (
+          <li key={link.href}>
+            <Link
+              href={link.href}
+              aria-current={active ? "page" : undefined}
+              className={`block rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-ring ${
+                active
+                  ? "bg-accent/10 text-ink"
+                  : "text-ink-muted hover:bg-paper hover:text-ink"
+              }`}
+            >
+              {link.label}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export default function GlobalNav() {
+  return (
+    <>
+      <header className="border-b border-line bg-surface md:hidden">
+        <div className="px-4 py-3">
+          <Link href="/" className="text-base font-semibold tracking-tight text-ink focus-ring">
+            Blinka
+          </Link>
+          <p className="mt-0.5 text-xs text-ink-muted">Agente de pagos</p>
+        </div>
+        <nav aria-label="Principal" className="overflow-x-auto border-t border-line px-2 py-2">
+          <NavLinks orientation="horizontal" />
+        </nav>
+      </header>
+
+      <aside
+        className="hidden w-[var(--rail-width)] shrink-0 flex-col border-r border-line bg-surface md:flex"
+        aria-label="Navegación principal"
       >
-        <Link
-          href="/"
-          className="font-display shrink-0 text-base text-ink focus:outline-none focus:ring-2 focus:ring-accent/40"
-        >
-          {BRAND}
-        </Link>
-        <ul className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
-          {NAV_LINKS.map((link) => {
-            const active = isActiveNavLink(pathname ?? "/", link.href);
-            return (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  aria-current={active ? "page" : undefined}
-                  className={`rounded-md px-1 py-0.5 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-accent/30 ${
-                    active ? "text-ink underline underline-offset-4" : "text-ink-muted hover:text-ink"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-    </header>
+        <div className="px-5 py-6">
+          <Link href="/" className="text-lg font-semibold tracking-tight text-ink focus-ring">
+            Blinka
+          </Link>
+          <p className="mt-1 text-xs text-ink-muted">Agente de pagos</p>
+        </div>
+        <nav className="flex-1 px-3">
+          <NavLinks orientation="vertical" />
+        </nav>
+        <p className="border-t border-line px-5 py-4 text-xs leading-relaxed text-ink-muted">
+          {RAIL_DISCLAIMER}
+        </p>
+      </aside>
+    </>
   );
 }

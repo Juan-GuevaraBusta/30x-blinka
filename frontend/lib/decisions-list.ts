@@ -1,4 +1,5 @@
-import type { Decision } from "@/lib/decision-types";
+import type { Decision, Extraction } from "@/lib/decision-types";
+import { formatNullable } from "@/lib/decision-present";
 
 // T6.7 (D057): pending review comes first — that is the queue that needs attention.
 export const DECISION_LIST_FILTERS = ["pendientes", "frenadas", "pagadas"] as const;
@@ -49,6 +50,21 @@ export function rowStatusLabel(decision: Decision): string {
 /** Motivo column: `summary` unchanged, character for character. */
 export function decisionMotivo(summary: string): string {
   return summary;
+}
+
+export function formatListBeneficiary(extracted: Extraction | undefined): string {
+  return formatNullable(extracted?.beneficiary ?? null);
+}
+
+export function formatListAmount(extracted: Extraction | undefined): string {
+  const amount = extracted?.amount;
+  const currency = extracted?.currency?.trim();
+  if (amount === null || amount === undefined) {
+    return formatNullable(null);
+  }
+  const base = formatNullable(amount);
+  if (!currency) return base;
+  return `${base} ${currency}`;
 }
 
 export function emptyStateMessage(filter: DecisionListFilter): string {

@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import type { Decision, DecisionRecord } from "@/lib/decision-types";
+import { AlertPanel } from "@/components/ui/AlertPanel";
+import { PageHeader } from "@/components/ui/PageHeader";
+import type { Decision, DecisionRecord, Extraction } from "@/lib/decision-types";
 import {
   DECISION_LIST_FILTERS,
   DEFAULT_DECISION_LIST_FILTER,
@@ -12,6 +14,8 @@ import {
   decisionMotivo,
   emptyStateMessage,
   filterToApiDecision,
+  formatListAmount,
+  formatListBeneficiary,
   rowStatusLabel,
   statusToneClass,
 } from "@/lib/decisions-list";
@@ -26,6 +30,7 @@ type DecisionRow = {
   invoice_id: string;
   decision: Decision;
   summary: string;
+  extracted?: Extraction;
 };
 
 function isDecisionRow(value: unknown): value is DecisionRow {
@@ -51,7 +56,13 @@ function parseDecisionList(payload: unknown): DecisionRow[] {
     if (!isDecisionRow(item)) {
       throw new Error("INVALID_BODY");
     }
-    rows.push(item);
+    rows.push({
+      id: item.id,
+      invoice_id: item.invoice_id,
+      decision: item.decision,
+      summary: item.summary,
+      extracted: item.extracted,
+    });
   }
   return rows;
 }
@@ -93,7 +104,6 @@ export default function DecisionsScreen({
   const [error, setError] = useState<string | null>(null);
   const [counts, setCounts] = useState<Partial<Record<DecisionListFilter, number>>>({});
 
-  // T6.7 (D057): per-tab counts are cheap on these small synthetic lists.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -147,12 +157,9 @@ export default function DecisionsScreen({
 
   return (
     <div className="space-y-8">
-      <header className="border-b border-line pb-6">
-        <p className="text-sm text-ink-muted">Puesto de control · Acme Demo Inc.</p>
-        <h1 className="font-display mt-1 text-3xl text-ink">Decisiones registradas</h1>
-        <p className="mt-2 max-w-prose text-sm text-ink-muted">{MONEY_NOTE}</p>
+      <PageHeader title="Decisiones registradas" description={<p>{MONEY_NOTE}</p>}>
         <ChainIntegrityBadge />
-      </header>
+      </PageHeader>
 
       <fieldset>
         <legend className="mb-3 text-sm font-medium text-ink">Filtrar por estado</legend>
@@ -165,10 +172,10 @@ export default function DecisionsScreen({
                 type="button"
                 aria-pressed={active}
                 onClick={() => setFilter(key)}
-                className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-accent/30 ${
+                className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors focus-ring ${
                   active
-                    ? "border-accent bg-surface text-ink shadow-sm ring-1 ring-accent/40"
-                    : "border-line bg-surface/80 text-ink-muted hover:border-line hover:text-ink"
+                    ? "border-accent bg-accent/10 text-ink"
+                    : "border-line bg-surface text-ink-muted hover:text-ink"
                 }`}
               >
                 {FILTER_CONTROL_LABELS[key]}
@@ -184,34 +191,29 @@ export default function DecisionsScreen({
           Cargando decisiones…
         </p>
       ) : error ? (
-        <div
-          className="rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-danger"
-          role="alert"
-        >
-          {error}
-        </div>
+        <AlertPanel>{error}</AlertPanel>
       ) : rows.length === 0 ? (
         <p className="text-ink-muted" role="status">
           {emptyStateMessage(filter)}
         </p>
       ) : (
         <>
-          <div className="space-y-4 sm:hidden">
+          <div className="space-y-3 sm:hidden">
             {rows.map((row) => (
               <Link
                 key={row.id}
                 href={`/decisiones/${encodeURIComponent(row.id)}`}
-                className="block rounded-md border border-line bg-surface/90 p-4 shadow-sm ring-1 ring-line/60 hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="block panel p-4 transition-colors hover:border-accent/30 focus-ring"
               >
                 <article>
                   <p className="font-mono text-sm text-ink">{row.invoice_id}</p>
+                  <p className="mt-1 text-sm text-ink">
+                    {formatListBeneficiary(row.extracted)} · {formatListAmount(row.extracted)}
+                  </p>
                   <p className={`mt-1 text-sm font-medium ${statusToneClass(row.decision)}`}>
                     {rowStatusLabel(row.decision)}
                   </p>
-                  <p
-                    className="mt-2 truncate text-sm text-ink-muted"
-                    title={decisionMotivo(row.summary)}
-                  >
+                  <p className="mt-2 line-clamp-2 text-sm text-ink-muted" title={decisionMotivo(row.summary)}>
                     {decisionMotivo(row.summary)}
                   </p>
                 </article>
@@ -227,6 +229,12 @@ export default function DecisionsScreen({
                     Factura
                   </th>
                   <th scope="col" className="py-3 pr-4 font-medium">
+                    Beneficiario
+                  </th>
+                  <th scope="col" className="py-3 pr-4 font-medium">
+                    Monto
+                  </th>
+                  <th scope="col" className="py-3 pr-4 font-medium">
                     Estado
                   </th>
                   <th scope="col" className="py-3 font-medium">
@@ -240,16 +248,20 @@ export default function DecisionsScreen({
                     <td className="py-3 pr-4 font-mono text-ink">
                       <Link
                         href={`/decisiones/${encodeURIComponent(row.id)}`}
-                        className="hover:underline focus:outline-none focus:ring-2 focus:ring-accent/40"
+                        className="hover:text-accent focus-ring"
                       >
                         {row.invoice_id}
                       </Link>
+                    </td>
+                    <td className="py-3 pr-4 text-ink">{formatListBeneficiary(row.extracted)}</td>
+                    <td className="py-3 pr-4 font-mono text-ink">
+                      {formatListAmount(row.extracted)}
                     </td>
                     <td className={`py-3 pr-4 font-medium ${statusToneClass(row.decision)}`}>
                       {rowStatusLabel(row.decision)}
                     </td>
                     <td
-                      className="max-w-md truncate py-3 text-ink-muted"
+                      className="max-w-xs truncate py-3 text-ink-muted"
                       title={decisionMotivo(row.summary)}
                     >
                       {decisionMotivo(row.summary)}

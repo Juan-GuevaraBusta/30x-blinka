@@ -1,23 +1,22 @@
 import type { Metadata } from "next";
-import { DM_Sans, Source_Serif_4 } from "next/font/google";
+import { Geist_Mono, Inter } from "next/font/google";
 
 import "./globals.css";
 
 import GlobalNav from "./GlobalNav";
 
-const dmSans = DM_Sans({
+const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
 });
 
-const sourceSerif = Source_Serif_4({
-  variable: "--font-display",
+const geistMono = Geist_Mono({
+  variable: "--font-mono",
   subsets: ["latin"],
-  weight: ["500", "600"],
 });
 
 export const metadata: Metadata = {
-  title: "Blinka — Reglas vigentes",
+  title: "Blinka — Agente de pagos",
   description: "Puesto de control de reglas de pago (datos sintéticos).",
 };
 
@@ -28,9 +27,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={`${dmSans.variable} ${sourceSerif.variable} font-sans antialiased`}>
-        <GlobalNav />
-        {children}
+      <body className={`${inter.variable} ${geistMono.variable} font-sans antialiased`}>
+        <div className="flex min-h-screen bg-paper">
+          <GlobalNav />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <main className="mx-auto w-full max-w-content flex-1 px-4 py-8 sm:px-8 sm:py-10">
+              {children}
+            </main>
+          </div>
+        </div>
       </body>
     </html>
   );

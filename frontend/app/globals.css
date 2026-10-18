@@ -3,24 +3,23 @@
 @tailwind utilities;
 
 :root {
-  --canvas: #e8ecf1;
+  --paper: #f7f7f4;
   --surface: #ffffff;
-  --ink: #152033;
-  --ink-muted: #5c6778;
-  --line: #c5cdd8;
-  --accent: #b45309;
+  --ink: #1c253a;
+  --ink-muted: #656975;
+  --line: #dedfdc;
+  --accent: #2a4bd0;
+  --accent-hover: #2342bd;
   --danger: #9f1239;
   --success: #166534;
+  --canvas: var(--paper);
+  --rail-width: 15.5rem;
 }
 
 body {
   color: var(--ink);
-  background: var(--canvas);
-  font-family: var(--font-sans), system-ui, sans-serif;
-}
-
-.font-display {
-  font-family: var(--font-display), Georgia, serif;
+  background: var(--paper);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 .text-ink {
@@ -29,6 +28,10 @@ body {
 
 .text-ink-muted {
   color: var(--ink-muted);
+}
+
+.bg-paper {
+  background-color: var(--paper);
 }
 
 .bg-canvas {
@@ -68,11 +71,11 @@ body {
 }
 
 .bg-danger\/10 {
-  background-color: color-mix(in srgb, var(--danger) 12%, transparent);
+  background-color: color-mix(in srgb, var(--danger) 10%, transparent);
 }
 
 .border-danger\/40 {
-  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
 }
 
 .text-success {
@@ -80,11 +83,33 @@ body {
 }
 
 .bg-success\/10 {
-  background-color: color-mix(in srgb, var(--success) 12%, transparent);
+  background-color: color-mix(in srgb, var(--success) 10%, transparent);
 }
 
 .border-success\/40 {
-  border-color: color-mix(in srgb, var(--success) 40%, transparent);
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
+}
+
+@layer components {
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-2 focus-visible:ring-offset-paper;
+  }
+
+  .input-field {
+    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-surface transition-colors hover:bg-[var(--accent-hover)] focus-ring disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-ink/20 hover:bg-paper focus-ring disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .panel {
+    @apply rounded-xl border border-line bg-surface;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

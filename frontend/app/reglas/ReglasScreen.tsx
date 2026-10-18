@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { Section } from "@/components/ui/Section";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { AlertPanel } from "@/components/ui/AlertPanel";
 import type { FailAction, JevKey, RulesConfig } from "@/lib/rules-types";
 import { JEV_KEYS, RULE_IDS } from "@/lib/rules-types";
 import { cloneRulesConfig, validateDraft } from "@/lib/rules-form";
@@ -58,7 +61,7 @@ function TextInput({
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-md border border-line bg-surface px-3 py-2 text-ink shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+      className="input-field"
     />
   );
 }
@@ -82,26 +85,8 @@ function NumberInput({
       step={step}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-md border border-line bg-surface px-3 py-2 text-ink shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+      className="input-field"
     />
-  );
-}
-
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="border-l-4 border-accent/80 bg-surface/90 pl-5 pr-4 py-5 shadow-sm ring-1 ring-line/60">
-      <h2 className="font-display text-lg text-ink">{title}</h2>
-      {description ? <p className="mt-1 text-sm text-ink-muted">{description}</p> : null}
-      <div className="mt-4 space-y-4">{children}</div>
-    </section>
   );
 }
 
@@ -177,29 +162,27 @@ export default function ReglasScreen() {
   }
 
   if (loadError || !draft) {
-    return (
-      <div className="rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-danger" role="alert">
-        {loadError ?? "No hay datos de reglas para mostrar."}
-      </div>
-    );
+    return <AlertPanel>{loadError ?? "No hay datos de reglas para mostrar."}</AlertPanel>;
   }
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-col gap-4 border-b border-line pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm text-ink-muted">Puesto de control · Acme Demo Inc.</p>
-          <h1 className="font-display mt-1 text-3xl text-ink">Reglas vigentes</h1>
-          <p className="mt-2 max-w-prose text-sm text-ink-muted">
-            Edite el paquete completo y guarde. Un campo inválido no se envía al servidor.
-          </p>
-        </div>
-        <div className="rounded-md bg-ink px-4 py-3 text-surface">
+      <div className="flex flex-col gap-4 border-b border-line pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <PageHeader
+          bordered={false}
+          title="Reglas vigentes"
+          description={
+            <p>
+              Edite el paquete completo y guarde. Un campo inválido no se envía al servidor.
+            </p>
+          }
+        />
+        <div className="shrink-0 rounded-xl bg-ink px-4 py-3 text-surface sm:max-w-xs">
           <p className="text-xs text-surface/70">Versión de contenido</p>
           <p className="font-mono text-lg tracking-wide">{savedLabel || "—"}</p>
-          <p className="mt-2 max-w-xs text-xs leading-relaxed text-surface/80">{VERSION_NOTE}</p>
+          <p className="mt-2 text-xs leading-relaxed text-surface/80">{VERSION_NOTE}</p>
         </div>
-      </header>
+      </div>
 
       {(fieldErrors.length > 0 || saveMessage) && (
         <div
@@ -576,7 +559,7 @@ export default function ReglasScreen() {
           <button
             type="submit"
             disabled={saving}
-            className="rounded-md bg-accent px-6 py-2.5 font-medium text-surface shadow-sm hover:bg-accent/90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-60"
+            className="btn-primary px-6 py-2.5"
           >
             {saving ? "Guardando…" : "Guardar reglas vigentes"}
           </button>

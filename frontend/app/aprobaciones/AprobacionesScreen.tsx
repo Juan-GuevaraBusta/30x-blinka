@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { AlertPanel } from "@/components/ui/AlertPanel";
+import { PageHeader } from "@/components/ui/PageHeader";
 import type { DecisionRecord, HumanEvent } from "@/lib/decision-types";
 import { formatNullable } from "@/lib/decision-present";
 import {
@@ -107,9 +109,9 @@ function DecisionCard({
   const beneficiary = formatNullable(record.extracted?.beneficiary);
 
   return (
-    <article className="border-l-4 border-accent bg-surface/95 pl-5 pr-4 py-5 shadow-sm ring-1 ring-line/60">
+    <article className="panel p-5">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-display text-xl text-ink">{record.invoice_id}</h2>
+        <h2 className="text-lg font-semibold text-ink">{record.invoice_id}</h2>
         <span className="text-sm font-semibold text-accent">ESCALAR · severidad {record.severity}</span>
       </header>
       <p className="mt-2 text-sm text-ink-muted">ID {record.id}</p>
@@ -143,7 +145,7 @@ function DecisionCard({
               onChange={(e) =>
                 onDraftChange({ author: e.target.value, fieldError: null, actionError: null })
               }
-              className="w-full rounded-md border border-line bg-surface px-3 py-2 text-ink shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+              className="input-field"
             />
           </div>
           <div>
@@ -163,7 +165,7 @@ function DecisionCard({
                   e.preventDefault();
                 }
               }}
-              className="w-full rounded-md border border-line bg-surface px-3 py-2 text-ink shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+              className="input-field"
               placeholder="Escriba el motivo de la aprobación o del rechazo"
             />
           </div>
@@ -180,7 +182,7 @@ function DecisionCard({
               type="button"
               disabled={draft.submitting !== null}
               onClick={onApprove}
-              className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent/90 focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-60"
+              className="btn-primary"
             >
               {draft.submitting === "approve" ? "Registrando…" : "Aprobar"}
             </button>
@@ -188,7 +190,7 @@ function DecisionCard({
               type="button"
               disabled={draft.submitting !== null}
               onClick={onReject}
-              className="rounded-md border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm hover:bg-canvas focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:opacity-60"
+              className="btn-secondary"
             >
               {draft.submitting === "reject" ? "Registrando…" : "Rechazar"}
             </button>
@@ -312,22 +314,24 @@ export default function AprobacionesScreen() {
 
   return (
     <div className="space-y-8">
-      <header className="max-w-2xl">
-        <h1 className="font-display text-3xl text-ink tracking-tight">Aprobaciones</h1>
-        <p className="mt-3 text-base text-ink-muted leading-relaxed">
-          Cola de decisiones del agente en ESCALAR. Registre aquí la aprobación o el rechazo humano
-          con motivo.
-        </p>
-        <p className="mt-2 text-sm text-ink-muted">{I8_NOTE}</p>
-      </header>
+      <PageHeader
+        title="Aprobaciones"
+        description={
+          <>
+            <p>
+              Cola de decisiones del agente en ESCALAR. Registre aquí la aprobación o el rechazo
+              humano con motivo.
+            </p>
+            <p>{I8_NOTE}</p>
+          </>
+        }
+      />
 
       {loading ? (
         <p className="text-sm text-ink-muted">Cargando cola…</p>
       ) : null}
 
-      {loadError ? (
-        <p className="text-sm text-red-800" role="alert">{loadError}</p>
-      ) : null}
+      {loadError ? <AlertPanel>{loadError}</AlertPanel> : null}
 
       {queueEmpty ? (
         <p className="rounded-md border border-line/80 bg-surface/90 px-4 py-6 text-sm text-ink-muted">
@@ -337,7 +341,7 @@ export default function AprobacionesScreen() {
 
       {pending.length > 0 ? (
         <section className="space-y-4">
-          <h2 className="font-display text-lg text-ink">Pendientes de evento humano</h2>
+          <h2 className="text-base font-semibold text-ink">Pendientes de evento humano</h2>
           <div className="space-y-6">
             {pending.map((record) => (
               <DecisionCard
@@ -356,7 +360,7 @@ export default function AprobacionesScreen() {
 
       {withEvents.length > 0 ? (
         <section className="space-y-4">
-          <h2 className="font-display text-lg text-ink">Con evento humano registrado</h2>
+          <h2 className="text-base font-semibold text-ink">Con evento humano registrado</h2>
           <p className="text-sm text-ink-muted">
             La decisión del agente sigue siendo ESCALAR; solo se añadió el evento.
           </p>

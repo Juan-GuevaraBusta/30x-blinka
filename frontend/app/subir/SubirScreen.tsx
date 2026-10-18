@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useCallback, useState } from "react";
 
+import { AlertPanel } from "@/components/ui/AlertPanel";
+import { PageHeader } from "@/components/ui/PageHeader";
 import type { Decision } from "@/lib/decision-types";
 import {
   INVOICE_CHANNELS,
@@ -25,7 +27,7 @@ const CHANNEL_LABELS: Record<(typeof INVOICE_CHANNELS)[number], string> = {
 function decisionTone(decision: Decision): string {
   if (decision === "PAGAR") return "text-success";
   if (decision === "FRENAR") return "text-danger";
-  return "text-ink";
+  return "text-accent";
 }
 
 export default function SubirScreen() {
@@ -88,22 +90,24 @@ export default function SubirScreen() {
 
   return (
     <div className="space-y-8">
-      <header className="border-b border-line pb-6">
-        <p className="text-sm text-ink-muted">
-          Puesto de control · Acme Demo Inc. ·{" "}
-          <Link href="/reglas" className="text-accent underline-offset-2 hover:underline">
-            Reglas vigentes
-          </Link>
-        </p>
-        <h1 className="font-display mt-1 text-3xl text-ink">Subir factura</h1>
-        <p className="mt-2 max-w-prose text-sm text-ink-muted">
-          Adjunte un archivo sintético y envíelo al registro del API. La decisión mostrada es la que
-          devuelve el servidor; esta pantalla no calcula pagos.
-        </p>
-        <p className="mt-2 max-w-prose text-sm text-ink-muted">{I8_NOTE}</p>
-      </header>
+      <PageHeader
+        title="Subir factura"
+        description={
+          <>
+            <p>
+              <Link href="/reglas" className="text-accent hover:underline focus-ring">
+                Reglas vigentes
+              </Link>
+              {" · "}
+              Adjunte un archivo sintético y envíelo al registro del API. La decisión mostrada es la
+              que devuelve el servidor; esta pantalla no calcula pagos.
+            </p>
+            <p>{I8_NOTE}</p>
+          </>
+        }
+      />
 
-      <form className="space-y-6" onSubmit={onSubmit} noValidate>
+      <form className="panel space-y-6 p-5 sm:p-6" onSubmit={onSubmit} noValidate>
         <div>
           <label htmlFor="upload-file" className="mb-1 block text-sm font-medium text-ink-muted">
             Archivo de factura
@@ -114,7 +118,7 @@ export default function SubirScreen() {
             type="file"
             accept=".pdf,.txt,application/pdf,text/plain"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink file:mr-3 file:rounded file:border-0 file:bg-accent/15 file:px-3 file:py-1 file:text-sm file:text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+            className="input-field file:mr-3 file:rounded-lg file:border-0 file:bg-accent/15 file:px-3 file:py-1 file:text-sm file:text-ink"
           />
         </div>
 
@@ -130,7 +134,7 @@ export default function SubirScreen() {
               value={invoiceId}
               onChange={(e) => setInvoiceId(e.target.value)}
               autoComplete="off"
-              className="w-full rounded-md border border-line bg-surface px-3 py-2 text-ink shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+              className="input-field"
             />
           </div>
           <div>
@@ -142,7 +146,7 @@ export default function SubirScreen() {
               name="channel"
               value={channel}
               onChange={(e) => setChannel(e.target.value)}
-              className="w-full rounded-md border border-line bg-surface px-3 py-2 text-ink shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+              className="input-field"
             >
               {INVOICE_CHANNELS.map((ch) => (
                 <option key={ch} value={ch}>
@@ -164,41 +168,27 @@ export default function SubirScreen() {
             value={receivedAt}
             onChange={(e) => setReceivedAt(e.target.value)}
             placeholder="2025-12-22T10:00:00Z"
-            className="w-full rounded-md border border-line bg-surface px-3 py-2 text-ink shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+            className="input-field font-mono"
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-md bg-accent px-4 py-2.5 text-sm font-medium text-surface shadow-sm transition hover:bg-accent/90 focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <button type="submit" disabled={submitting} className="btn-primary">
           {submitting ? "Enviando al registro…" : "Enviar factura al registro"}
         </button>
       </form>
 
-      {submitError ? (
-        <div
-          className="rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"
-          role="alert"
-        >
-          {submitError}
-        </div>
-      ) : null}
+      {submitError ? <AlertPanel>{submitError}</AlertPanel> : null}
 
       {lastAccepted ? (
-        <section
-          className="space-y-4 rounded-md border border-line bg-surface/60 px-4 py-5"
-          aria-labelledby="last-accepted-heading"
-        >
-          <h2 id="last-accepted-heading" className="font-display text-xl text-ink">
+        <section className="panel space-y-4 p-5 sm:p-6" aria-labelledby="last-accepted-heading">
+          <h2 id="last-accepted-heading" className="text-lg font-semibold text-ink">
             Último envío aceptado
           </h2>
           <p className="text-sm text-ink-muted">{I8_NOTE}</p>
           <dl className="space-y-3">
             <div>
               <dt className="text-sm text-ink-muted">Decisión</dt>
-              <dd className={`font-display text-2xl ${decisionTone(lastAccepted.decision)}`}>
+              <dd className={`text-2xl font-semibold ${decisionTone(lastAccepted.decision)}`}>
                 {lastAccepted.decision}
               </dd>
             </div>
@@ -214,14 +204,14 @@ export default function SubirScreen() {
           <p className="text-sm">
             <Link
               href={`/decisiones/${encodeURIComponent(lastAccepted.id)}`}
-              className="text-accent underline-offset-2 hover:underline"
+              className="text-accent underline-offset-2 hover:underline focus-ring"
             >
               Ver ficha de detalle (puede no existir si el registro aún no está en el almacén)
             </Link>
           </p>
           <details className="text-sm text-ink-muted">
             <summary className="cursor-pointer text-ink">Cuerpo completo del registro</summary>
-            <pre className="mt-2 max-h-64 overflow-auto rounded border border-line bg-canvas p-3 text-xs text-ink">
+            <pre className="mt-2 max-h-64 overflow-auto rounded-lg border border-line bg-paper p-3 font-mono text-xs text-ink">
               {JSON.stringify(lastAccepted.fullRecord, null, 2)}
             </pre>
           </details>

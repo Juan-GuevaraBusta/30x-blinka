@@ -9,6 +9,7 @@ export default {
   theme: {
     extend: {
       colors: {
+        paper: "var(--paper)",
         canvas: "var(--canvas)",
         surface: "var(--surface)",
         ink: {
@@ -16,13 +17,19 @@ export default {
           muted: "var(--ink-muted)",
         },
         line: "var(--line)",
-        accent: "var(--accent)",
+        accent: {
+          DEFAULT: "var(--accent)",
+          hover: "var(--accent-hover)",
+        },
         danger: "var(--danger)",
         success: "var(--success)",
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        display: ["var(--font-display)", "Georgia", "serif"],
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+      },
+      maxWidth: {
+        content: "42rem",
       },
     },
   },
