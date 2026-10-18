@@ -10,6 +10,7 @@ from typing import Protocol
 
 from app.api import create_app
 from app.api.asgi import load_approver_emails as _load_approver_emails
+from app.api.asgi import load_approver_groups as _load_approver_groups
 from app.api.schemas import InvoiceUpload, MetricsReading
 from app.api.store import MemoryStore
 from app.models.domain import Decision, DecisionRecord
@@ -101,17 +102,28 @@ def load_approver_emails() -> frozenset[str]:
     return _load_approver_emails(data_root, rules=None)
 
 
+def load_approver_groups() -> dict[str, frozenset[str]]:
+    """Valid `approver_groups` membership from `data/company.json` (T7.1, D059)."""
+    return _load_approver_groups(REPO_ROOT)
+
+
 def make_record(
     *,
     id: str = "dec_0042",
     invoice_id: str = "INV-0042",
     decision: Decision = "ESCALAR",
+    checks: list[dict[str, object]] | None = None,
+    human_events: list[dict[str, object]] | None = None,
 ) -> DecisionRecord:
     payload = json.loads(json.dumps(_EXAMPLE))
     payload["id"] = id
     payload["invoice_id"] = invoice_id
     payload["decision"] = decision
     payload["severity"] = _SEVERITY[decision]
+    if checks is not None:
+        payload["checks"] = checks
+    if human_events is not None:
+        payload["human_events"] = human_events
     return DecisionRecord.model_validate(payload)
 
 
@@ -124,6 +136,7 @@ def build_client(
     metrics_reader: Callable[[], MetricsReading] | None = None,
     admin_api_key: str | None = TEST_ADMIN_KEY,
     approver_emails: frozenset[str] | None = None,
+    approver_groups: dict[str, frozenset[str]] | None = None,
 ) -> tuple[TestClient, MemoryStore, MutableClock]:
     rules_store = store if store is not None else MemoryStore(load_rules())
     frozen = clock if clock is not None else MutableClock(datetime(2026, 3, 4, 12, 0, tzinfo=UTC))
@@ -133,6 +146,7 @@ def build_client(
 
     chosen = processor if processor is not None else default_processor
     allowed_approvers = approver_emails if approver_emails is not None else load_approver_emails()
+    chosen_groups = approver_groups if approver_groups is not None else load_approver_groups()
     app = create_app(
         rules_store,
         chosen,
@@ -141,5 +155,6 @@ def build_client(
         metrics_reader=metrics_reader,
         admin_api_key=admin_api_key,
         approver_emails=allowed_approvers,
+        approver_groups=chosen_groups,
     )
     return TestClient(app), rules_store, frozen

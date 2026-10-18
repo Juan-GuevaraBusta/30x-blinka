@@ -9,11 +9,13 @@ from app.api.asgi import (
     InvalidCorsOriginsError,
     create_production_app,
     load_approver_emails,
+    load_approver_groups,
     prepare_database_url,
 )
 from app.models.rules_config import RulesConfig, load_rules_config
 from app.persistence import SqlStore, init_database, seed_rules
 from app.persistence.tables import RulesDocument
+from app.rules.approval_policy import ApprovalPolicyGroupError
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -225,3 +227,110 @@ def test_boot_still_crashes_loudly_when_seed_file_itself_is_invalid(tmp_path) ->
 
     with pytest.raises(Exception):  # noqa: B017 - pydantic ValidationError, fail loud
         create_production_app(mapping, rules_path=bad_rules_path, cors_origins="")
+
+
+# --- T7.1 (D059): approver_groups live in company.json, approval_policy in rules ---
+
+
+def test_load_approver_groups_reads_company_json() -> None:
+    data_root = RULES_PATH.resolve().parent.parent
+
+    groups = load_approver_groups(data_root)
+
+    company = json.loads(COMPANY_PATH.read_text(encoding="utf-8"))
+    expected = {
+        name: frozenset(members) for name, members in company["approver_groups"].items()
+    }
+    assert groups == expected
+
+
+def test_load_approver_groups_missing_company_file_fails_closed_empty(tmp_path) -> None:
+    assert load_approver_groups(tmp_path) == {}
+
+
+def test_load_approver_groups_malformed_company_file_fails_closed_empty(tmp_path) -> None:
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "company.json").write_text("{not valid json", encoding="utf-8")
+
+    assert load_approver_groups(tmp_path) == {}
+
+
+def test_load_approver_emails_unions_approver_groups_members(tmp_path) -> None:
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "company.json").write_text(
+        json.dumps(
+            {
+                "approvers": {"default": "static@demo.test"},
+                "approver_groups": {"finanzas": ["finanzas-only@demo.test"]},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = load_approver_emails(tmp_path, rules=None)
+
+    assert result == frozenset({"static@demo.test", "finanzas-only@demo.test"})
+
+
+def _write_rules_and_company(
+    tmp_path, *, rules_payload: dict, company_payload: dict
+) -> tuple[object, object]:
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    rules_path = data_dir / "rules.json"
+    company_path = data_dir / "company.json"
+    rules_path.write_text(json.dumps(rules_payload), encoding="utf-8")
+    company_path.write_text(json.dumps(company_payload), encoding="utf-8")
+    return rules_path, company_path
+
+
+def test_create_production_app_rejects_approval_policy_with_unknown_group(tmp_path) -> None:
+    base_rules = json.loads(RULES_PATH.read_text(encoding="utf-8"))
+    base_rules["approval_policy"] = {
+        "routes": [
+            {
+                "id": "default",
+                "match": {},
+                "require": {"mode": "approvals", "min_approvals": 1, "from_groups": ["ghost"]},
+            }
+        ]
+    }
+    base_company = json.loads(COMPANY_PATH.read_text(encoding="utf-8"))
+    base_company["approver_groups"] = {"finanzas": ["finanzas@demo.test"]}
+    rules_path, _company_path = _write_rules_and_company(
+        tmp_path, rules_payload=base_rules, company_payload=base_company
+    )
+    db = tmp_path / "boot.sqlite"
+    mapping = {"DATABASE_URL": f"sqlite:///{db}"}
+
+    with pytest.raises(ApprovalPolicyGroupError):
+        create_production_app(mapping, rules_path=rules_path, cors_origins="")
+
+
+def test_create_production_app_rejects_approval_policy_unreachable_min_approvals(
+    tmp_path,
+) -> None:
+    base_rules = json.loads(RULES_PATH.read_text(encoding="utf-8"))
+    base_rules["approval_policy"] = {
+        "routes": [
+            {
+                "id": "default",
+                "match": {},
+                "require": {
+                    "mode": "approvals",
+                    "min_approvals": 2,
+                    "from_groups": ["finanzas"],
+                },
+            }
+        ]
+    }
+    base_company = json.loads(COMPANY_PATH.read_text(encoding="utf-8"))
+    base_company["approver_groups"] = {"finanzas": ["only-one@demo.test"]}
+    rules_path, _company_path = _write_rules_and_company(
+        tmp_path, rules_payload=base_rules, company_payload=base_company
+    )
+    db = tmp_path / "boot.sqlite"
+    mapping = {"DATABASE_URL": f"sqlite:///{db}"}
+
+    with pytest.raises(ApprovalPolicyGroupError):
+        create_production_app(mapping, rules_path=rules_path, cors_origins="")

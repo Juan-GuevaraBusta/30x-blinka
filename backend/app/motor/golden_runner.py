@@ -117,6 +117,27 @@ def _load_golden(repo: Path, split: str) -> list[dict]:
     return list(payload["entries"])
 
 
+def _load_f7_rules(path: Path) -> RulesConfig:
+    """Tolerant loader for ``data/f7/rules.json`` (T7.6 + T7.1-T7.3).
+
+    That file carries ``approval_policy``/``payment_series``/``variable_pricing``
+    together (T7.6 §2), one per T7.x task, but ``RulesConfig`` only accepts
+    whichever of those three have actually landed so far (``extra="forbid"``,
+    additive per task). Keeping only the keys the *current* ``RulesConfig``
+    declares -- instead of failing on the ones that have not landed yet --
+    is what lets ``enabled_features`` gate evaluation per feature without
+    this split's rules file blocking every other feature in the meantime
+    (docs/T7_6_SPEC.md §2). The strict, production loader
+    (``app.models.rules_config.load_rules_config``) is untouched and keeps
+    rejecting the full file until all three sections land -- see
+    ``backend/tests/test_f7_corpus.py::test_f7_rules_json_validates_against_rules_config``.
+    """
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    known_fields = set(RulesConfig.model_fields)
+    filtered = {key: value for key, value in payload.items() if key in known_fields}
+    return RulesConfig.model_validate(filtered)
+
+
 def _load_golden_f7_enabled(repo: Path) -> list[dict]:
     """T7.6 — f7 entries whose ``feature`` is listed in the file's ``enabled_features``.
 
@@ -157,7 +178,9 @@ def run_golden_split(
     evaluates entries whose ``feature`` is listed in f7's own
     ``enabled_features`` header. With no features enabled yet, this returns a
     trivial ``total=0`` report without touching ``data/f7/rules.json`` at
-    all, so T7.1-T7.3 landing their RulesConfig sections one at a time never
+    all. Once a feature is enabled, ``data/f7/rules.json`` is read with
+    ``_load_f7_rules`` (tolerant of the T7.x sections that have not landed
+    yet), so T7.1-T7.3 landing their RulesConfig sections one at a time never
     blocks this split from reporting green in the meantime. dev and holdout
     keep reading exactly what they read before T7.6.
     """
@@ -169,7 +192,7 @@ def run_golden_split(
         )
         if not entries:
             return MotorReport(split="f7", total=0, matched=0, unsafe_pay=0, failures=())
-        rules = load_rules_config(repo / "data" / "f7" / "rules.json")
+        rules = _load_f7_rules(repo / "data" / "f7" / "rules.json")
         notes = _catalog_notes(repo, repo / "data" / "invoices" / "f7" / "catalog.json")
     else:
         rules = load_rules_config(repo / "data" / "rules.json")

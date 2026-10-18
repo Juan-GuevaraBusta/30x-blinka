@@ -4,16 +4,18 @@ from __future__ import annotations
 
 import hmac
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import datetime
 from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, UploadFile
 from pydantic import ValidationError
 
+from app.api.approval import build_approval_status, enforce_route_approval
 from app.api.rate_limit import FixedWindowLimiter, RateLimitMiddleware
 from app.api.schemas import (
     MAX_INVOICE_BYTES,
+    ApprovalStatusBody,
     ChainVerificationBody,
     HumanDecisionBody,
     InvoiceMeta,
@@ -51,16 +53,23 @@ def create_app(
     metrics_reader: MetricsReader | None = None,
     admin_api_key: str | None = None,
     approver_emails: frozenset[str] | None = None,
+    approver_groups: Mapping[str, frozenset[str]] | None = None,
 ) -> FastAPI:
     """Build the app. Tests pass `store`, `processor`, `clock`, and `rate_limit`.
 
     T5.9 (D055): `admin_api_key` gates PUT /rules and approve/reject (fail-closed 503
     when unset). `approver_emails` is the static allowlist for `author`, normally
-    `data/company.json`'s `approvers` values; it defaults to empty, so no author is
-    accepted unless the caller passes the real set.
+    `data/company.json`'s `approvers` values union its `approver_groups` members
+    (T7.1, D059); it defaults to empty, so no author is accepted unless the caller
+    passes the real set. `approver_groups` resolves R14 route eligibility for
+    approve/reject and GET /decisions/{id}/approval; it defaults to empty, matching
+    pre-T7.1 behavior (no record ever carries an R14 FALLA without it).
     """
     limiter = FixedWindowLimiter(rate_limit, clock)
     allowed_approvers = approver_emails if approver_emails is not None else frozenset()
+    allowed_groups: Mapping[str, frozenset[str]] = (
+        approver_groups if approver_groups is not None else {}
+    )
     app = FastAPI(title="blinka-invoice-agent", openapi_url=None)
     app.add_middleware(RateLimitMiddleware, limiter=limiter)
 
@@ -165,7 +174,7 @@ def create_app(
         _admin: None = Depends(_check_admin_key),
     ) -> DecisionRecord:
         _require_known_approver(body.author, allowed_approvers)
-        return _add_human_event(store, clock, id, body, "aprobada_humano")
+        return _add_human_event(store, clock, id, body, "aprobada_humano", allowed_groups)
 
     @app.post("/decisions/{id}/reject")
     def reject(
@@ -174,7 +183,15 @@ def create_app(
         _admin: None = Depends(_check_admin_key),
     ) -> DecisionRecord:
         _require_known_approver(body.author, allowed_approvers)
-        return _add_human_event(store, clock, id, body, "rechazada_humano")
+        return _add_human_event(store, clock, id, body, "rechazada_humano", allowed_groups)
+
+    @app.get("/decisions/{id}/approval")
+    def get_approval(id: str) -> ApprovalStatusBody:
+        """Read-only «x de N» status (T7.1, D059 §4). Never mutates `decision` (I2)."""
+        found = store.get(id)
+        if found is None:
+            raise HTTPException(status_code=404, detail="not_found")
+        return build_approval_status(found, rules=store.rules, approver_groups=allowed_groups)
 
     @app.get("/metrics")
     def metrics() -> MetricsBody:
@@ -233,6 +250,7 @@ def _add_human_event(
     decision_id: str,
     body: HumanDecisionBody,
     action: HumanAction,
+    approver_groups: Mapping[str, frozenset[str]],
 ) -> DecisionRecord:
     # I2 / I4: append a human event. Do not rewrite decision or severity.
     found = store.get(decision_id)
@@ -240,6 +258,14 @@ def _add_human_event(
         raise HTTPException(status_code=404, detail="not_found")
     if found.decision != "ESCALAR":
         raise HTTPException(status_code=409, detail="not_escalated")
+    # T7.1 (D059) §4: only applies when the record carries an R14 in FALLA;
+    # otherwise returns None and behavior is unchanged from before T7.1.
+    error = enforce_route_approval(
+        found, body.author, action, rules=store.rules, approver_groups=approver_groups
+    )
+    if error is not None:
+        status_code = 422 if error == "approver_not_in_route" else 409
+        raise HTTPException(status_code=status_code, detail=error)
     event = HumanEvent(author=body.author, at=clock(), action=action, reason=body.reason)
     return store.add_human_event(decision_id, event)
 

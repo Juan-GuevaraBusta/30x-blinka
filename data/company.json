@@ -9,6 +9,10 @@
     "Ingenieria": "finanzas@demo.test",
     "default": "cfo@demo.test"
   },
+  "approver_groups": {
+    "finanzas": ["finanzas@demo.test"],
+    "cfo": ["cfo@demo.test"]
+  },
   "admin_notice_mailbox": "cfo@demo.test",
   "allowed_beneficiaries": [
     "Globex LLC",

@@ -330,3 +330,46 @@ def test_next_step_pagar(rules, fx_table) -> None:
     decision = decide(checks)
     rctx = _record_ctx(ctx)
     assert build_next_step(decision, checks, rctx) == "Pago simulado registrado."
+
+
+# --- T7.1 (D059) §3 — R14 uses its own template, not the generic INDETERMINADO one -
+
+
+def test_enrich_check_details_uses_r14_template_for_route_failure(rules, fx_table) -> None:
+    from app.models.rules_config import ApprovalPolicy
+
+    policy = ApprovalPolicy.model_validate(
+        {
+            "routes": [
+                {
+                    "id": "alto-monto",
+                    "match": {"amount_base_gte": 3000},
+                    "require": {
+                        "mode": "approvals",
+                        "min_approvals": 2,
+                        "from_groups": ["finanzas", "cfo"],
+                    },
+                },
+                {"id": "default", "match": {}, "require": {"mode": "auto"}},
+            ]
+        }
+    )
+    policy_rules = rules.model_copy(update={"approval_policy": policy})
+    ctx = make_context(
+        policy_rules, fx_table, amount=4200.0, amount_base=4200.0, fee_amount=4200.0
+    )
+    checks = run_deterministic_checks(ctx)
+    rctx = _record_ctx(ctx)
+    enriched = enrich_check_details(checks, rctx)
+    r14 = next(c for c in enriched if c.rule == "R14")
+    assert r14.result == "FALLA"
+    assert r14.detail == (
+        "Escalada: la política de la empresa (ruta alto-monto) exige 2 "
+        "aprobaciones de cfo o finanzas (regla R14)."
+    )
+    assert "no se pudo completar" not in r14.detail
+
+    decision = decide(checks)
+    summary = build_summary(decision, checks, rctx)
+    assert "R14" in summary
+    assert explanation_covers_failed_checks(summary, checks)

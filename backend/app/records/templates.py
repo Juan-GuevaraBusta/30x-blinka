@@ -68,3 +68,9 @@ TEMPLATE_R13_FAIL = (
 TEMPLATE_RULE_INDETERMINATE = (
     "Escalada: no se pudo completar la verificación de {nombre} ({motivo}). (regla {rule})."
 )
+
+# T7.1 (D059) §3 — company approval policy (R14). Can only ADD approvals, never PAGAR.
+TEMPLATE_R14_FAIL = (
+    "Escalada: la política de la empresa (ruta {ruta}) exige {n} aprobaciones "
+    "de {grupos} (regla R14)."
+)

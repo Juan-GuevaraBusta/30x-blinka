@@ -380,6 +380,46 @@
         }
       }
     },
+    "/decisions/{id}/approval": {
+      "get": {
+        "summary": "Get Approval",
+        "description": "Read-only «x de N» status (T7.1, D059 §4). Never mutates `decision` (I2).",
+        "operationId": "get_approval_decisions__id__approval_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalStatusBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/metrics": {
       "get": {
         "summary": "Metrics",
@@ -421,6 +461,110 @@
   },
   "components": {
     "schemas": {
+      "ApprovalPolicy": {
+        "properties": {
+          "routes": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalRoute"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Routes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "routes"
+        ],
+        "title": "ApprovalPolicy",
+        "description": "Routes evaluated in order; first match wins (T7.1 §2). Last route is catch-all."
+      },
+      "ApprovalRoute": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id"
+          },
+          "match": {
+            "$ref": "#/components/schemas/RouteMatch"
+          },
+          "require": {
+            "$ref": "#/components/schemas/RouteRequire"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "require"
+        ],
+        "title": "ApprovalRoute"
+      },
+      "ApprovalStatusBody": {
+        "properties": {
+          "route_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Route Id"
+          },
+          "required": {
+            "type": "integer",
+            "title": "Required"
+          },
+          "collected": {
+            "type": "integer",
+            "title": "Collected"
+          },
+          "approvers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Approvers"
+          },
+          "satisfied": {
+            "type": "boolean",
+            "title": "Satisfied"
+          },
+          "rejected": {
+            "type": "boolean",
+            "title": "Rejected"
+          },
+          "payment_ready": {
+            "type": "boolean",
+            "title": "Payment Ready"
+          },
+          "pending_checks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pending Checks"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "route_id",
+          "required",
+          "collected",
+          "approvers",
+          "satisfied",
+          "rejected",
+          "payment_ready",
+          "pending_checks"
+        ],
+        "title": "ApprovalStatusBody",
+        "description": "GET /decisions/{id}/approval response (T7.1, D059 §4). Read-only."
+      },
       "Body_post_invoice_invoices_post": {
         "properties": {
           "file": {
@@ -528,7 +672,8 @@
               "R10",
               "R11",
               "R12",
-              "R13"
+              "R13",
+              "R14"
             ],
             "title": "Rule"
           },
@@ -826,7 +971,7 @@
                 "enum": [
                   "servicios",
                   "productos",
-                  "suscripci\u00f3n",
+                  "suscripción",
                   "honorarios",
                   "otro"
                 ]
@@ -976,7 +1121,7 @@
                 "enum": [
                   "servicios",
                   "productos",
-                  "suscripci\u00f3n",
+                  "suscripción",
                   "honorarios",
                   "otro"
                 ]
@@ -1294,6 +1439,15 @@
               "ESCALAR"
             ],
             "title": "R13"
+          },
+          "R14": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R14",
+            "default": "ESCALAR"
           }
         },
         "additionalProperties": false,
@@ -1314,7 +1468,7 @@
           "R13"
         ],
         "title": "OnFail",
-        "description": "Exactly R01\u2013R13. Values are only FRENAR or ESCALAR."
+        "description": "R01–R13 (required), plus R14 (optional, additive per T7.1/D059).\n\nValues are only FRENAR or ESCALAR. ``R14`` defaults to ``ESCALAR`` so\nevery existing rules package without the key keeps parsing unchanged."
       },
       "PeriodLimit": {
         "properties": {
@@ -1336,6 +1490,114 @@
           "amount"
         ],
         "title": "PeriodLimit"
+      },
+      "RouteMatch": {
+        "properties": {
+          "amount_base_gte": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Base Gte"
+          },
+          "amount_base_lt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Base Lt"
+          },
+          "beneficiary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beneficiary"
+          },
+          "department": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department"
+          },
+          "invoice_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "servicios",
+                  "productos",
+                  "suscripción",
+                  "honorarios",
+                  "otro"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoice Type"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RouteMatch",
+        "description": "All present fields combine with AND (T7.1 §2). Empty means catch-all."
+      },
+      "RouteRequire": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "approvals"
+            ],
+            "title": "Mode"
+          },
+          "min_approvals": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Approvals"
+          },
+          "from_groups": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "From Groups"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mode"
+        ],
+        "title": "RouteRequire",
+        "description": "`auto` adds nothing; `approvals` needs >=1 approvals from non-empty groups."
       },
       "RulesConfig": {
         "properties": {
@@ -1384,6 +1646,16 @@
           },
           "jev_thresholds": {
             "$ref": "#/components/schemas/JevThresholds"
+          },
+          "approval_policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApprovalPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,

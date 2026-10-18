@@ -65,6 +65,21 @@ class MetricsBody(BaseModel):
     source: Literal["none", "report"]
 
 
+class ApprovalStatusBody(BaseModel):
+    """GET /decisions/{id}/approval response (T7.1, D059 §4). Read-only."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    route_id: str | None
+    required: int
+    collected: int
+    approvers: list[str]
+    satisfied: bool
+    rejected: bool
+    payment_ready: bool
+    pending_checks: list[str]
+
+
 class ChainVerificationBody(BaseModel):
     """GET /decisions/verify-chain response (T5.10, D055). Public, read-only."""
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from app.models.domain import CheckEvidence, CheckResult, JevSignal
+from app.rules.approval_policy import resolve_route
 from app.rules.context import RuleContext
 from app.rules.fx import convert_to_base
 from app.rules.ledger_queries import (
@@ -26,6 +27,7 @@ RULE_NAMES: dict[str, str] = {
     "R11": "Fecha de pago definida",
     "R12": "Bloqueo manual",
     "R13": "Sin instrucciones embebidas",
+    "R14": "Política de aprobación",
 }
 
 R13_PHRASES: tuple[str, ...] = (
@@ -239,6 +241,37 @@ def check_r13(ctx: RuleContext) -> CheckResult:
     # J7 ausente + texto limpio = OK: R09 ya escala por señales J1–J4 ausentes,
     # y R13 solo marca instrucciones detectadas, no incertidumbre general.
     return _ok("R13", "Sin instrucciones embebidas detectadas.")
+
+
+def check_r14(ctx: RuleContext) -> CheckResult:
+    """T7.1 (D059) — Company approval policy. Can only ADD approvals, never PAGAR.
+
+    Emitted only when `ctx.rules.approval_policy` is set (`run_deterministic_checks`
+    gates this); without a policy the 13-check list stays byte-identical (criterion 2).
+    """
+    policy = ctx.rules.approval_policy
+    if policy is None:
+        return _indeterminate("R14", "Política de aprobación no configurada.")
+    amount_base = _amount_base(ctx)
+    resolution = resolve_route(policy, ctx.extraction, amount_base)
+    if resolution.route is None:
+        reason = resolution.reason or "No se pudo evaluar la ruta de aprobación."
+        return _indeterminate("R14", reason)
+    route = resolution.route
+    if route.require.mode == "auto":
+        return _ok("R14", f'Ruta "{route.id}": sin aprobaciones adicionales.')
+    assert route.require.min_approvals is not None
+    groups_text = " o ".join(route.require.from_groups)
+    detail = (
+        f'Ruta "{route.id}": requiere {route.require.min_approvals} aprobaciones '
+        f"de {groups_text}."
+    )
+    failed = _fail(ctx, "R14", detail)
+    quote = (
+        f"min_approvals={route.require.min_approvals};"
+        f"groups={','.join(sorted(route.require.from_groups))}"
+    )
+    return failed.model_copy(update={"evidence": CheckEvidence(clause=route.id, quote=quote)})
 
 
 CHECKS = (

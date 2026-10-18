@@ -8,6 +8,7 @@ from datetime import date, datetime
 from app.models.domain import CheckResult, Decision, Extraction
 from app.models.rules_config import RulesConfig
 from app.records import templates as tpl
+from app.rules.approval_policy import parse_r14_quote
 from app.rules.context import ContractTerms, LedgerEntry, RuleContext
 from app.rules.ledger_queries import (
     department_spent_for_budget,
@@ -30,6 +31,7 @@ _RULE_NAMES: dict[str, str] = {
     "R11": "Fecha de pago definida",
     "R12": "Bloqueo manual",
     "R13": "Sin instrucciones embebidas",
+    "R14": "Política de aprobación",
 }
 
 
@@ -176,6 +178,20 @@ def _summary_line_for_check(check: CheckResult, ctx: RecordContext) -> str:
             depto=depto,
             saldo=_fmt_usd(saldo),
             monto_base=monto,
+        )
+
+    if rule == "R14":
+        route_id = check.evidence.clause if check.evidence else "s/r"
+        parsed = parse_r14_quote(check.evidence.quote if check.evidence else None)
+        if parsed is None:
+            return tpl.TEMPLATE_RULE_INDETERMINATE.format(
+                nombre=_RULE_NAMES.get(rule, rule),
+                motivo="evidencia de la política ilegible",
+                rule=rule,
+            )
+        min_approvals, groups = parsed
+        return tpl.TEMPLATE_R14_FAIL.format(
+            ruta=route_id, n=min_approvals, grupos=" o ".join(groups)
         )
 
     fallbacks = {

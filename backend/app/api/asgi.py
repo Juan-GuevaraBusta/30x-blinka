@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
@@ -26,6 +27,7 @@ from app.persistence import (
     seed_rules,
 )
 from app.persistence.sql_store import SqlStore
+from app.rules.approval_policy import validate_policy_groups
 
 _RENDER_INTERNAL_HOST = re.compile(r"^dpg-[a-z0-9]+-a", re.IGNORECASE)
 
@@ -131,12 +133,41 @@ def load_approver_emails(
     except (OSError, json.JSONDecodeError):
         return frozenset()
     approvers = payload.get("approvers") if isinstance(payload, dict) else None
-    if not isinstance(approvers, dict):
-        return frozenset()
+    emails: set[str] = set()
+    if isinstance(approvers, dict):
+        with contextlib.suppress(TypeError):
+            emails.update(approvers.values())
+    groups = payload.get("approver_groups") if isinstance(payload, dict) else None
+    if isinstance(groups, dict):
+        for members in groups.values():
+            if isinstance(members, list):
+                emails.update(member for member in members if isinstance(member, str))
+    return frozenset(emails)
+
+
+def load_approver_groups(data_root: Path) -> dict[str, frozenset[str]]:
+    """Approver group membership for R14 route eligibility (T7.1, D059).
+
+    Source of truth is `data/company.json`'s `approver_groups` mapping
+    (`{"finanzas": ["finanzas@demo.test"], ...}`), never `rules.json` -- same
+    reasoning as `load_approver_emails` above. Any failure reading/parsing
+    `company.json` fails closed to an empty mapping.
+    """
+    company_path = data_root / "data" / "company.json"
     try:
-        return frozenset(approvers.values())
-    except TypeError:
-        return frozenset()
+        raw = company_path.read_text(encoding="utf-8")
+        payload = json.loads(raw)
+    except (OSError, json.JSONDecodeError):
+        return {}
+    groups = payload.get("approver_groups") if isinstance(payload, dict) else None
+    if not isinstance(groups, dict):
+        return {}
+    result: dict[str, frozenset[str]] = {}
+    for name, members in groups.items():
+        if not isinstance(name, str) or not isinstance(members, list):
+            continue
+        result[name] = frozenset(member for member in members if isinstance(member, str))
+    return result
 
 
 def _build_engine(url: str) -> Engine:
@@ -194,6 +225,11 @@ def create_production_app(
     raw_admin_key = env.get("ADMIN_API_KEY")
     admin_api_key = raw_admin_key if raw_admin_key else None
     approver_emails = load_approver_emails(data_root, rules=in_force_rules)
+    approver_groups = load_approver_groups(data_root)
+    # T7.1 (D059): fail boot loudly if approval_policy references a group that
+    # does not exist in company.json, or demands more approvals than the
+    # union of its groups can ever supply -- never silently unreachable.
+    validate_policy_groups(in_force_rules.approval_policy, approver_groups)
 
     limit = rate_limit_from_mapping(env)
     processor = make_production_processor(store, data_root=data_root)
@@ -204,6 +240,7 @@ def create_production_app(
         rate_limit=limit,
         admin_api_key=admin_api_key,
         approver_emails=approver_emails,
+        approver_groups=approver_groups,
     )
     if origins:
         app.add_middleware(
