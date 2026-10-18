@@ -6,7 +6,10 @@ reading corpus PNG is a future OCR task, not this module.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import re
+import zlib
 from pathlib import Path
 from typing import Literal
 
@@ -25,8 +28,16 @@ _SUFFIX_CHANNEL: dict[str, IngestChannel] = {
     ".txt": "chat",
 }
 
-_TJ_PATTERN = re.compile(r"\((?:\\.|[^\\)])*\)\s*Tj")
+# Literal-string-then-operator: (text) Tj | (text) ' | (text) "
+_TJ_PATTERN = re.compile(r"\((?:\\.|[^\\)])*\)\s*(?:Tj|'|\")")
+_TJ_ARRAY_PATTERN = re.compile(r"\[((?:[^\[\]])*)\]\s*TJ")
+_TJ_ARRAY_LITERAL = re.compile(r"\((?:\\.|[^\\)])*\)")
+_HEX_STRING_OP = re.compile(r"<([0-9A-Fa-f\s]*)>\s*(?:Tj|'|\")")
+_FILTER_PATTERN = re.compile(r"/Filter\s*(\[[^\]]*\]|/[A-Za-z0-9]+)")
+_FILTER_NAME = re.compile(r"/([A-Za-z0-9]+)")
 _ENCRYPT_SCAN = 8192
+_MAX_DECOMPRESSED_BYTES = 5 * 1024 * 1024  # 5 MB decompression-bomb guard (T5.12)
+_KNOWN_FILTERS = frozenset({"FlateDecode", "ASCII85Decode"})
 
 
 class IngestMetadata(BaseModel):
@@ -103,15 +114,15 @@ def _ingest_pdf_text(data: bytes) -> str:
         raise IngestError("unsupported_format")
 
     doc = data.decode("latin-1", errors="replace")
-    stream = _pdf_content_stream(doc)
-    if not stream:
-        raise IngestError("illegible")
 
     lines: list[str] = []
-    for match in _TJ_PATTERN.finditer(stream):
-        literal = match.group(0)
-        inner = literal[1 : literal.rfind(")")]
-        lines.append(_unescape_pdf_literal(inner))
+    for raw, filters in _pdf_stream_chunks(doc):
+        text = _decode_stream_filters(raw, filters)
+        if text is None:
+            # Unknown filter, corrupt payload, or decompression-bomb guard
+            # tripped (T5.12): skip this stream, stay fail-closed overall.
+            continue
+        lines.extend(_extract_text_operators(text))
 
     if not lines:
         raise IngestError("illegible")
@@ -119,27 +130,130 @@ def _ingest_pdf_text(data: bytes) -> str:
     return "\n".join(lines)
 
 
-def _pdf_content_stream(doc: str) -> str:
+def _pdf_stream_chunks(doc: str) -> list[tuple[bytes, tuple[str, ...]]]:
+    """Yield (raw_bytes, filter_names) for every stream...endstream object.
+
+    Byte-for-byte lossless: ``doc`` is a latin-1 decode of the original bytes
+    (1:1 mapping over 0-255), so slicing text back with ``.encode("latin-1")``
+    recovers the exact original bytes, including binary FlateDecode payloads.
+    """
+    chunks: list[tuple[bytes, tuple[str, ...]]] = []
     idx = 0
+    prev_end = 0
     while True:
         marker = doc.find("stream\n", idx)
         if marker == -1:
             marker = doc.find("stream\r\n", idx)
             if marker == -1:
-                return ""
+                return chunks
             content_start = marker + len("stream\r\n")
         else:
             content_start = marker + len("stream\n")
 
-        end = doc.find("\nendstream", content_start)
+        # Some real-world writers omit the EOL before "endstream" (seen in
+        # the T4.10 external smoke PDFs: "...~>endstream" with no newline),
+        # so match the bare keyword rather than requiring "\nendstream".
+        end = doc.find("endstream", content_start)
         if end == -1:
-            end = doc.find("\rendstream", content_start)
-            if end == -1:
-                return ""
-        chunk = doc[content_start:end]
-        if "Tj" in chunk:
-            return chunk
+            return chunks
+
+        preceding = doc[prev_end:marker]
+        filters = _stream_filters(preceding)
+        raw = doc[content_start:end].encode("latin-1", errors="replace")
+        chunks.append((raw, filters))
+
         idx = end + 1
+        prev_end = end
+
+
+def _stream_filters(preceding: str) -> tuple[str, ...]:
+    """Read ``/Filter`` from the ``<< ... >>`` stream dict right before ``stream``."""
+    dict_match = re.search(r"<<(.*?)>>\s*\Z", preceding, re.S)
+    if not dict_match:
+        return ()
+    filter_match = _FILTER_PATTERN.search(dict_match.group(1))
+    if not filter_match:
+        return ()
+    return tuple(_FILTER_NAME.findall(filter_match.group(1)))
+
+
+def _decode_stream_filters(raw: bytes, filters: tuple[str, ...]) -> str | None:
+    """Apply the declared filter chain; ``None`` means "skip this stream".
+
+    Unknown filters (images, fonts, CMaps, CID programs, ...) and any decode
+    failure are not errors on their own — the caller stays fail-closed only if
+    *no* stream in the document yields readable text (T5.12).
+    """
+    if not filters:
+        return raw.decode("latin-1", errors="replace")
+    if not set(filters) <= _KNOWN_FILTERS:
+        return None
+
+    # The EOL before "endstream" is optional per spec and some real writers
+    # omit it (T4.10 fixtures) while others keep it; strip it defensively so
+    # base64.a85decode's strict "must end with ~>" check still matches.
+    data = raw.rstrip(b" \t\r\n")
+    try:
+        for name in filters:
+            if name == "ASCII85Decode":
+                data = base64.a85decode(data, adobe=True)
+            elif name == "FlateDecode":
+                data = _flate_decompress(data)
+    except (ValueError, binascii.Error, zlib.error):
+        return None
+    return data.decode("latin-1", errors="replace")
+
+
+def _flate_decompress(raw: bytes) -> bytes:
+    """Decompress with a hard cap so a tiny stream can't expand unbounded."""
+    decompressor = zlib.decompressobj()
+    out = bytearray()
+    pending = raw
+    while pending:
+        budget = _MAX_DECOMPRESSED_BYTES + 1 - len(out)
+        if budget <= 0:
+            raise zlib.error("decompressed stream exceeds safety cap")
+        out += decompressor.decompress(pending, budget)
+        if len(out) > _MAX_DECOMPRESSED_BYTES:
+            raise zlib.error("decompressed stream exceeds safety cap")
+        pending = decompressor.unconsumed_tail
+    out += decompressor.flush()
+    if len(out) > _MAX_DECOMPRESSED_BYTES:
+        raise zlib.error("decompressed stream exceeds safety cap")
+    return bytes(out)
+
+
+def _extract_text_operators(text: str) -> list[str]:
+    """Extract Tj / ' / " literals, TJ arrays, and simple hex strings, in order."""
+    found: list[tuple[int, str]] = []
+
+    for match in _TJ_PATTERN.finditer(text):
+        literal = match.group(0)
+        inner = literal[1 : literal.rfind(")")]
+        found.append((match.start(), _unescape_pdf_literal(inner)))
+
+    for match in _TJ_ARRAY_PATTERN.finditer(text):
+        pieces = _TJ_ARRAY_LITERAL.findall(match.group(1))
+        joined = "".join(_unescape_pdf_literal(piece[1:-1]) for piece in pieces)
+        if joined:
+            found.append((match.start(), joined))
+
+    for match in _HEX_STRING_OP.finditer(text):
+        hex_digits = re.sub(r"\s+", "", match.group(1))
+        if len(hex_digits) % 2 != 0:
+            continue
+        try:
+            raw_bytes = bytes.fromhex(hex_digits)
+        except ValueError:
+            continue
+        # "Simple" case only (T5.12): plain ASCII per byte. CID/custom-encoded
+        # fonts (2-byte codes via a CMap unrelated to ASCII) stay fail-closed
+        # instead of emitting garbled text.
+        if raw_bytes and all(0x20 <= b <= 0x7E for b in raw_bytes):
+            found.append((match.start(), raw_bytes.decode("ascii")))
+
+    found.sort(key=lambda item: item[0])
+    return [line for _, line in found]
 
 
 def _unescape_pdf_literal(s: str) -> str:

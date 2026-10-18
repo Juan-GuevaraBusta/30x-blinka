@@ -12,3 +12,5 @@ Archivos copiados desde `temp_invoices/` del repo (salida de ejemplo del generad
 No forman parte del corpus G1 (`data/invoices/dev/`, `holdout/`, `catalog.json`, `data/golden/`).
 
 Licencia del proyecto externo: MIT (ver `LICENSE` en el repositorio citado).
+
+T5.12 (D056): la ingesta real (`backend/app/extraction/ingest.py`, sin mocks) ahora lee estos dos PDFs — su content stream usa `/Filter [ /ASCII85Decode /FlateDecode ]` y el ingest sabe decodificarlo.
