@@ -97,16 +97,33 @@ def ensure_owner_id_column(engine: Engine) -> None:
 
 
 _API_TABLES = ("rules_document", "decision_record", "chain_entries")
+_SUPABASE_BROWSER_ROLES = ("anon", "authenticated")
+
+
+def _supabase_browser_roles_present(conn) -> tuple[str, ...]:
+    """Roles used by Supabase PostgREST; absent on vanilla Postgres (e.g. Render)."""
+    rows = conn.execute(
+        text(
+            "SELECT rolname FROM pg_roles "
+            "WHERE rolname IN ('anon', 'authenticated')"
+        )
+    ).scalars().all()
+    return tuple(r for r in _SUPABASE_BROWSER_ROLES if r in rows)
 
 
 def ensure_postgres_api_lockdown(engine: Engine) -> None:
-    """Supabase demo: RLS on, no grants to anon/authenticated (API uses DATABASE_URL)."""
+    """Supabase demo: RLS on; revoke browser roles only when they exist.
+
+    On Render Postgres the API connects with ``DATABASE_URL`` and there is no
+    ``anon``/``authenticated`` role — unconditional ``REVOKE`` would abort boot.
+    """
     if not engine.dialect.name.startswith("postgres"):
         return
-    statements = []
-    for table in _API_TABLES:
-        statements.append(f'ALTER TABLE "{table}" ENABLE ROW LEVEL SECURITY')
-        statements.append(f'REVOKE ALL ON TABLE "{table}" FROM anon, authenticated')
     with engine.begin() as conn:
-        for stmt in statements:
-            conn.execute(text(stmt))
+        revoke_targets = ", ".join(_supabase_browser_roles_present(conn))
+        for table in _API_TABLES:
+            conn.execute(text(f'ALTER TABLE "{table}" ENABLE ROW LEVEL SECURITY'))
+            if revoke_targets:
+                conn.execute(
+                    text(f'REVOKE ALL ON TABLE "{table}" FROM {revoke_targets}')
+                )

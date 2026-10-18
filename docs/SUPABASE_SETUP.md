@@ -38,7 +38,7 @@ set -a && source .env && set +a
 PYTHONPATH=backend .venv/bin/uvicorn app.api.asgi:create_production_app --factory --host 127.0.0.1 --port 8000
 ```
 
-Al primer arranque contra Postgres, el backend aplica RLS + `REVOKE` en tablas de la app (sin políticas para el navegador).
+Al primer arranque contra Postgres, el backend aplica RLS en tablas de la app; `REVOKE` a `anon`/`authenticated` solo si esos roles existen (Supabase). En Postgres de Render no hay esos roles y el arranque no debe fallar.
 
 ## Seguridad (demo hackathon)
 
