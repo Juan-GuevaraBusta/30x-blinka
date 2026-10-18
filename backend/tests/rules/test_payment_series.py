@@ -426,6 +426,172 @@ def test_total_cap_exceeded_is_r17_frenar(rules: RulesConfig, fx_table: FxTable)
     assert decide(checks) == "FRENAR"
 
 
+def test_r15_series_currency_differs_from_base_is_indeterminate(
+    rules: RulesConfig, fx_table: FxTable
+) -> None:
+    """Bug: `series.currency` was declared but never checked against the base
+    currency that `amount_base` is always expressed in. A series pactated in a
+    non-base currency must fail closed instead of comparing raw numbers across
+    currencies."""
+    eur_series = _series({**GLOBEX_MONTHLY, "currency": "EUR"})
+    policy_rules = rules.model_copy(update={"payment_series": [eur_series]})
+    ctx = make_context(
+        policy_rules,
+        fx_table,
+        beneficiary="Globex LLC",
+        department="Ingenieria",
+        amount=800.0,
+        amount_base=800.0,
+        fee_amount=800.0,
+        due_date="2026-01-20",
+    )
+    checks = run_deterministic_checks(ctx)
+    r15 = next(c for c in checks if c.rule == "R15")
+    assert r15.result == "INDETERMINADO"
+    assert decide(checks) == "ESCALAR"
+
+
+def test_r17_series_currency_differs_from_base_is_indeterminate(
+    rules: RulesConfig, fx_table: FxTable
+) -> None:
+    eur_series = _series({**CUOTASUR_INSTALLMENTS, "currency": "EUR"})
+    policy_rules = rules.model_copy(update={"payment_series": [eur_series]})
+    ctx = make_context(
+        policy_rules,
+        fx_table,
+        beneficiary="Cuotasur SAS",
+        department="Ingenieria",
+        amount=1000.0,
+        amount_base=1000.0,
+        fee_amount=1000.0,
+        due_date="2026-02-10",
+    )
+    checks = run_deterministic_checks(ctx)
+    r17 = next(c for c in checks if c.rule == "R17")
+    assert r17.result == "INDETERMINADO"
+
+
+def test_r15_installment_amount_within_half_cent_tolerance_is_ok(
+    rules: RulesConfig, fx_table: FxTable
+) -> None:
+    """Bug: exact float equality on installment amounts. A 0.4-cent rounding
+    drift (well within the 0.005 base-currency tolerance) must still match."""
+    policy_rules = rules.model_copy(update={"payment_series": [_series(CUOTASUR_INSTALLMENTS)]})
+    ctx = make_context(
+        policy_rules,
+        fx_table,
+        beneficiary="Cuotasur SAS",
+        department="Ingenieria",
+        amount=999.996,
+        amount_base=999.996,
+        fee_amount=999.996,
+        due_date="2026-02-10",
+    )
+    checks = run_deterministic_checks(ctx)
+    r15 = next(c for c in checks if c.rule == "R15")
+    assert r15.result == "OK"
+
+
+def test_r15_installment_amount_beyond_tolerance_still_fails(
+    rules: RulesConfig, fx_table: FxTable
+) -> None:
+    policy_rules = rules.model_copy(update={"payment_series": [_series(CUOTASUR_INSTALLMENTS)]})
+    ctx = make_context(
+        policy_rules,
+        fx_table,
+        beneficiary="Cuotasur SAS",
+        department="Ingenieria",
+        amount=990.0,
+        amount_base=990.0,
+        fee_amount=990.0,
+        due_date="2026-02-10",
+    )
+    checks = run_deterministic_checks(ctx)
+    r15 = next(c for c in checks if c.rule == "R15")
+    assert r15.result == "FALLA"
+
+
+def test_r16_malformed_ledger_due_date_is_indeterminate_not_a_crash(
+    rules: RulesConfig, fx_table: FxTable
+) -> None:
+    """Bug: a legacy ledger row with an unparseable due_date made `check_r16`
+    raise `ValueError` from `date.fromisoformat`. It must fail closed instead."""
+    policy_rules = rules.model_copy(update={"payment_series": [_series(CUOTASUR_INSTALLMENTS)]})
+    seed = _ledger_entry(invoice_number="INV-SEED-LEGACY", due_date="not-a-date")
+    ctx = make_context(
+        policy_rules,
+        fx_table,
+        beneficiary="Cuotasur SAS",
+        department="Ingenieria",
+        amount=1000.0,
+        amount_base=1000.0,
+        fee_amount=1000.0,
+        invoice_number="INV-NEW",
+        due_date="2026-02-10",
+        ledger=(seed,),
+    )
+    checks = run_deterministic_checks(ctx)
+    r16 = next(c for c in checks if c.rule == "R16")
+    assert r16.result == "INDETERMINADO"
+    assert decide(checks) in ("ESCALAR", "FRENAR")
+
+
+def test_r18_malformed_ledger_due_date_does_not_crash(
+    rules: RulesConfig, fx_table: FxTable
+) -> None:
+    """R18 is purely informational (never FALLA/INDETERMINADO); a malformed
+    legacy due_date must be skipped, not raise."""
+    policy_rules = rules.model_copy(update={"payment_series": [_series(GLOBEX_MONTHLY)]})
+    seed = _ledger_entry(
+        beneficiary="Globex LLC",
+        invoice_number="INV-SEED-LEGACY",
+        due_date="not-a-date",
+    )
+    ctx = make_context(
+        policy_rules,
+        fx_table,
+        beneficiary="Globex LLC",
+        department="Ingenieria",
+        amount=800.0,
+        amount_base=800.0,
+        fee_amount=800.0,
+        due_date="2026-03-05",
+        ledger=(seed,),
+    )
+    checks = run_deterministic_checks(ctx)
+    r18 = next(c for c in checks if c.rule == "R18")
+    assert r18.result == "OK"
+
+
+def test_r17_reprocessing_same_invoice_does_not_double_count(
+    rules: RulesConfig, fx_table: FxTable
+) -> None:
+    """Bug: re-sending the same invoice (already counted in the ledger) was
+    added to `total_paid` a second time, overstating the series total."""
+    policy_rules = rules.model_copy(update={"payment_series": [_series(CUOTASUR_INSTALLMENTS)]})
+    seed = _ledger_entry(
+        invoice_number="INV-REPROCESS",
+        amount_base=2000.0,
+        received_at="2026-02-01T09:00:00Z",
+        due_date="2026-02-05",
+    )
+    ctx = make_context(
+        policy_rules,
+        fx_table,
+        beneficiary="Cuotasur SAS",
+        department="Ingenieria",
+        amount=2000.0,
+        amount_base=2000.0,
+        fee_amount=2000.0,
+        invoice_number="INV-REPROCESS",
+        due_date="2026-02-05",
+        ledger=(seed,),
+    )
+    checks = run_deterministic_checks(ctx)
+    r17 = next(c for c in checks if c.rule == "R17")
+    assert r17.result == "OK"
+
+
 def test_skipped_period_is_r18_informational_without_changing_decision(
     rules: RulesConfig, fx_table: FxTable
 ) -> None:

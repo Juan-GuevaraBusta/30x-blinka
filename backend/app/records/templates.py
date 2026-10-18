@@ -77,7 +77,8 @@ TEMPLATE_R14_FAIL = (
 
 # T7.2 (D059) §3 — payment series per vendor (R15-R18). Only ADD severity, never PAGAR.
 TEMPLATE_R15_FAIL = (
-    "Escalada: la factura no cumple la serie pactada {serie} (regla R15)."
+    "Escalada: la fecha de la factura ({fecha}) no cumple la serie pactada {serie} "
+    "({ventana}) (regla R15)."
 )
 TEMPLATE_R16_FAIL = (
     "Frenada: el periodo {periodo} de la serie {serie} ya se pagó con la "

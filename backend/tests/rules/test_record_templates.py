@@ -432,3 +432,99 @@ def test_enrich_check_details_uses_r16_template_for_duplicate_period(
     summary = build_summary(decision, checks, rctx)
     assert "R16" in summary
     assert explanation_covers_failed_checks(summary, checks)
+
+
+# --- T7.2 (D059) follow-up — R15 explains the pactated window vs the invoice date --
+
+
+def test_enrich_check_details_r15_template_states_window_and_invoice_date(
+    rules, fx_table
+) -> None:
+    from app.models.rules_config import PaymentSeries
+
+    series = PaymentSeries.model_validate(
+        {
+            "id": "globex-retainer",
+            "beneficiary": "Globex LLC",
+            "department": "Ingenieria",
+            "periodicity": "monthly",
+            "currency": "USD",
+            "expected_amount": {"min": 800, "max": 800},
+            "start": "2026-01-01",
+            "end": "2026-03-31",
+        }
+    )
+    policy_rules = rules.model_copy(update={"payment_series": [series]})
+    ctx = make_context(
+        policy_rules,
+        fx_table,
+        amount=800.0,
+        amount_base=800.0,
+        fee_amount=800.0,
+        due_date="2026-04-15",
+    )
+    checks = run_deterministic_checks(ctx)
+    rctx = _record_ctx(ctx)
+    enriched = enrich_check_details(checks, rctx)
+    r15 = next(c for c in enriched if c.rule == "R15")
+    assert r15.result == "FALLA"
+    assert r15.detail == (
+        "Escalada: la fecha de la factura (2026-04-15) no cumple la serie pactada "
+        "globex-retainer (vigencia pactada del 2026-01-01 al 2026-03-31) (regla R15)."
+    )
+
+    decision = decide(checks)
+    summary = build_summary(decision, checks, rctx)
+    assert "R15" in summary
+    assert explanation_covers_failed_checks(summary, checks)
+
+
+def test_enrich_check_details_r17_acumulado_excludes_reprocessed_invoice(
+    rules, fx_table
+) -> None:
+    """The R17 explanation's "acumulado" must match what the check itself used
+    (excluding a reprocessed invoice), not a stale double-counted total."""
+    from app.models.rules_config import PaymentSeries
+    from app.rules.context import LedgerEntry
+
+    series = PaymentSeries.model_validate(
+        {
+            "id": "cuotasur-cuotas",
+            "beneficiary": "Globex LLC",
+            "periodicity": "installments",
+            "currency": "USD",
+            "total_cap": 2000,
+            "items": [
+                {"key": "1/3", "due_from": "2026-02-01", "due_to": "2026-02-28", "amount": 1000},
+                {"key": "2/3", "due_from": "2026-03-01", "due_to": "2026-03-31", "amount": 1000},
+            ],
+        }
+    )
+    policy_rules = rules.model_copy(update={"payment_series": [series]})
+    seed = LedgerEntry(
+        beneficiary="Globex LLC",
+        amount_base=1500.0,
+        currency="USD",
+        invoice_number="INV-REPROCESS",
+        received_at="2026-02-01T09:00:00Z",
+        decision="PAGAR",
+        department="Ingenieria",
+        due_date="2026-02-05",
+    )
+    ctx = make_context(
+        policy_rules,
+        fx_table,
+        amount=2500.0,
+        amount_base=2500.0,
+        fee_amount=2500.0,
+        invoice_number="INV-REPROCESS",
+        due_date="2026-02-10",
+        ledger=(seed,),
+    )
+    checks = run_deterministic_checks(ctx)
+    rctx = _record_ctx(ctx)
+    enriched = enrich_check_details(checks, rctx)
+    r17 = next(c for c in enriched if c.rule == "R17")
+    assert r17.result == "FALLA"
+    assert "USD 0" in r17.detail
+    assert "USD 1500" not in r17.detail

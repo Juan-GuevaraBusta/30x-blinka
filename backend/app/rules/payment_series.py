@@ -105,6 +105,67 @@ def paid_entries_for_series(
     )
 
 
+def parse_ledger_due_date(value: str | None) -> date | None:
+    """Parse a ledger row's `due_date` (ISO date string).
+
+    ``None`` for a missing value *or* a malformed one (legacy rows): callers
+    must treat both the same way -- as "unknown", never raise, never assume
+    OK (fail-closed, I3).
+    """
+    if value is None:
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def paid_total_for_series(
+    entries: tuple[LedgerEntry, ...],
+    series: PaymentSeries,
+    *,
+    exclude_invoice_number: str | None = None,
+) -> float:
+    """Sum of `amount_base` already paid toward this series (R17).
+
+    Excludes `exclude_invoice_number` so re-processing the same invoice
+    (already present in the ledger) never double-counts it toward the
+    series' `total_cap`.
+    """
+    return sum(
+        entry.amount_base
+        for entry in paid_entries_for_series(entries, series)
+        if exclude_invoice_number is None or entry.invoice_number != exclude_invoice_number
+    )
+
+
+def first_period_conflict(
+    entries: tuple[LedgerEntry, ...],
+    series: PaymentSeries,
+    due_date: date,
+    current_invoice_number: str | None,
+) -> LedgerEntry | None:
+    """The first already-paid entry sharing `due_date`'s period (R16), if any.
+
+    Excludes `current_invoice_number` (reprocessing is not a duplicate) and
+    skips rows with a missing or malformed `due_date` -- callers needing
+    fail-closed behavior for those rows (e.g. `check_r16`) must check for
+    them separately before calling this.
+    """
+    current_key = period_key(series, due_date)
+    if current_key is None:
+        return None
+    for entry in paid_entries_for_series(entries, series):
+        entry_due = parse_ledger_due_date(entry.due_date)
+        if entry_due is None:
+            continue
+        if period_key(series, entry_due) == current_key and (
+            entry.invoice_number != current_invoice_number
+        ):
+            return entry
+    return None
+
+
 def _month_key(year: int, month: int) -> str:
     return f"{year:04d}-{month:02d}"
 

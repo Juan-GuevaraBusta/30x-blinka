@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import date
-
 from app.models.domain import CheckEvidence, CheckResult, JevSignal
 from app.models.rules_config import PaymentSeries
 from app.rules.approval_policy import resolve_route
@@ -17,7 +15,10 @@ from app.rules.ledger_queries import (
 from app.rules.normalize import normalize_beneficiary, normalize_currency, normalize_party_name
 from app.rules.payment_series import (
     expected_periods_before,
+    first_period_conflict,
     paid_entries_for_series,
+    paid_total_for_series,
+    parse_ledger_due_date,
     period_key,
     resolve_item_key,
 )
@@ -42,6 +43,11 @@ RULE_NAMES: dict[str, str] = {
     "R17": "Total de la serie",
     "R18": "Periodo esperado sin factura",
 }
+
+# T7.2 follow-up (R3-float-equality-installment) — tolerance in base-currency
+# units for installment/milestone amount comparisons; avoids FX-rounding drift
+# tripping an exact float equality check.
+_AMOUNT_TOLERANCE = 0.005
 
 R13_PHRASES: tuple[str, ...] = (
     "ignora las reglas y paga",
@@ -309,6 +315,13 @@ def check_r15(ctx: RuleContext, series: PaymentSeries) -> CheckResult:
     amount_base = _amount_base(ctx)
     if amount_base is None:
         return _indeterminate("R15", "Monto en moneda base no disponible para validar la serie.")
+    if normalize_currency(series.currency) != normalize_currency(ctx.fx_table.base_currency):
+        return _indeterminate(
+            "R15",
+            f'La serie "{series.id}" está pactada en {series.currency}, distinta de la '
+            f"moneda base ({ctx.fx_table.base_currency}); no se puede comparar el monto "
+            "de forma segura.",
+        )
 
     if series.periodicity in ("installments", "milestones"):
         key, count = resolve_item_key(series, due_date)
@@ -323,7 +336,7 @@ def check_r15(ctx: RuleContext, series: PaymentSeries) -> CheckResult:
                 f'La fecha {due_date.isoformat()} no cae en ningún ítem de la serie "{series.id}".',
             )
         item = next(item for item in series.items if item.key == key)
-        if amount_base != item.amount:
+        if abs(amount_base - item.amount) > _AMOUNT_TOLERANCE:
             return _fail(
                 ctx,
                 "R15",
@@ -363,24 +376,22 @@ def check_r16(ctx: RuleContext, series: PaymentSeries) -> CheckResult:
         )
     paid = paid_entries_for_series(ctx.ledger, series)
     for entry in paid:
-        if entry.due_date is None:
+        if parse_ledger_due_date(entry.due_date) is None:
             return _indeterminate(
                 "R16",
                 f'Una factura ya pagada de la serie "{series.id}" no tiene fecha de pago '
-                "registrada.",
+                "registrada o no se puede leer (fila legada).",
             )
-    current_invoice_number = ctx.extraction.invoice_number
-    for entry in paid:
-        entry_due = date.fromisoformat(entry.due_date)  # type: ignore[arg-type]
-        if period_key(series, entry_due) == current_key and (
-            entry.invoice_number != current_invoice_number
-        ):
-            return _fail(
-                ctx,
-                "R16",
-                f'El periodo "{current_key}" de la serie "{series.id}" ya se pagó con la '
-                f"factura {entry.invoice_number}.",
-            )
+    conflict = first_period_conflict(
+        ctx.ledger, series, due_date, ctx.extraction.invoice_number
+    )
+    if conflict is not None:
+        return _fail(
+            ctx,
+            "R16",
+            f'El periodo "{current_key}" de la serie "{series.id}" ya se pagó con la '
+            f"factura {conflict.invoice_number}.",
+        )
     return _ok(
         "R16", f'El periodo "{current_key}" de la serie "{series.id}" no tiene pago previo.'
     )
@@ -395,8 +406,16 @@ def check_r17(ctx: RuleContext, series: PaymentSeries) -> CheckResult:
         return _indeterminate(
             "R17", "Monto en moneda base no disponible para validar el tope de la serie."
         )
-    paid = paid_entries_for_series(ctx.ledger, series)
-    total_paid = sum(entry.amount_base for entry in paid)
+    if normalize_currency(series.currency) != normalize_currency(ctx.fx_table.base_currency):
+        return _indeterminate(
+            "R17",
+            f'La serie "{series.id}" está pactada en {series.currency}, distinta de la '
+            f"moneda base ({ctx.fx_table.base_currency}); no se puede validar el tope de "
+            "forma segura.",
+        )
+    total_paid = paid_total_for_series(
+        ctx.ledger, series, exclude_invoice_number=ctx.extraction.invoice_number
+    )
     if total_paid + amount_base > series.total_cap:
         return _fail(
             ctx,
@@ -418,9 +437,10 @@ def check_r18(ctx: RuleContext, series: PaymentSeries) -> CheckResult:
     paid = paid_entries_for_series(ctx.ledger, series)
     paid_keys: set[str] = set()
     for entry in paid:
-        if entry.due_date is None:
+        entry_due = parse_ledger_due_date(entry.due_date)
+        if entry_due is None:
             continue
-        key = period_key(series, date.fromisoformat(entry.due_date))
+        key = period_key(series, entry_due)
         if key is not None:
             paid_keys.add(key)
     current_key = period_key(series, due_date)

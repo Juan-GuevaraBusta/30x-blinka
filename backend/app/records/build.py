@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 from app.models.domain import CheckResult, Decision, Extraction
-from app.models.rules_config import RulesConfig
+from app.models.rules_config import PaymentSeries, RulesConfig
 from app.records import templates as tpl
 from app.rules.approval_policy import parse_r14_quote
 from app.rules.context import ContractTerms, LedgerEntry, RuleContext
@@ -16,7 +16,12 @@ from app.rules.ledger_queries import (
     period_paid_total,
 )
 from app.rules.normalize import normalize_beneficiary, normalize_currency
-from app.rules.payment_series import find_matching_series, paid_entries_for_series, period_key
+from app.rules.payment_series import (
+    find_matching_series,
+    first_period_conflict,
+    paid_total_for_series,
+    period_key,
+)
 
 _RULE_NAMES: dict[str, str] = {
     "R01": "Beneficiario permitido",
@@ -97,6 +102,23 @@ def _exact_duplicate_registration_date(ctx: RecordContext) -> date | None:
                 return None
             return stamp.date()
     return None
+
+
+def _r15_window_text(series: PaymentSeries) -> str:
+    """Plain-Spanish description of the series' expected window (T7.2 follow-up).
+
+    Used by the R15 explanation so it states what was pactated, not just
+    that something failed.
+    """
+    if series.periodicity in ("installments", "milestones"):
+        windows = "; ".join(
+            f"{item.key} ({item.due_from.isoformat()} a {item.due_to.isoformat()})"
+            for item in series.items
+        )
+        return f"ítems pactados: {windows}"
+    start_text = series.start.isoformat() if series.start is not None else "sin fecha de inicio"
+    end_text = series.end.isoformat() if series.end is not None else "sin fecha de fin"
+    return f"vigencia pactada del {start_text} al {end_text}"
 
 
 def _r05_is_probable(check: CheckResult) -> bool:
@@ -204,34 +226,37 @@ def _summary_line_for_check(check: CheckResult, ctx: RecordContext) -> str:
         serie_id = resolution.series.id if resolution.series is not None else "s/serie"
 
         if rule == "R15":
-            return tpl.TEMPLATE_R15_FAIL.format(serie=serie_id)
+            fecha = _fmt_date(ctx.extraction.due_date)
+            ventana = (
+                _r15_window_text(resolution.series)
+                if resolution.series is not None
+                else "s/ventana"
+            )
+            return tpl.TEMPLATE_R15_FAIL.format(serie=serie_id, fecha=fecha, ventana=ventana)
 
         if rule == "R16":
             periodo = "s/p"
             numero = "s/n"
             if resolution.series is not None and ctx.extraction.due_date is not None:
                 periodo = period_key(resolution.series, ctx.extraction.due_date) or "s/p"
-                for paid_entry in paid_entries_for_series(ctx.ledger, resolution.series):
-                    if paid_entry.due_date is None:
-                        continue
-                    entry_key = period_key(
-                        resolution.series, date.fromisoformat(paid_entry.due_date)
-                    )
-                    if (
-                        entry_key == periodo
-                        and paid_entry.invoice_number != ctx.extraction.invoice_number
-                    ):
-                        numero = paid_entry.invoice_number
-                        break
+                conflict = first_period_conflict(
+                    ctx.ledger,
+                    resolution.series,
+                    ctx.extraction.due_date,
+                    ctx.extraction.invoice_number,
+                )
+                if conflict is not None:
+                    numero = conflict.invoice_number
             return tpl.TEMPLATE_R16_FAIL.format(periodo=periodo, serie=serie_id, numero=numero)
 
         # rule == "R17"
         acumulado = "0"
         tope = "s/t"
         if resolution.series is not None:
-            paid_total = sum(
-                entry.amount_base
-                for entry in paid_entries_for_series(ctx.ledger, resolution.series)
+            paid_total = paid_total_for_series(
+                ctx.ledger,
+                resolution.series,
+                exclude_invoice_number=ctx.extraction.invoice_number,
             )
             acumulado = _fmt_usd(paid_total)
             if resolution.series.total_cap is not None:
