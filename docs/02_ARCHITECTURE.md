@@ -87,6 +87,7 @@ Salida: `{consistent: bool, issues: [{code, kind: "violation"|"uncertainty", evi
 - Sin issues → no cambia nada.
 - Si el verificador intenta bajar la severidad (FRENAR/ESCALAR→PAGAR o FRENAR→ESCALAR), el `final_gate` lo ignora (I4).
 - Un `violation` debe traer evidencia citable (campo, cita del texto o regla); sin evidencia se degrada a `uncertainty`, para que el verificador no frene por impresiones.
+- La degradación es determinista (`backend/app/verifier/run.py`): un `violation` pasa a `uncertainty` si su evidencia no trae una cita literal del texto fuente, si habla de un contrato sin confirmar o de un `on_fail` nulo, o si su código solo repite una regla cuyo chequeo ya salió INDETERMINADO/FALLA (ese chequeo ya escala). La degradación nunca baja de ESCALAR (I4).
 
 ## Contratos de proveedores (documentos firmados)
 1. **Ingesta (una vez por proveedor):** LLM extrae términos estructurados (tarifa, moneda, tope, periodicidad, cuenta/beneficiario autorizado, vigencia) y **cita la cláusula textual** de cada término.

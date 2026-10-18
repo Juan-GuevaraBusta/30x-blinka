@@ -222,3 +222,126 @@ def test_verifier_error_str_is_code_only() -> None:
     assert str(err) == "llm_error"
     assert SYNTHETIC_DOC not in str(err)
     assert "test-key" not in str(err)
+
+
+# --- Verifier tuning: deterministic demotion of non-citable "violations" ---
+
+R06_INDETERMINADO = CheckResult(
+    rule="R06",
+    name="Cuadra con contrato",
+    result="INDETERMINADO",
+    detail=(
+        "Escalada: no se pudo completar la verificación de Cuadra con contrato "
+        "(Contrato ausente o sin confirmar). (regla R06)."
+    ),
+)
+R13_FALLA = CheckResult(
+    rule="R13",
+    name="Instrucciones embebidas",
+    result="FALLA",
+    detail="Escalada: el documento contiene instrucciones embebidas sospechosas (regla R13).",
+)
+
+
+def _single_violation(code: str, evidence: str) -> FakeLlm:
+    return FakeLlm(
+        response={
+            "consistent": False,
+            "issues": [
+                {"code": code, "kind": "violation", "evidence": evidence, "admin_message": None}
+            ],
+        }
+    )
+
+
+def test_violation_on_unconfirmed_contract_demoted_to_uncertainty() -> None:
+    llm = _single_violation(
+        "CONTRACT_NOT_CONFIRMED", 'contract confirmed=false; "Contrato ausente o sin confirmar"'
+    )
+    outcome = verify_decision(
+        llm, **_verify_kwargs(proposed="ESCALAR", checks=[*OK_CHECKS, R06_INDETERMINADO])
+    )
+    assert outcome.report.issues[0].kind == "uncertainty"
+    assert outcome.decision == "ESCALAR"
+    assert outcome.admin_notice is None
+
+
+def test_violation_about_null_on_fail_demoted_to_uncertainty() -> None:
+    llm = _single_violation(
+        "OUTCOME_FIELD_MISMATCH",
+        'CHECKS[R06].detail: "Escalada: no se pudo completar..." while CHECKS[R06].on_fail = null',
+    )
+    outcome = verify_decision(
+        llm, **_verify_kwargs(proposed="ESCALAR", checks=[*OK_CHECKS, R06_INDETERMINADO])
+    )
+    assert outcome.report.issues[0].kind == "uncertainty"
+    assert outcome.decision == "ESCALAR"
+
+
+def test_violation_restating_indeterminate_check_demoted() -> None:
+    llm = _single_violation("R06", "R06")
+    outcome = verify_decision(
+        llm, **_verify_kwargs(proposed="ESCALAR", checks=[*OK_CHECKS, R06_INDETERMINADO])
+    )
+    assert outcome.report.issues[0].kind == "uncertainty"
+    assert outcome.decision == "ESCALAR"
+
+
+def test_violation_restating_failed_check_demoted_even_with_source_quote() -> None:
+    # R13 already caught the embedded instruction and escalates; the verifier
+    # repeating it is not a new finding (golden: injection -> ESCALAR).
+    llm = _single_violation("R13", ADVERSARIAL_PHRASE)
+    outcome = verify_decision(
+        llm, **_verify_kwargs(proposed="ESCALAR", checks=[*OK_CHECKS, R13_FALLA])
+    )
+    assert outcome.report.issues[0].kind == "uncertainty"
+    assert outcome.decision == "ESCALAR"
+
+
+def test_violation_without_verbatim_source_quote_demoted() -> None:
+    llm = _single_violation("AMOUNT_MISMATCH", 'SOURCE says "Total USD 950"')
+    outcome = verify_decision(llm, **_verify_kwargs(proposed="PAGAR"))
+    assert outcome.report.issues[0].kind == "uncertainty"
+    assert outcome.decision == "ESCALAR"
+    assert outcome.decision != "PAGAR"
+
+
+def test_unflagged_embedded_instruction_with_quote_stays_violation() -> None:
+    # R13 did not flag it (checks all OK): a quoted embedded instruction is a
+    # concrete finding the deterministic checks missed.
+    llm = _single_violation("EMBEDDED_INSTRUCTION", f'SOURCE: "{ADVERSARIAL_PHRASE}"')
+    outcome = verify_decision(llm, **_verify_kwargs(proposed="PAGAR"))
+    assert outcome.report.issues[0].kind == "violation"
+    assert outcome.decision == "FRENAR"
+
+
+def test_real_amount_contradiction_with_quote_stays_violation_frenar() -> None:
+    doc = "Beneficiario: Demo SA\nTotal a pagar: USD 1,200.00\n"
+    llm = _single_violation(
+        "EXTRACTION_AMOUNT_MISMATCH",
+        'EXTRACTION.amount=800 but SOURCE says "Total a pagar: USD 1,200.00"',
+    )
+    outcome = verify_decision(
+        llm,
+        **_verify_kwargs(
+            proposed="PAGAR", doc_text=doc, checks=[*OK_CHECKS, R06_INDETERMINADO]
+        ),
+    )
+    assert outcome.report.issues[0].kind == "violation"
+    assert outcome.decision == "FRENAR"
+    assert outcome.admin_notice is not None
+    assert "Total a pagar: USD 1,200.00" in outcome.admin_notice
+
+
+def test_demotion_never_lowers_proposed_severity() -> None:
+    llm = _single_violation("R06", "R06")
+    outcome = verify_decision(
+        llm, **_verify_kwargs(proposed="FRENAR", checks=[*OK_CHECKS, R06_INDETERMINADO])
+    )
+    assert outcome.report.issues[0].kind == "uncertainty"
+    assert outcome.decision == "FRENAR"
+
+
+def test_system_prompt_requires_verbatim_source_quote_for_violation() -> None:
+    assert "verbatim quote from SOURCE" in VERIFIER_SYSTEM_PROMPT
+    assert "confirmed" in VERIFIER_SYSTEM_PROMPT
