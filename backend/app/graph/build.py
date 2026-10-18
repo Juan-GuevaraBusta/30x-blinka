@@ -451,6 +451,7 @@ def run_invoice(
     thread_id: str,
     tracer: TraceSession | None = None,
     phase: Literal["dev", "eval", "demo"] = "dev",
+    owner_id: str | None = None,
 ) -> DecisionRecord:
     if not invoice_id or not invoice_id.strip():
         raise GraphError("empty_invoice_id")
@@ -467,6 +468,11 @@ def run_invoice(
         "phase": phase,
     }
     tags = ["invoice", phase]
+    if owner_id is not None:
+        trimmed = owner_id.strip()
+        if trimmed:
+            metadata["owner_id"] = owner_id
+            tags.append(owner_id)
     initial: InvoiceState = {
         "raw_b64": base64.b64encode(raw).decode("ascii"),
         "channel": channel,

@@ -134,6 +134,29 @@ def test_phase_eval_reaches_metadata(tmp_path: Path) -> None:
     assert hints["phase"] == Literal["dev", "eval", "demo"]
 
 
+_SYNTH_OWNER = "usr_synth_001"
+
+
+def test_owner_id_in_metadata_and_tags_when_set(tmp_path: Path) -> None:
+    tracer = _FakeTrace()
+    _pay(tmp_path, tracer=tracer, owner_id=_SYNTH_OWNER)
+    metadata, tags = tracer.opened[0]
+    assert metadata["owner_id"] == _SYNTH_OWNER
+    assert tags == ["invoice", "dev", _SYNTH_OWNER]
+    blob = " ".join([*metadata.values(), *tags])
+    assert "Demo SA" not in blob
+    assert "test-key" not in blob
+
+
+def test_owner_id_omitted_when_none_or_blank(tmp_path: Path) -> None:
+    for owner_kw in ({}, {"owner_id": None}, {"owner_id": ""}, {"owner_id": "   "}):
+        tracer = _FakeTrace()
+        _pay(tmp_path, tracer=tracer, **owner_kw)
+        metadata, tags = tracer.opened[0]
+        assert "owner_id" not in metadata
+        assert tags == ["invoice", "dev"]
+
+
 def test_settings_reads_four_langsmith_keys() -> None:
     filled = Settings.from_mapping(
         {
