@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   ClipboardList,
   Gauge,
-  ShieldCheck,
   ShieldX,
 } from "lucide-react";
 
@@ -16,22 +15,19 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { StatCard } from "@/components/ui/StatCard";
+import { apiFetch } from "@/lib/session";
 import {
   formatMetricNumber,
-  presentEvaluationFromResponse,
   presentLiveMetricsFromResponse,
-  type EvaluationPresentation,
   type LiveMetricsPresentation,
 } from "@/lib/metrics-present";
 
 const LIVE_INTRO =
   "Conteos de tu empresa calculados a partir de las decisiones guardadas. No lee reportes de eval/.";
 
-const EVALUATION_INTRO =
-  "Cifras de los artefactos de evaluación versionados en el repositorio. Cada figura muestra su archivo fuente; nada se recalcula aquí.";
-
 async function fetchJson(url: string): Promise<{ status: number; body: unknown }> {
-  const res = await fetch(url, { cache: "no-store" });
+  // apiFetch sends X-User-Id: live metrics are per company (401 without it).
+  const res = await apiFetch(url, { cache: "no-store" });
   let body: unknown = null;
   try {
     body = await res.json();
@@ -97,59 +93,23 @@ function LiveSection({ view }: { view: LiveMetricsPresentation }) {
   );
 }
 
-function EvaluationSection({ view }: { view: EvaluationPresentation }) {
-  if (view.kind === "error") {
-    return <AlertPanel>{view.message}</AlertPanel>;
-  }
-  if (view.kind === "empty") {
-    return (
-      <EmptyState icon={BarChart3} title="Sin evidencia de evaluación" description={view.message} />
-    );
-  }
-  return (
-    <div className="space-y-3">
-      {view.generated_at ? (
-        <p className="text-xs text-ink-subtle">Generado: {view.generated_at}</p>
-      ) : null}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {view.entries.map((entry) => (
-          <StatCard
-            key={entry.id}
-            label={entry.label}
-            icon={ShieldCheck}
-            tone="brand"
-            value={<span className="text-2xl">{String(entry.value)}</span>}
-            hint={<code className="text-xs text-ink-subtle">{entry.source}</code>}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function MetricasScreen() {
   const [loading, setLoading] = useState(true);
   const [liveView, setLiveView] = useState<LiveMetricsPresentation | null>(null);
-  const [evaluationView, setEvaluationView] = useState<EvaluationPresentation | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [live, evaluation] = await Promise.all([
-          fetchJson("/api/metrics/live"),
-          fetchJson("/api/metrics/evaluation"),
-        ]);
+        const live = await fetchJson("/api/metrics/live");
         if (!cancelled) {
           setLiveView(presentLiveMetricsFromResponse(live.status, live.body));
-          setEvaluationView(presentEvaluationFromResponse(evaluation.status, evaluation.body));
         }
       } catch {
         if (!cancelled) {
           const message =
             "No se pudo leer las métricas. Compruebe la conexión con el servidor e intente recargar la página.";
           setLiveView({ kind: "error", message });
-          setEvaluationView({ kind: "error", message });
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -186,13 +146,6 @@ export default function MetricasScreen() {
         {liveView ? <LiveSection view={liveView} /> : null}
       </section>
 
-      <section className="space-y-4" aria-labelledby="evaluation-metrics-heading">
-        <h2 id="evaluation-metrics-heading" className="text-h3 text-ink">
-          Evaluación (evidencia versionada)
-        </h2>
-        <p className="max-w-prose text-sm text-ink-muted">{EVALUATION_INTRO}</p>
-        {evaluationView ? <EvaluationSection view={evaluationView} /> : null}
-      </section>
     </div>
   );
 }
