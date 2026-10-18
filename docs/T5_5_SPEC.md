@@ -6,7 +6,7 @@ Estado: contrato para la sesión que **implemente** T5.5. Este archivo no cierra
 
 Decisión que fija este contrato: **D046**.
 
-Depende de T5.1 para las cifras de holdout. Hoy no existe `eval/reports/latest.md` (el único reporte en `eval/reports/` es `g3_closure_2026-10-17.md`). Las celdas de métricas quedan en «pendiente T5.1» o citan solo cifras ya escritas en ese reporte y en `docs/DECISIONS_LOG.md` D039, etiquetadas como **línea base G3** (e2e sobre dev), no como holdout.
+T5.5 depende de T5.1 (`docs/TASK_BOARD.md`, fila T5.5). Si T5.1 no está HECHA en el tablero, esta sesión **para** y no completa el README, la guía ni los ejemplos con cifras: la única excepción es un borrador de estructura (encabezados, secciones vacías, el esqueleto de la guía) sin ninguna cifra, ni siquiera la línea base de G3. Verificar en el momento de implementar si `eval/reports/latest.md` ya existe (puede que T5.1 ya lo haya creado); el único reporte en `eval/reports/` al escribir este spec es `g3_closure_2026-10-17.md`. Con T5.1 HECHA y sin `latest.md`, las celdas de métricas quedan en «pendiente T5.1» o citan solo cifras ya escritas en ese reporte y en `docs/DECISIONS_LOG.md` D039, etiquetadas como **línea base G3** (e2e sobre dev), no como holdout.
 
 ## 0. Para el agente que implementa
 
@@ -90,7 +90,9 @@ T5.6 comprobará que el archivo existe y dice eso. T5.5 usa estas rutas porque y
 | La explicación sale de plantillas, no de texto libre del modelo | `docs/04_RULES_AND_DECISION_SPEC.md` §6; `backend/app/records/templates.py`; `backend/tests/rules/test_record_templates.py` |
 | «PAGAR» es un registro y un pago simulado | `AGENTS.md` I8; `backend/app/records/build.py` (`build_next_step` devuelve «Pago simulado registrado.») |
 | Solo datos sintéticos; la empresa de ejemplo es Acme Demo Inc. | `AGENTS.md` I6; `data/company.json` |
-| El texto de la factura no es una instrucción; R13 cubre frases embebidas en unitarias | `AGENTS.md` I7; `backend/tests/rules/test_rules_r01_r13.py` (`test_r13_fail_injection_dev031`). La suite adversarial de T5.3 sigue pendiente: no se afirma el gate |
+| R13 detecta una lista fija de frases (`backend/app/rules/checks.py`, `R13_PHRASES`); no cubre otros idiomas ni variantes | `AGENTS.md` I7; `backend/app/rules/checks.py` (`R13_PHRASES`); `backend/tests/rules/test_rules_r01_r13.py` (`test_r13_fail_injection_dev031`). La suite adversarial de T5.3 sigue pendiente: no se afirma el gate |
+| La API no exige autenticación en los endpoints mutantes hasta T5.9 | `docs/TASK_BOARD.md` fila T5.9 (PENDIENTE, D055). Limitación conocida, no un gate ya cerrado |
+| Hay una condición de carrera en el límite de periodo del ledger hasta T5.8 | `docs/TASK_BOARD.md` fila T5.8 (PENDIENTE, D055). Limitación conocida, no un gate ya cerrado |
 | Línea base G3, e2e dev: `unsafe_pay = 0` | `eval/reports/g3_closure_2026-10-17.md`; `docs/DECISIONS_LOG.md` D039. Etiqueta obligatoria: línea base G3, no holdout |
 | Línea base G3, e2e dev: autonomía 55.9 % (19/34) | Los mismos dos archivos, con la misma etiqueta. No presentarla como autonomía del motor |
 | Referencia de motor G2, extracción verdadera, dev: 34/34, autonomía 100.0 %, `unsafe_pay = 0` | Solo la línea que el reporte G3 llama «referencia motor G2», más `docs/DECISIONS_LOG.md` D028. No es la autonomía del grafo |
@@ -109,7 +111,7 @@ Métricas de `docs/06` que este README no numera mientras falte `eval/reports/la
 | Adversariales (`unsafe_pay`) | pendiente T5.3 (el gate G5 los pide junto con el reporte) |
 | `over_escalation`, `reason_accuracy`, `explain_ok`, `blind_read` | pendiente T5.1 o T5.4, según la fila de `docs/06`. No calcular un porcentaje nuevo a partir del relato de desvíos |
 | `latency_p50`, `cost_per_invoice` | pendiente T5.1. No hay cifra en el reporte G3 |
-| `eval/run_eval.py` | El reporte G3 dice que no existe. La guía no manda ejecutarlo. Reproducir el motor: el comando ya escrito en `docs/G2_SPEC.md` (`python eval/run_motor.py`). El e2e de G3 se cita por el reporte, no se reinventa un comando |
+| `eval/run_eval.py` | Verificar al implementar si el archivo ya existe (T5.1 puede haberlo creado). Si no existe todavía, la guía no manda ejecutarlo. Reproducir el motor: el comando ya escrito en `docs/G2_SPEC.md` (`python eval/run_motor.py`). El e2e de G3 se cita por el reporte, no se reinventa un comando |
 
 Si al implementar **sí** existe `eval/reports/latest.md`, las celdas de dev y holdout copian esa tabla, dev y holdout por separado, y dejan de usar la línea base G3 como si fuera el resultado final. Este spec no anticipa esos números.
 
@@ -181,7 +183,7 @@ El README enlaza el mermaid que ya existe, con el heading, por ejemplo: el flujo
 - Que la autonomía del grafo es 100 %. Ese 100 % es el motor con extracción verdadera (G2).
 - Que 55.9 % (19/34) es el resultado de holdout o el número final de F5.
 - Cualquier coste, latencia o porcentaje que no esté escrito en `eval/reports/g3_closure_2026-10-17.md` o en D039 / D028 con la etiqueta de arriba.
-- Que `eval/reports/latest.md` o `eval/run_eval.py` existen.
+- Que `eval/reports/latest.md` o `eval/run_eval.py` existen, si al verificar en el momento de implementar todavía no existen.
 - Que los JSON de ejemplo son decisiones del corrido e2e o la traza `01a14bb0-2259-7c43-a337-fa9afe5f8e94`.
 - Que el sistema mueve dinero, detecta fraude en general, o procesa facturas reales.
 - Que hay un diagrama editable además del mermaid.
@@ -189,8 +191,9 @@ El README enlaza el mermaid que ya existe, con el heading, por ejemplo: el flujo
 
 ## 8. Criterios de aceptación
 
+0. T5.1 está HECHA en `docs/TASK_BOARD.md` antes de completar README, guía o JSON con cifras. Si no lo está, solo existe el borrador de estructura sin cifras y el resto de estos criterios no aplica todavía.
 1. `README.md` y `JUDGE_GUIDE.md` en español. Toda frase del README que un juez pueda citar tiene fila en la guía con ruta de archivo. La fila «pendiente T5.5» desaparece.
-2. Sin `latest.md`, las celdas de holdout, coste y latencia dicen «pendiente T5.1». Las únicas cifras de autonomía y `unsafe_pay` del grafo son las de la línea base G3 (0 y 55.9 % con 19/34), etiquetadas así. El 100 % del motor, si aparece, lleva la etiqueta de referencia G2.
+2. Sin `latest.md`, las celdas de holdout, coste y latencia dicen «pendiente T5.1». Las únicas cifras de autonomía y `unsafe_pay` del grafo son las de la línea base G3 (0 y 55.9 % con 19/34), etiquetadas así. El 100 % del motor, si aparece, lleva la etiqueta de referencia G2. La guía incluye R13 como lista fija de frases (sin otros idiomas) y las dos limitaciones de T5.8/T5.9.
 3. Los tres JSON validan con el comando de la sección 5. PAGAR cita 13 chequeos y trae 13 resultados OK. FRENAR trae `admin_notice`. ESCALAR cita R04 y el correo `finanzas@demo.test`.
 4. El diff no contiene `.drawio`, `docs/DEMO_SCRIPT.md`, `.env`, ni archivos bajo `data/golden/holdout.json` o `data/invoices/holdout/`.
 5. Diff de `backend/`, `data/`, `eval/` y `frontend/` vacío.
@@ -213,11 +216,20 @@ Skill: ninguna. No leas drawio-skill ni skills de marketing.
 No edites backend/, data/, eval/ ni frontend/. No leas .env.
 No abras data/golden/holdout.json ni data/invoices/holdout/.
 No escribas docs/DEMO_SCRIPT.md. No cierres G5 ni G6.
-README y JUDGE_GUIDE en español. Cada afirmación citable apunta a un archivo
-en la tabla del spec. Sin eval/reports/latest.md, holdout y costes quedan
-«pendiente T5.1». Las únicas cifras del grafo son la línea base G3:
-unsafe_pay=0 y autonomía 55.9% (19/34), citando
-eval/reports/g3_closure_2026-10-17.md y D039. No las llames holdout.
+Primero: verifica en docs/TASK_BOARD.md si T5.1 está HECHA. Si no lo está,
+para y solo entrega un borrador de estructura (encabezados, esqueleto),
+sin ninguna cifra, ni la línea base de G3.
+Con T5.1 HECHA: README y JUDGE_GUIDE en español. Cada afirmación citable
+apunta a un archivo en la tabla del spec. Verifica si eval/reports/latest.md
+ya existe; si no, holdout y costes quedan «pendiente T5.1» y las únicas
+cifras del grafo son la línea base G3: unsafe_pay=0 y autonomía 55.9%
+(19/34), citando eval/reports/g3_closure_2026-10-17.md y D039. No las
+llames holdout.
+R13: «R13 detecta una lista fija de frases (backend/app/rules/checks.py,
+R13_PHRASES); no cubre otros idiomas ni variantes».
+Limitaciones a incluir: la API no exige autenticación en endpoints
+mutantes hasta T5.9; hay una condición de carrera en el límite de periodo
+del ledger hasta T5.8 (ambas PENDIENTE, D055).
 Diagrama: enlace al heading «Flujo (LangGraph)» de docs/02_ARCHITECTURE.md.
 Cero .drawio.
 Tres JSON en docs/examples/records/ (ex-pagar, ex-frenar, ex-escalar),

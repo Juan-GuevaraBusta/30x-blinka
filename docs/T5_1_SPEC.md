@@ -6,7 +6,7 @@ Estado: contrato para la sesión que **implemente** T5.1. Este archivo no cierra
 
 Decisión que fija este contrato: **D042**.
 
-G3 ya está cerrado (D039, 2026-10-17): e2e de 34 facturas dev, `unsafe_pay=0`, autonomía 55.9 % (19/34). G4 ya está cerrado (fila D040 del 2026-10-17). G5 sigue PENDIENTE. T5.1 depende de T5.2 y de G3 (`docs/TASK_BOARD.md`).
+G3 ya está cerrado (D039, 2026-10-17): e2e de 34 facturas dev, `unsafe_pay=0`, autonomía 55.9 % (19/34). G4 ya está cerrado (fila D040 del 2026-10-17). G5 sigue PENDIENTE. T5.1 depende de T5.2, T5.7 (D055, el arreglo del import de `backend`) y de G3 (`docs/TASK_BOARD.md`).
 
 ## 0. Para el agente que implementa
 
@@ -17,19 +17,21 @@ Leer también, antes de tocar código:
 - `AGENTS.md` (I1–I9; en especial I2, I6 e I9)
 - `docs/06_EVAL_AND_TEST_PLAN.md` (métricas, regla de calibración, formato del reporte)
 - `docs/05_PHASES_AND_ROADMAP.md` fila T5.1 y definición de G5
-- `docs/TASK_BOARD.md` filas T5.1, T5.2, G3 y G5
+- `docs/TASK_BOARD.md` filas T5.1, T5.2, T5.7 y G3 y G5
 - `docs/DATA_MANIFEST.md` sección «Holdout (no consultar hasta T5.1)» y la fila D005 del caso del verificador
-- `docs/DECISIONS_LOG.md` D005 y D039
+- `docs/DECISIONS_LOG.md` D005, D039 y D055
+- `docs/T5_7_SPEC.md` (el arreglo del import de `backend`; T5.1 depende de esa tarea, no la repite)
 - `docs/SKILLS_MAP.md` fila T5.1
 - `eval/run_motor.py`, `eval/run_invoices.py`, `eval/reports/g3_closure_2026-10-17.md`
 - `backend/app/motor/golden_runner.py` (`MotorReport`, `unsafe_pay`, `_case_ok`)
 - `backend/app/graph/folder_batch.py` (`run_invoice_folder`, `RULES_VERSION`, `select_catalog_rows`)
-- `backend/app/extraction/__init__.py` y `backend/app/extraction/ingest.py` (imports `backend.app.*`; solo lectura)
+- `backend/app/extraction/__init__.py` (solo lectura; el import lo arregla T5.7)
+- `backend/app/gate/invariants.py` (`explanation_covers_failed_checks`, reutilizada por `explain_ok`)
 - `backend/tests/eval/test_motor_dev.py`
 - `backend/app/models/domain.py` (`DecisionRecord`, `ModelVersions`, `CheckResult`)
 - `pyproject.toml` (`pythonpath = ["backend"]`, `ruff` incluye `eval`)
 
-No tocar `data/rules.json`, `data/golden/`, `data/invoices/`, `data/fx.json`, `backend/app/models/`, `backend/app/rules/`, `backend/app/extraction/`, `backend/app/jev/`, `backend/app/verifier/`, `backend/app/graph/` ni `backend/app/config.py`. El arreglo del import de D039 vive en los scripts de `eval/`, no en esos módulos. No leer `.env` para copiar claves al reporte ni al repo. No editar `docs/DECISIONS_LOG.md` para añadir D042: la decisión ya queda escrita aquí.
+No tocar `data/rules.json`, `data/golden/`, `data/invoices/`, `data/fx.json`, `backend/app/models/`, `backend/app/rules/`, `backend/app/jev/`, `backend/app/verifier/`, `backend/app/graph/` ni `backend/app/config.py`. El import de `backend` lo arregla T5.7 (D055). T5.1 requiere T5.7 HECHA; si `python eval/run_invoices.py --help` sale distinto de 0, parar. No leer `.env` para copiar claves al reporte ni al repo. No editar `docs/DECISIONS_LOG.md` para añadir D042: la decisión ya queda escrita aquí.
 
 Mientras se escriben el puntuador y sus pruebas, no abrir `data/golden/holdout.json` ni `data/invoices/holdout/`. Esos paths se abren una sola vez, en el paso final, y solo si T5.2 ya está HECHA o HECHO en el tablero.
 
@@ -39,7 +41,7 @@ La evaluación reproducible del grafo sobre los dos conjuntos sintéticos: desar
 
 El número que cuenta es el del grafo (e2e), comparado con `expected_decision` y `expected_rules` del golden de ese split. El motor de G2 (`eval/run_motor.py`) sigue siendo la referencia de extracción verdadera. No es esta eval. En G3 el motor iba al 100 % y el grafo al 55.9 %; mezclarlos haría pasar por autonomía del agente un acierto que solo existe con la extracción ya escrita en el golden.
 
-`docs/06` nombra `eval/run_eval.py` y ese archivo no existe. Esta tarea lo crea y lo declara **comando oficial**. `eval/run_invoices.py` sigue existiendo: escribe el JSON de decisiones y, tras el arreglo de path, deja de fallar al importar. No puntúa y no escribe `latest.md`. `eval/run_motor.py` sigue existiendo para G2. Ninguno de los dos es un segundo comando de esta eval.
+`docs/06` nombra `eval/run_eval.py` y ese archivo no existe. Esta tarea lo crea y lo declara **comando oficial**. `eval/run_invoices.py` sigue existiendo: escribe el JSON de decisiones y, con T5.7 (D055) HECHA, deja de fallar al importar. No puntúa y no escribe `latest.md`. `eval/run_motor.py` sigue existiendo para G2. Ninguno de los dos es un segundo comando de esta eval.
 
 ## 2. Fuera de alcance
 
@@ -62,12 +64,12 @@ Crear:
 
 Modificar:
 
-- `eval/run_invoices.py`. El mismo arranque de `sys.path` que el comando oficial, antes de importar `app`. Sigue escribiendo el JSON de decisiones. No calcula métricas.
+- `eval/run_invoices.py`. Sigue escribiendo el JSON de decisiones. No calcula métricas. No requiere arreglo de import: eso lo hace T5.7 (D055) en `backend/app/extraction/__init__.py`.
 - Al cerrar la implementación, y solo entonces: `eval/reports/latest.md` (lo escribe el comando), `docs/TASK_BOARD.md` (fila T5.1) y `docs/AI_USAGE_LOG.md`.
 
 No tocar el comportamiento de `eval/run_motor.py` ni el de `backend/tests/eval/test_motor_dev.py`. Esas pruebas siguen exigiendo 34/34 y `unsafe_pay = 0` en el motor de dev. No cambiar `pyproject.toml` para meter el holdout en la recolección de pytest.
 
-No commitear `.env`, `decisions.json` de trabajo ni un volcado que copie el texto de las facturas. El artefacto de la tarea es `eval/reports/latest.md`. Los JSON intermedios van a un directorio temporal (por ejemplo bajo `/tmp`) y no entran en el diff. Re-puntuar ese JSON es determinista; volver a llamar al grafo puede mover la autonomía porque el modelo no es estable. El reporte dice las dos cosas.
+No commitear `.env`, `decisions.json` de trabajo ni un volcado que copie el texto de las facturas. El artefacto de la tarea es `eval/reports/latest.md`. Los JSON intermedios van a un directorio temporal creado con `tempfile.mkdtemp()` (o una carpeta ignorada por git), nunca bajo `/tmp` fijo, y no entran en el diff. Re-puntuar ese JSON es determinista; volver a llamar al grafo puede mover la autonomía porque el modelo no es estable. El reporte dice las dos cosas.
 
 ## 4. Invariantes
 
@@ -83,18 +85,18 @@ I1, I3 e I4 no se reimplementan aquí. Siguen cubiertos por el motor, el grafo y
 
 Orden obligatorio:
 
-1. Confirmar en `docs/TASK_BOARD.md` que T5.2 está HECHA o HECHO, y que la fila de umbrales en `docs/DECISIONS_LOG.md` dice que el holdout no se usó para calibrar. Si T5.2 sigue PENDIENTE, se puede escribir el puntuador y correr solo dev para probar el cableado. No se abre el holdout y no se da por hecha T5.1.
+1. Confirmar en la columna Estado (7ª columna) de la fila T5.2 de `docs/TASK_BOARD.md` que dice HECHA o HECHO, y que la fila de umbrales en `docs/DECISIONS_LOG.md` dice que el holdout no se usó para calibrar. Si T5.2 sigue PENDIENTE, se puede escribir el puntuador y correr solo dev para probar el cableado. No se abre el holdout y no se da por hecha T5.1.
 2. Correr el grafo sobre dev (`data/invoices/dev`, 34 archivos, catálogo `data/invoices/catalog.json`). `select_catalog_rows` elige por directorio, no por el campo `split`.
 3. Puntuar ese resultado contra `data/golden/dev.json`.
 4. Solo entonces, una vez, correr el grafo sobre `data/invoices/holdout` (10 archivos, hold-001…hold-010) y puntuar contra `data/golden/holdout.json`.
 5. Escribir `eval/reports/latest.md` con los dos splits. No volver a lanzar el holdout para «mejorar» el número. No editar umbrales, `data/rules.json`, el golden ni los modelos después de verlo.
 
-`eval/run_eval.py` rechaza el split holdout (y el modo que incluye los dos) si la fila T5.2 del tablero no contiene HECHA ni HECHO. En ese caso termina con código 2 y no abre `data/golden/holdout.json` ni `data/invoices/holdout/`. No hace falta un flag que salte esa lectura: si el tablero miente, se corrige el tablero en la tarea T5.2, no aquí.
+`eval/run_eval.py` rechaza el split holdout (y el modo que incluye los dos) si la columna Estado (7ª columna) de la fila T5.2 del tablero no dice HECHA ni HECHO. Lee solo esa columna, no la fila entera: un `grep` de la fila completa puede dar falso positivo si Evidencia o Notas mencionan esas palabras sin que la tarea esté cerrada. En ese caso termina con código 2 y no abre `data/golden/holdout.json` ni `data/invoices/holdout/`. No hace falta un flag que salte esa lectura: si el tablero miente, se corrige el tablero en la tarea T5.2, no aquí.
 
 Comando oficial, desde la raíz del repo, con el venv del proyecto:
 
 ```text
-.venv/bin/python eval/run_eval.py --output eval/reports/latest.md
+python eval/run_eval.py --output eval/reports/latest.md
 ```
 
 Ese proceso usa red (extractor, verificador, JEV, LangSmith) porque llama a `run_invoice_folder` con `phase=eval`. Carga la configuración con `load_settings()` como ya hace `eval/run_invoices.py`. No imprime claves. No es un test de pytest.
@@ -102,13 +104,13 @@ Ese proceso usa red (extractor, verificador, JEV, LangSmith) porque llama a `run
 Para reescribir el markdown desde JSON ya generados, sin red:
 
 ```text
-.venv/bin/python eval/run_eval.py --output eval/reports/latest.md \
+python eval/run_eval.py --output eval/reports/latest.md \
   --skip-graph --decisions-dev RUTA_DEV.json --decisions-holdout RUTA_HOLDOUT.json
 ```
 
 `--skip-graph` con holdout sigue sujeto al candado de T5.2, porque leer el golden de holdout también es abrir el holdout. Las pruebas unitarias no usan este comando: llaman a las funciones de `eval_score.py` con dicts propios.
 
-El arreglo de D039 entra porque el comando oficial y `eval/run_invoices.py` importan el grafo. Hoy `python eval/run_invoices.py` deja `sys.path[0]` en `eval/`. `backend/app/extraction/__init__.py` y `backend/app/extraction/ingest.py` importan `backend.app.*`. No hay `backend/__init__.py`; `backend` solo resuelve si la raíz del repo está en `sys.path` (así pasa pytest, que arranca con el cwd). El CLI no tiene esa raíz y falla con `ModuleNotFoundError: No module named 'backend'` (`eval/reports/g3_closure_2026-10-17.md`). Antes de cualquier `import app`, ambos scripts insertan la raíz del repo y `backend/` al frente de `sys.path`. Con eso conviven `import app` y `import backend.app`. El éxito de este arreglo es `python eval/run_invoices.py --help` con código 0, sin procesar facturas y sin cambiar umbrales. Si el arranque de path no basta, la sesión se detiene y lo anota. No reescribe `backend/app/extraction/`.
+El import de `backend` lo arregla T5.7 (D055). T5.1 requiere T5.7 HECHA; si `python eval/run_invoices.py --help` sale distinto de 0, parar. (D039 es el cierre de G3, no el arreglo del import.)
 
 Qué cuenta como `unsafe_pay`: una factura suma 1 cuando la decisión obtenida es `PAGAR` y `expected_decision` no es `PAGAR`. `ESCALAR`, `FRENAR` y un registro ausente no suman, aunque no acierten. La definición es la de `docs/06` y la misma comparación que ya incrementa `MotorReport.unsafe_pay` en `backend/app/motor/golden_runner.py` (líneas que miran `actual == "PAGAR"` y `expected_decision != "PAGAR"`). El gate de cada split es 0. Un ausente es fallo de corrida: entra en la lista de errores, no cuenta como acierto y no se inventa un `PAGAR`.
 
@@ -120,15 +122,16 @@ El e2e con LLM no entra en pytest. El repo ya separa así G3: las pruebas de `ba
 
 ## 6. Métricas y forma de `latest.md`
 
-Todas por código, dev y holdout por separado. Denominador de cada porcentaje: el número de filas del golden de ese split (34 y 10). Si el denominador de `over_escalation` es 0, la celda dice «n/a» y no un 0 % de cautela perfecta.
+Todas por código, dev y holdout por separado. Denominador de cada porcentaje: el número de filas del golden de ese split (34 y 10). Si el denominador de `over_escalation` o de `under_severity` es 0, la celda dice «n/a» y no un 0 % de cautela perfecta.
 
 | Métrica | Definición en esta tarea |
 |---|---|
 | `unsafe_pay` | Entero. Cuenta de `PAGAR` obtenido con `expected_decision` distinto de `PAGAR`. Gate: 0. |
 | `autonomy` | Porcentaje de filas donde `decision` obtenida == `expected_decision` y `human_events` está vacío. Un evento humano saca la fila del numerador aunque la decisión coincida. El lote de `run_invoice_folder` no añade eventos; si aparece uno, se cuenta y se lista. |
-| `over_escalation` | Entre las filas con `expected_decision` `PAGAR`, porcentaje cuya decisión obtenida es `ESCALAR` o `FRENAR`, o cuyo registro falta. Mide cautela de más, no un fallo de seguridad. |
+| `over_escalation` | Entre las filas con `expected_decision` `PAGAR`, porcentaje cuya decisión obtenida es `ESCALAR` o `FRENAR`, o cuyo registro falta. Mide cautela de más, no un fallo de seguridad. En G3 (D039) fueron 11 facturas (`dev-001`…`dev-008`, `dev-012`). |
+| `under_severity` | Entre las filas con `expected_decision` `FRENAR`, porcentaje cuya decisión obtenida es `ESCALAR`. Mide severidad insuficiente frente al golden, no un fallo de seguridad (I1 sigue prohibiendo `PAGAR` con un chequeo en FALLA o INDETERMINADO). En G3 (D039) fueron 4 facturas (`dev-034`, `dev-013`, `dev-026`, `dev-027`). |
 | `reason_accuracy` | Porcentaje donde el conjunto de `checks[].rule` con `result` distinto de `OK` (`FALLA` o `INDETERMINADO`) es igual al conjunto `expected_rules`. El orden no importa. Un registro ausente no acierta. |
-| `explain_ok` | Porcentaje de filas con `summary` no vacío, objeto `extracted` presente (los campos internos pueden ser null: los ilegibles son así) y, por cada chequeo no `OK`, un `detail` no vacío que contiene el id de esa regla o ese id presente en `summary`. Un registro ausente no cuenta. |
+| `explain_ok` | Porcentaje de filas con `summary` no vacío, objeto `extracted` presente (los campos internos pueden ser null: los ilegibles son así) y, por cada chequeo no `OK`, un `detail` no vacío que contiene el id de esa regla, o ese id presente en `summary` vía `explanation_covers_failed_checks` (`backend/app/gate/invariants.py`). `eval_score.py` reutiliza esa función para la parte de `summary`; no la reimplementa. Un registro ausente no cuenta. |
 
 La matriz es 3×3 por split: filas `PAGAR`, `ESCALAR`, `FRENAR` esperados; columnas las mismas decisiones obtenidas, más una columna «sin registro» si hiciera falta. Cada celda es un entero. La suma de la matriz es el tamaño del split.
 
@@ -136,13 +139,15 @@ La lista de errores incluye cada fila que no entra en el numerador de `autonomy`
 
 Versiones, leídas de `DecisionRecord.versions` (`rules_version`, `model_extractor`, `model_verifier`, `jev`). Si en un split no coinciden, se listan las tuplas distintas y no se elige una en silencio. También `schema_version` del golden y la constante `RULES_VERSION` que hoy vale `v1` en `backend/app/graph/folder_batch.py`. La fecha la escribe el script (fecha local del run). Un nombre de modelo vacío se imprime como «no consta». Ninguna clave.
 
+La sección «Cobertura del holdout» se calcula por código a partir de `expected_rules` de `data/golden/holdout.json`: para cada regla R01–R13 y para «duplicado probable», cuenta si aparece en algún `expected_rules` de las 10 filas. Lista aparte las reglas con cero casos, con la frase de que esta tarea no reclama generalización para esas reglas: el holdout no las ejercita, así que un acierto en `reason_accuracy` o `autonomy` no dice nada sobre ellas. Hoy esa lista es R02, R03, R08–R12 y ningún caso de duplicado probable; el script la recalcula del golden vivo, no la copia fija de este spec.
+
 El markdown, en español, con los nombres de métrica en inglés, sigue este esqueleto:
 
 ```text
 # Evaluación dev y holdout
 
 Fecha: …
-Comando: `.venv/bin/python eval/run_eval.py --output eval/reports/latest.md`
+Comando: `python eval/run_eval.py --output eval/reports/latest.md`
 Frase: El holdout no se usó para calibrar umbrales.
 
 PAGAR en esta tabla es una decisión registrada. No hay movimiento de dinero.
@@ -150,7 +155,7 @@ PAGAR en esta tabla es una decisión registrada. No hay movimiento de dinero.
 ## Métricas
 
 Tabla con columnas split, n, unsafe_pay, autonomy, over_escalation,
-reason_accuracy, explain_ok. Una fila dev y una fila holdout.
+under_severity, reason_accuracy, explain_ok. Una fila dev y una fila holdout.
 
 ## Referencia del motor
 
@@ -160,6 +165,11 @@ cerrada. Texto que dice que es extracción verdadera (G2), no la autonomía del 
 ## Matriz esperado × obtenido
 
 Una matriz por split.
+
+## Cobertura del holdout
+
+Reglas de `expected_rules` con cero casos en el holdout, calculadas por
+código. Frase de que no se reclama generalización para esas reglas.
 
 ## Errores
 
@@ -196,9 +206,9 @@ Si el holdout muestra un `PAGAR` indebido, el reporte lo deja escrito. `docs/06`
 
 ## 8. Criterios de aceptación
 
-1. `eval/reports/latest.md` existe, en español, con dev y holdout por separado, la matriz, la lista de errores, las versiones y la fecha. Contiene la frase «El holdout no se usó para calibrar umbrales.» y la fila «pendiente T5.3». No contiene claves ni párrafos de facturas.
-2. El comando oficial es `eval/run_eval.py`. `eval/run_invoices.py --help` sale 0 (el import `backend` de D039 ya no rompe el arranque). El help no procesa el holdout.
-3. `python -m pytest -q backend/tests/eval/test_eval_score.py` en verde. Esas pruebas cubren: un `PAGAR` con esperado `ESCALAR` suma `unsafe_pay`; un `PAGAR` esperado no suma; un `ESCALAR` contra `FRENAR` no suma; la autonomía exige `human_events` vacío; `over_escalation` usa como denominador los `PAGAR` esperados; `reason_accuracy` compara conjuntos; `explain_ok` exige resumen, `extracted` y el id de regla en el fallo; la matriz suma el tamaño del lote; el markdown incluye la frase de calibración y «pendiente T5.3». Ninguna prueba abre el holdout ni abre un socket.
+1. `eval/reports/latest.md` existe, en español, con dev y holdout por separado, la matriz, la sección «Cobertura del holdout», la lista de errores, las versiones y la fecha. Contiene la frase «El holdout no se usó para calibrar umbrales.» y la fila «pendiente T5.3». No contiene claves ni párrafos de facturas.
+2. El comando oficial es `eval/run_eval.py`. `eval/run_invoices.py --help` sale 0 porque T5.7 (D055) ya arregló el import de `backend`. El help no procesa el holdout.
+3. `python -m pytest -q backend/tests/eval/test_eval_score.py` en verde. Esas pruebas cubren: un `PAGAR` con esperado `ESCALAR` suma `unsafe_pay`; un `PAGAR` esperado no suma; un `ESCALAR` contra `FRENAR` no suma; la autonomía exige `human_events` vacío; `over_escalation` usa como denominador los `PAGAR` esperados; `under_severity` usa como denominador los `FRENAR` esperados y suma solo con `ESCALAR` obtenido; `reason_accuracy` compara conjuntos; `explain_ok` exige resumen, `extracted` y el id de regla en el fallo vía `explanation_covers_failed_checks`; la matriz suma el tamaño del lote; la cobertura del holdout lista las reglas con cero casos en `expected_rules`; el markdown incluye la frase de calibración y «pendiente T5.3». Ninguna prueba abre el holdout ni abre un socket.
 4. `python -m pytest -q` y `python -m ruff check .` siguen en verde. `backend/tests/eval/test_motor_dev.py` no se debilita.
 5. Diff vacío en `data/`, en `backend/app/models/`, en `backend/app/rules/`, en `backend/app/extraction/` y en `backend/app/graph/`. Sin `.env` en el commit.
 6. Tablero: T5.1 HECHA solo si el reporte tiene los dos splits y T5.2 ya estaba cerrada. G5 sigue PENDIENTE. La nota del tablero dice que el holdout se corrió una vez y no se reajustó nada.
@@ -210,7 +220,7 @@ Si `unsafe_pay` de algún split es mayor que 0, el reporte igual se commitea, el
 ## 9. Subtareas
 
 - T5.1.1 `backend/app/gate/eval_score.py` y `backend/tests/eval/test_eval_score.py`. Puntuador puro y pruebas rojas y luego verdes. Sin leer holdout y sin red.
-- T5.1.2 Arranque de `sys.path` en `eval/run_invoices.py` y `eval/run_eval.py`. `python eval/run_invoices.py --help` sale 0. Sin tocar umbrales ni `backend/app/extraction/`.
+- T5.1.2 El import de `backend` lo arregla T5.7 (D055). T5.1 requiere T5.7 HECHA; si `python eval/run_invoices.py --help` sale distinto de 0, parar.
 - T5.1.3 El comando oficial escribe el esqueleto de `latest.md` a partir de resultados. La corrida de dev puede hacerse para cablear. No es todavía el cierre si falta el holdout.
 - T5.1.4 Con T5.2 HECHA en el tablero, una corrida de holdout. `latest.md` completo. Cero ediciones de umbrales, golden o reglas después de leerlo.
 - T5.1.5 Tablero, `docs/AI_USAGE_LOG.md`, commit y push (sección 8.8). G5 permanece PENDIENTE.
@@ -223,13 +233,17 @@ Skill: NINGUNA. No abras un SKILL.md. Decisión del contrato: D042.
 No edites data/, modelos, rules, extraction, jev, verifier, graph ni config.
 No leas .env para copiar secretos. No abras data/golden/holdout.json ni
 data/invoices/holdout/ hasta que T5.2 esté HECHA en docs/TASK_BOARD.md.
-Comando oficial, uno solo: .venv/bin/python eval/run_eval.py --output eval/reports/latest.md
-Ese comando crea el reporte. eval/run_invoices.py solo escribe JSON; arréglale
-el import de D039 con sys.path (raíz del repo y backend/), sin tocar umbrales.
+Comando oficial, uno solo: python eval/run_eval.py --output eval/reports/latest.md
+Ese comando crea el reporte. eval/run_invoices.py solo escribe JSON.
+El import de backend lo arregla T5.7 (D055); T5.1 requiere T5.7 HECHA,
+si python eval/run_invoices.py --help sale distinto de 0, para.
 eval/run_motor.py no es esta eval.
 Métricas por código, dev y holdout aparte: unsafe_pay (gate 0), autonomy,
-over_escalation, reason_accuracy, explain_ok. autonomy no es la del motor.
-unsafe_pay = PAGAR obtenido cuando expected_decision no es PAGAR.
+over_escalation, under_severity, reason_accuracy, explain_ok (reutiliza
+explanation_covers_failed_checks de backend/app/gate/invariants.py).
+autonomy no es la del motor. unsafe_pay = PAGAR obtenido cuando
+expected_decision no es PAGAR. Añade la sección «Cobertura del holdout»
+(reglas de expected_rules con cero casos, calculada por código).
 El e2e con LLM es ese comando manual, no un pytest con red.
 Si el holdout sale peor, se reporta tal cual. No recalibres.
 No cierres G5. Adversariales quedan como «pendiente T5.3».

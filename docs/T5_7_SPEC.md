@@ -2,13 +2,13 @@
 
 Dueño: **Agent Graph**. Carril: B. Skill de dominio: NINGUNA (`docs/SKILLS_MAP.md`); proceso: `python-testing-patterns` PARCIAL, `test-driven-development`.
 
-Depende de: ninguna tarea previa bloquea esta. Coordina con **T5.1** y **T5.2** (ver nota de coordinación abajo: T5.1 ya trae su propio arreglo acotado para los scripts de `eval/`) y desbloquea **T6.4** (el workflow de CI corre `eval/run_motor.py` y, de forma indirecta, el mismo paquete `app.extraction`).
+Depende de: ninguna tarea previa bloquea esta. T5.7 es el único arreglo del import de `backend`; **T5.1** y **T5.2** dependen de T5.7 HECHA (ver nota de coordinación abajo) y T5.7 desbloquea **T6.4** (el workflow de CI corre `eval/run_motor.py` y, de forma indirecta, el mismo paquete `app.extraction`).
 
 Estado: contrato para la sesión que **implemente** T5.7. Este archivo no corre el comando ni cierra la tarea.
 
 Decisión que fija este contrato: **D055** (`docs/DECISIONS_LOG.md`).
 
-**Coordinación con T5.1 (D042, `docs/T5_1_SPEC.md`).** La sesión de T5.1 ya documentó el mismo síntoma (`eval/reports/g3_closure_2026-10-17.md` línea 14) y planeó su propio arreglo acotado: insertar la raíz del repo y `backend/` al frente de `sys.path` dentro de `eval/run_invoices.py` y del nuevo `eval/run_eval.py`, sin tocar `backend/app/extraction/__init__.py` (`docs/T5_1_SPEC.md` §5, subtarea T5.1.2; fila D042 de `docs/DECISIONS_LOG.md`). Ese arreglo es más estrecho: solo cubre los dos scripts de `eval/`, no `cd backend && pytest` ni un tercer entrypoint futuro. T5.7 arregla la causa en el paquete (`backend/app/extraction/__init__.py`), que es lo que de verdad pide el encargo de este spec. Antes de tocar nada, la sesión que implemente T5.7 comprueba el estado real de `eval/run_invoices.py` y de `eval/run_eval.py` (si ya existe): si T5.1 ya insertó su `sys.path`, no se revierte esa inserción (es inofensiva una vez el import de `extraction/__init__.py` está arreglado) y se anota en el diff que queda redundante pero no se borra sin necesidad. Si T5.1 no ha llegado todavía, T5.7 no inventa ni asume la forma de `eval/run_eval.py`: solo corrige el import del paquete y las pruebas de este spec.
+**Coordinación con T5.1 (D042, `docs/T5_1_SPEC.md`) y T5.2 (D043, `docs/T5_2_SPEC.md`).** La sesión de T5.1 documentó el mismo síntoma (`eval/reports/g3_closure_2026-10-17.md` línea 14). T5.7 es el **único** arreglo del import de `backend`: corrige la causa en el paquete (`backend/app/extraction/__init__.py`). No queda ninguna opción de arreglarlo vía `sys.path` dentro de los scripts de `eval/`; T5.1 y T5.2 no traen, ni plantean, un arreglo propio para esto. Ambas tareas declaran T5.7 (D055) como dependencia dura: si no está HECHA, se bloquean y no describen un comando distinto. T5.7 no inventa ni asume la forma de `eval/run_eval.py` si T5.1 todavía no lo ha creado: solo corrige el import del paquete y las pruebas de este spec.
 
 ## 0. Para el agente que implementa
 
@@ -21,7 +21,7 @@ Lecturas:
 - `eval/run_invoices.py` (importa `from app.config import load_settings`, `from app.graph import ...`: espera `app` como paquete top-level, no `backend.app`)
 - `eval/reports/g3_closure_2026-10-17.md` línea 14 (`ModuleNotFoundError: No module named 'backend'` al correr la CLI)
 - `docs/TASK_BOARD.md` fila G3 (nota: «`eval/run_invoices.py` exit 1 (import `backend`); follow-up T5.2») y filas T5.1/T5.2
-- `docs/T5_1_SPEC.md` §5 y la fila D042 de `docs/DECISIONS_LOG.md` (el arreglo acotado que esa tarea ya plantea para los dos scripts de `eval/`)
+- `docs/T5_1_SPEC.md` §0 y §5, y la fila D042 de `docs/DECISIONS_LOG.md` (T5.1 depende de T5.7 HECHA; no trae un arreglo propio del import)
 - Cualquier otro módulo bajo `backend/app/` que importe con el prefijo `backend.app.` (buscar con grep antes de tocar nada; no asumir que solo `extraction/__init__.py` lo hace)
 
 ## 1. Qué es T5.7
@@ -76,9 +76,9 @@ el alcance. Añade una prueba que falle si el import se rompe de nuevo, y una
 que corra la CLI como subproceso y exija exit 0 (sin procesar las 34
 facturas si se puede evitar). Repite la comprobación sobre eval/run_eval.py
 si T5.1 (D042) ya lo creó; no inventes ese archivo si todavía no existe.
-T5.1 ya trae su propio arreglo acotado vía sys.path en los scripts de eval/:
-no lo reviertas, solo anota que queda redundante una vez este import está
-arreglado en la fuente. No toques reglas, grafo, data/ ni eval/reports/.
+T5.7 es el único arreglo de este import; T5.1 y T5.2 no traen uno propio
+y dependen de que T5.7 esté HECHA. No toques reglas, grafo, data/ ni
+eval/reports/.
 Al terminar: cd backend && python -m pytest -q; python eval/run_invoices.py
 desde la raíz; ruff check .; git status limpio en data/. Tablero y
 AI_USAGE_LOG. Commit y push: T5.7: unify backend import path so eval CLI runs
