@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Agente de pagos · Reto Blinka 30x",
+  title: "Tachyon — Pagos a proveedores con criterio",
   description: "Puesto de control de reglas de pago (datos sintéticos).",
 };
 

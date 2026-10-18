@@ -1,4 +1,4 @@
-# Guía para evaluadores — Agente pagador de facturas (Hackathon Blinka)
+# Guía para evaluadores — Tachyon (Hackathon 30x · reto Blinka)
 
 > **Borrador de estructura (T5.5, D046).** `T5.1` (`docs/TASK_BOARD.md`)
 > sigue **PENDIENTE**. Por `docs/T5_5_SPEC.md` §0, mientras eso sea así esta

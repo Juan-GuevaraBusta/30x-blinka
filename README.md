@@ -1,4 +1,4 @@
-# Agente pagador de facturas (Hackathon Blinka)
+# Tachyon — agente de pagos a proveedores (Hackathon 30x · reto Blinka)
 
 > **Borrador de estructura (T5.5, D046).** `T5.1` (`docs/TASK_BOARD.md`) sigue
 > **PENDIENTE**. Por contrato (`docs/T5_5_SPEC.md` §0 y criterio de aceptación 0),

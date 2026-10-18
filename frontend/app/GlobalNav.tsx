@@ -149,10 +149,10 @@ function Wordmark() {
     <Link href="/" className="flex items-center gap-3 rounded-lg focus-ring">
       <BrandMark />
       <span>
-        <span className="block font-display text-lg font-bold leading-none tracking-tight text-white">Agente de pagos</span>
+        <span className="block font-display text-lg font-bold leading-none tracking-tight text-white">Tachyon</span>
         <span className="mt-1 flex items-center gap-1.5 text-xs text-brand-200">
           <PulseDot tone="signal" />
-          Reto Blinka · 30x
+          Pagos a proveedores
         </span>
       </span>
     </Link>

@@ -6,7 +6,7 @@ import {
 } from "@/lib/decisions-list";
 
 export const OVERVIEW_EXPLANATION =
-  "El agente de pagos lee cada factura y decide PAGAR, FRENAR o ESCALAR según las reglas vigentes de la empresa (límites, beneficiarios permitidos, presupuestos por área). Nunca paga fuera de esas reglas, y cada decisión queda registrada con su explicación para que una persona pueda revisarla.";
+  "Tachyon lee cada factura y decide PAGAR, FRENAR o ESCALAR según las reglas vigentes de la empresa (límites, beneficiarios permitidos, presupuestos por área). Nunca paga fuera de esas reglas, y cada decisión queda registrada con su explicación para que una persona pueda revisarla.";
 
 export type OverviewCardKey = DecisionListFilter;
 

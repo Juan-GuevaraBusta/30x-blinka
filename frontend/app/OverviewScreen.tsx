@@ -102,7 +102,7 @@ export default function OverviewScreen() {
               {companyName ? `${WORKSPACE_EYEBROW} · ${companyName}` : WORKSPACE_EYEBROW}
             </p>
             <h1 id="overview-hero-heading" className="mt-4 text-display text-white">
-              Agente de pagos
+              Tachyon
             </h1>
             <p className="mt-4 max-w-prose text-sm leading-relaxed text-brand-100">{OVERVIEW_EXPLANATION}</p>
             <div className="mt-6 flex flex-wrap gap-3">

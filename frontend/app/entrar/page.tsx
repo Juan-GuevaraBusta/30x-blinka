@@ -80,13 +80,13 @@ export default function EntrarPage() {
 
         <div className="relative flex items-center gap-3">
           <BrandMark />
-          <span className="font-display text-lg font-bold tracking-tight">Agente de pagos</span>
+          <span className="font-display text-lg font-bold tracking-tight">Tachyon</span>
         </div>
 
         <div className="relative max-w-md animate-fade-up">
           <p className="inline-flex items-center gap-2 rounded-full border border-night-line bg-night-soft px-3 py-1 text-xs font-semibold text-brand-100">
             <PulseDot tone="signal" />
-            Agente de pagos para equipos de finanzas
+            Tachyon · pagos a proveedores para equipos de finanzas
           </p>
           <h2 className="mt-5 text-display text-white">
             Cada factura, con una decisión <span className="text-signal">explicable</span>.
@@ -115,9 +115,9 @@ export default function EntrarPage() {
         <div className="w-full max-w-md animate-fade-up">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <BrandMark />
-            <span className="font-display text-lg font-bold tracking-tight text-ink">Agente de pagos</span>
+            <span className="font-display text-lg font-bold tracking-tight text-ink">Tachyon</span>
           </div>
-          <h1 className="text-h1 text-ink">Entrar al agente de pagos</h1>
+          <h1 className="text-h1 text-ink">Entrar a Tachyon</h1>
           <p className="mt-2 text-sm text-ink-muted">
             Demo hackathon: registro o inicio de sesión y entras al momento.
           </p>
