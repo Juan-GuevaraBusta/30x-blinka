@@ -61,7 +61,7 @@ Los crea la sesión de la lectura, no este contrato:
 
 Al cerrar la lectura, también: `docs/TASK_BOARD.md` (fila T5.4) y una fila en `docs/AI_USAGE_LOG.md`. `docs/DECISIONS_LOG.md` es del Orquestador. D045 es este contrato; la sesión de la lectura no reabre esa decisión para cambiar la meta ni el lector.
 
-No crear `docs/examples/records/`. El script que arma las fichas corre en la sesión y no se commitea. Entran al diff el paquete, el reporte y las notas de tablero y de uso de IA.
+No crear `docs/examples/records/`. El script que arma las fichas (p. ej. `eval/build_blind_read_packet.py`) se commitea junto con el paquete; si no se commitea, el comando exacto y el sha256 de cada ficha quedan anotados en `eval/reports/blind_read.md` (§7) para que T5.6 pueda verificar. Entran al diff el paquete, el reporte, el script (si se commitea) y las notas de tablero y de uso de IA.
 
 ## 4. Invariantes
 
@@ -80,7 +80,7 @@ Cada ficha es un markdown en español, con el id en el título y tres bloques: r
 | Chequeos | `enrich_check_details` | por cada chequeo: `rule`, `name`, `result`, `detail` |
 | Siguiente paso | `build_next_step` | el string entero |
 
-No hay un campo `detail` en la raíz del `DecisionRecord`. El único `detail` es el de cada chequeo. No se añade una línea `decision:`. No se añade `expected_decision`, `expected_rules`, `case`, `severity`, extracción en bruto, señales JEV, `verifier`, `trace`, `versions`, `admin_notice` ni rutas de código. No se pega el registro JSON entero: con los chequeos R01–R13 la ficha ya es larga, y el spec no la reproduce.
+No hay un campo `detail` en la raíz del `DecisionRecord`. El único `detail` es el de cada chequeo. No se añade una línea `decision:`. No se añade `expected_decision`, `expected_rules`, `case`, `reason` (el campo `reason` del golden, distinto del `summary`/`detail` de las plantillas), `severity`, extracción en bruto, señales JEV, `verifier`, `trace`, `versions`, `admin_notice` ni rutas de código. No se pega el registro JSON entero: con los chequeos R01–R13 la ficha ya es larga, y el spec no la reproduce.
 
 El lector no tiene el código al lado, ni el catálogo, ni el golden, ni este apartado de selección, ni el informe de G3.
 
@@ -110,7 +110,7 @@ Ids, todos `split: dev` en `data/invoices/catalog.json`. El `id` de la ficha es 
 
 Esa columna no se copia a las fichas ni a `blind_read.md`. Sirve para no elegir cinco textos iguales. `dev-012` es el anterior del par de duplicado exacto y no es una de las cinco fichas; el recorrido del ledger sí tiene que procesarlo antes de `dev-013`, igual que el motor.
 
-Exportación, en la sesión, sin commitear el script:
+Exportación, en la sesión. Quien arma el paquete commitea el script de exportación (p. ej. `eval/build_blind_read_packet.py`) junto con el paquete, o — si no lo commitea — anota en `eval/reports/blind_read.md` el comando exacto usado y el sha256 de cada una de las cinco fichas (`shasum -a 256 eval/reports/blind_read_packet/dev-*.md`), para que T5.6 pueda verificar sin tener que reconstruir el script de memoria. Las fichas se generan así:
 
 1. Split fijo `dev`. Si la invocación pide `holdout`, se aborta.
 2. Mismo orden y el mismo contexto que `run_golden_split`: entradas de `data/golden/dev.json`, `sort_key`, `build_rule_context`, `ledger_view_for_invoice`, `run_deterministic_checks`, `decide`. Los asentamientos del ledger siguen la regla del motor (solo cuando la decisión es PAGAR).
@@ -145,6 +145,8 @@ El lector es el mismo humano (D011, 2026-10-16 22:27). No hay un segundo lector.
 - El resultado `N/5`.
 - La meta de `docs/06` (≥ 4/5) y una frase de que esa meta habla de una persona ajena y esta sesión no tiene ese lector (Q4, D045).
 - Que las frases de las fichas son las plantillas de `backend/app/records/`, sin pasada de LLM.
+- Que las cinco fichas se generaron con el motor de G2 (extracción verdadera del golden + `run_deterministic_checks`/`decide`, con las señales JEV ya inyectadas en el `RuleContext`), no con el grafo e2e de G3: no son una corrida de `run_invoice`/LangGraph ni usan el JSON de `/tmp` del cierre G3.
+- El comando exacto de exportación y el sha256 de cada una de las cinco fichas (§7), salvo que el script de exportación se haya commiteado junto con el paquete.
 - Que no se abrió el holdout.
 - Que G5 sigue abierto.
 
