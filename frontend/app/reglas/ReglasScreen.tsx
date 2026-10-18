@@ -5,8 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Section } from "@/components/ui/Section";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { AlertPanel } from "@/components/ui/AlertPanel";
-import type { FailAction, JevKey, RulesConfig } from "@/lib/rules-types";
-import { JEV_KEYS, RULE_IDS } from "@/lib/rules-types";
+import type { RulesConfig } from "@/lib/rules-types";
 import { cloneRulesConfig, validateDraft } from "@/lib/rules-form";
 import { versionLabel } from "@/lib/version-label";
 
@@ -502,57 +501,6 @@ export default function ReglasScreen() {
           >
             Añadir bloqueo
           </button>
-        </Section>
-
-        <Section title="Acción al fallar cada regla">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {RULE_IDS.map((ruleId) => (
-              <div key={ruleId}>
-                <FieldLabel htmlFor={`on-fail-${ruleId}`}>{ruleId}</FieldLabel>
-                <select
-                  id={`on-fail-${ruleId}`}
-                  value={draft.on_fail[ruleId]}
-                  onChange={(e) =>
-                    updateDraft((d) => ({
-                      ...d,
-                      on_fail: {
-                        ...d.on_fail,
-                        [ruleId]: e.target.value as FailAction,
-                      },
-                    }))
-                  }
-                  className="w-full rounded-md border border-line bg-surface px-3 py-2 text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
-                >
-                  <option value="FRENAR">Frenar</option>
-                  <option value="ESCALAR">Escalar</option>
-                </select>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        <Section title="Umbrales JEV" description="Probabilidades entre 0 y 1. No se usa J5.">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {JEV_KEYS.map((key: JevKey) => (
-              <div key={key}>
-                <FieldLabel htmlFor={`jev-${key}`}>{key}</FieldLabel>
-                <NumberInput
-                  id={`jev-${key}`}
-                  step="0.01"
-                  value={String(draft.jev_thresholds[key])}
-                  onChange={(v) =>
-                    updateDraft((d) => ({
-                      ...d,
-                      jev_thresholds: {
-                        ...d.jev_thresholds,
-                        [key]: v === "" ? Number.NaN : Number(v),
-                      },
-                    }))
-                  }
-                />
-              </div>
-            ))}
-          </div>
         </Section>
 
         <div className="sticky bottom-0 border-t border-line bg-canvas/95 py-4 backdrop-blur">
