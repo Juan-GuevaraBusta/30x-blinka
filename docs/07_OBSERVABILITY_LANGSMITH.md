@@ -17,7 +17,7 @@ Variables (documentar en `.env.example`, nunca valores reales en el repo):
 
 ## Qué se traza
 - **Una traza por factura**, con cada nodo del grafo como sub-ejecución.
-- **Metadatos y etiquetas** por traza: `invoice_id`, `decision`, `rules_version`, `model_extractor`, `model_verifier`, `jev_version`, `phase` (`dev|eval|demo`).
+- **Metadatos y etiquetas** por traza: `invoice_id`, `decision`, `rules_version`, `model_extractor`, `model_verifier`, `jev_version`, `phase` (`dev|eval|demo`). En rutas HTTP (`POST /invoices`), también `owner_id` (mismo valor que el header `X-User-Id` de esa sesión, como tag adicional). En CLI/eval (`run_invoice_folder`) no se envía `owner_id`.
 - Entradas/salidas de: `extract`, `jev_checks`, `verify`. Los nodos deterministas registran resultado y regla.
 - Errores y desvíos fail-closed, con motivo (`error_tecnico`, `invariante_violado`, `baja_confianza`).
 - Retroalimentación: tras la evaluación, adjuntar la etiqueta esperada y si acertó (`correct: true|false`) a la traza.

@@ -101,6 +101,7 @@ Inventario: 163 nombres únicos. Ninguna skill inventada en este mapa.
 | T3.6 | NINGUNA | NINGUNA | El verificador es un contrato de `docs/02`, no LangGraph. |
 | T3.7 | `langgraph-fundamentals` | TOTAL | StateGraph, nodos, aristas, checkpointer y errores. |
 | T3.8 | NINGUNA | NINGUNA | LangSmith no tiene skill. `langfuse` es otro producto: no se usa. |
+| T8.1 | `test-driven-development`; `python-testing-patterns`; `api-engineer` | TOTAL; TOTAL; PARCIAL | Etiqueta `owner_id` en traza: tests primero en grafo y API; cableado HTTP sin Postman ni workspace. No `langgraph-fundamentals` (sin nodos nuevos). |
 | T3.9 | NINGUNA | NINGUNA | Una CLI no está cubierta por las skills encontradas. |
 | T3.10 | `python-testing-patterns` | TOTAL | Mock de dependencias y fallo de servicios. |
 | T4.1 | `api-engineer` | PARCIAL | Contrato: `docs/T4_1_SPEC.md` (D029). OpenAPI en repo. Sin workspace Postman salvo aprobación. |
