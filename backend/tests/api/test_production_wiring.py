@@ -17,7 +17,7 @@ from app.api.production_processor import make_production_processor
 from app.api.schemas import InvoiceUpload
 from app.graph.tracing import NullTrace
 from app.llm import LlmClient
-from tests.api.support import RULES_PATH, TEST_ADMIN_KEY, make_record
+from tests.api.support import RULES_PATH, TEST_ADMIN_KEY, load_rules, make_record
 
 _LLM_ENV = {
     "LLM_API_KEY": "test-llm-key",
@@ -110,9 +110,11 @@ def test_tracer_factory_failure_never_breaks_processing(tmp_path, monkeypatch) -
         return make_record(invoice_id=kwargs["invoice_id"])
 
     monkeypatch.setattr(pp, "run_invoice", fake_run_invoice)
-    monkeypatch.setattr(pp, "settled_ledger_from_store", lambda store, fx=None: pp.Ledger.empty())
-    monkeypatch.setattr(pp, "pending_ledger_from_store", lambda store, fx=None: ())
-    monkeypatch.setattr(pp, "effective_rules_and_contracts", lambda store: (None, {}))
+    monkeypatch.setattr(
+        pp, "settled_ledger_from_store", lambda store, fx=None, **_: pp.Ledger.empty()
+    )
+    monkeypatch.setattr(pp, "pending_ledger_from_store", lambda store, fx=None, **_: ())
+    monkeypatch.setattr(pp, "effective_rules_and_contracts", lambda store, **_: (load_rules(), {}))
     processor = make_production_processor(
         object(),  # type: ignore[arg-type]  never touched: the graph is faked
         data_root=RULES_PATH.resolve().parent.parent,

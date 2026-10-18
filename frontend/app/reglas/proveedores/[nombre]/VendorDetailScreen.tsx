@@ -42,7 +42,7 @@ function isPaymentSeriesArray(value: unknown): value is PaymentSeries[] {
 async function loadVendorCalendar(vendorName: string): Promise<LoadState> {
   try {
     const [effectiveRes, decisionsRes] = await Promise.all([
-      fetch("/api/rules/effective", { cache: "no-store" }),
+      apiFetch("/api/rules/effective", { cache: "no-store" }),
       apiFetch("/api/decisions", { cache: "no-store" }),
     ]);
     if (!effectiveRes.ok) {

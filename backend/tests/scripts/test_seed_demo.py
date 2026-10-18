@@ -33,6 +33,8 @@ class FakeTransport:
         self, method: str, url: str, headers: dict[str, str], body: object | None
     ) -> seed_demo.HttpResult:
         self.calls.append((method, url, dict(headers), body))
+        if url.endswith("/admin/members"):  # T9.8: attaching the writer always succeeds
+            return seed_demo.HttpResult(status_code=200, body=body)
         return self.responses.get(
             (method, url), seed_demo.HttpResult(status_code=404, body={"detail": "not_found"})
         )
@@ -137,7 +139,11 @@ def test_apply_second_run_skips_everything_when_already_matching(capsys) -> None
     )
 
     assert exit_code == 0
-    puts = [url for method, url, _h, _b in transport.calls if method == "PUT"]
+    puts = [
+        url
+        for method, url, _h, _b in transport.calls
+        if method == "PUT" and not url.endswith("/admin/members")
+    ]
     assert puts == []  # every step reported "skip", never a duplicate PUT
     out = capsys.readouterr().out.lower()
     assert out.count("skip") >= 4  # rules + 3 vendors
@@ -211,3 +217,47 @@ def test_admin_key_value_is_sent_but_never_printed(capsys) -> None:
     put_calls = [headers for method, _url, headers, _body in transport.calls if method == "PUT"]
     assert put_calls  # at least one write happened
     assert all(headers.get("X-Admin-Key") == "super-secret-value" for headers in put_calls)
+
+
+# --- T9.8: attach a real Supabase user to the demo company ------------------------
+
+
+def test_apply_attaches_member_and_writes_as_that_member() -> None:
+    transport = FakeTransport()
+
+    exit_code = seed_demo.main(
+        [
+            "--base-url", BASE_URL, "--apply",
+            "--member-user-id", "uuid-real", "--member-email", "demo@example.com",
+            "--role", "admin",
+        ],
+        transport=transport,
+        env={"ADMIN_API_KEY": "secret-key"},
+    )
+
+    assert exit_code == 0
+    method, url, headers, body = transport.calls[0]
+    assert (method, url) == ("PUT", f"{BASE_URL}/admin/members")
+    assert body == {
+        "company_id": "demo-acme",
+        "user_id": "uuid-real",
+        "email": "demo@example.com",
+        "role": "admin",
+        "approver_groups": ["finanzas", "cfo"],
+    }
+    assert "X-User-Id" not in headers
+    writes = [h for m, u, h, _b in transport.calls[1:] if m == "PUT"]
+    assert writes and all(h["X-User-Id"] == "uuid-real" for h in writes)
+
+
+def test_member_flags_must_go_together() -> None:
+    transport = FakeTransport()
+
+    exit_code = seed_demo.main(
+        ["--apply", "--member-user-id", "uuid-only"],
+        transport=transport,
+        env={"ADMIN_API_KEY": "secret-key"},
+    )
+
+    assert exit_code == 1
+    assert transport.calls == []

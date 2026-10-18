@@ -156,8 +156,9 @@ def test_production_app_post_persists_with_mocked_graph(
         lambda _store, **_: fake_processor,
     )
     app = create_production_app(mapping, rules_path=RULES_PATH, cors_origins="")
-    from tests.api.support import USER_HEADERS
+    from tests.api.support import USER_HEADERS, attach_test_user
 
+    attach_test_user(app.state.store)
     client = TestClient(app, headers=USER_HEADERS)
 
     response = client.post(

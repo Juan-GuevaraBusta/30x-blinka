@@ -46,7 +46,7 @@ describe("proxy /api/rules (T5.9, D055)", () => {
     vi.stubGlobal("fetch", fetchMock);
     const { GET } = await import("./route");
 
-    await GET();
+    await GET(new NextRequest("http://localhost/api/rules"));
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit | undefined];
@@ -86,7 +86,7 @@ describe("proxy /api/rules (T5.9, D055)", () => {
     vi.stubGlobal("fetch", fetchMock);
     const { GET } = await import("./route");
 
-    const response = await GET();
+    const response = await GET(new NextRequest("http://localhost/api/rules"));
 
     expect(response.status).toBe(502);
     expect(await response.json()).toEqual({ detail: "upstream_unreachable" });

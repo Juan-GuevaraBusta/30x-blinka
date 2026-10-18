@@ -3,10 +3,22 @@
 from __future__ import annotations
 
 import hashlib
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from app.api.tenancy import (
+    DEMO_BASE_CURRENCY,
+    DEMO_COMPANY_ID,
+    DEMO_COMPANY_NAME,
+    AlreadyMemberError,
+    Company,
+    CompanyNameTakenError,
+    CompanyNotFoundError,
+    Member,
+    normalize_company_name,
+)
 from app.models.agreement import VendorAgreement, VendorAgreementVersion, vendor_agreement_json
 from app.models.domain import DecisionRecord, HumanEvent
 from app.models.rules_config import RulesConfig, VendorAddition
@@ -83,29 +95,173 @@ class _ChainEntry:
 
 
 class MemoryStore:
+    """In-memory backend. T9.8 (D067): every company-owned method takes a
+    `company_id` keyword that defaults to the demo company, so pre-T9.8
+    callers (tests, CLI) keep operating on «Acme Demo Inc.»."""
+
     def __init__(self, rules: RulesConfig) -> None:
-        self.rules = rules
+        self._template_rules = rules
+        self._rules_by_company: dict[str, RulesConfig] = {DEMO_COMPANY_ID: rules}
+        self._companies: dict[str, Company] = {
+            DEMO_COMPANY_ID: Company(
+                id=DEMO_COMPANY_ID,
+                name=DEMO_COMPANY_NAME,
+                base_currency=DEMO_BASE_CURRENCY,
+                is_demo=True,
+                created_by=None,
+                created_at="",
+            )
+        }
+        self._members: dict[str, Member] = {}
         self.decisions: dict[str, DecisionRecord] = {}
         self._owners: dict[str, str] = {}
+        self._decision_company: dict[str, str] = {}
         self._invoice_keys: set[tuple[str, str]] = set()
         # T5.10 (D055): append-only chain, same shape as SqlStore's
         # `chain_entries` table. Entries are appended in `add_decision` and
         # `add_human_event` and never rewritten afterward -- see
         # `app.records.chain`'s module docstring for why.
         self._chain: list[_ChainEntry] = []
-        # T9.1 (D061): solo-anexar version history per vendor_key, same shape
-        # as SqlStore's `vendor_agreement_version` table. A confirm appends a
-        # new version and flips the previous `active` one to `superseded`;
-        # nothing here is ever rewritten in place.
-        self._agreement_versions: dict[str, list[VendorAgreementVersion]] = {}
+        # T9.1 (D061): solo-anexar version history per (company, vendor_key).
+        self._agreement_versions: dict[tuple[str, str], list[VendorAgreementVersion]] = {}
 
-    def put_rules(self, rules: RulesConfig) -> RulesConfig:
+    # --- T9.8: companies and members ----------------------------------------
+
+    @property
+    def template_rules(self) -> RulesConfig:
+        return self._template_rules
+
+    def list_companies(self) -> list[Company]:
+        return sorted(self._companies.values(), key=lambda c: c.name.casefold())
+
+    def get_company(self, company_id: str) -> Company | None:
+        return self._companies.get(company_id)
+
+    def create_company(
+        self, *, name: str, base_currency: str, is_demo: bool, created_by: str, at: str
+    ) -> Company:
+        key = normalize_company_name(name)
+        if any(normalize_company_name(c.name) == key for c in self._companies.values()):
+            raise CompanyNameTakenError(name)
+        company = Company(
+            id=str(uuid.uuid4()),
+            name=name.strip(),
+            base_currency=base_currency,
+            is_demo=is_demo,
+            created_by=created_by,
+            created_at=at,
+        )
+        self._companies[company.id] = company
+        return company
+
+    def membership(self, user_id: str) -> Member | None:
+        return self._members.get(user_id)
+
+    def list_members(self, company_id: str) -> list[Member]:
+        return sorted(
+            (m for m in self._members.values() if m.company_id == company_id),
+            key=lambda m: m.created_at,
+        )
+
+    def add_member(
+        self,
+        *,
+        company_id: str,
+        user_id: str,
+        email: str,
+        role: str,
+        approver_groups: tuple[str, ...],
+        at: str,
+        replace: bool = False,
+    ) -> Member:
+        if company_id not in self._companies:
+            raise CompanyNotFoundError(company_id)
+        if user_id in self._members and not replace:
+            raise AlreadyMemberError(user_id)
+        member = Member(
+            company_id=company_id,
+            user_id=user_id,
+            email=email,
+            role=role,
+            approver_groups=tuple(approver_groups),
+            created_at=at,
+        )
+        self._members[user_id] = member
+        return member
+
+    def update_member(
+        self,
+        company_id: str,
+        user_id: str,
+        *,
+        role: str | None = None,
+        approver_groups: tuple[str, ...] | None = None,
+    ) -> Member | None:
+        current = self._members.get(user_id)
+        if current is None or current.company_id != company_id:
+            return None
+        updated = Member(
+            company_id=current.company_id,
+            user_id=current.user_id,
+            email=current.email,
+            role=role if role is not None else current.role,
+            approver_groups=(
+                tuple(approver_groups) if approver_groups is not None else current.approver_groups
+            ),
+            created_at=current.created_at,
+        )
+        self._members[user_id] = updated
+        return updated
+
+    # --- rules ----------------------------------------------------------------
+
+    @property
+    def rules(self) -> RulesConfig:
+        return self._rules_by_company[DEMO_COMPANY_ID]
+
+    @rules.setter
+    def rules(self, value: RulesConfig) -> None:
+        self._rules_by_company[DEMO_COMPANY_ID] = value
+
+    def rules_for(self, company_id: str) -> RulesConfig | None:
+        """`None` means the company is unconfigured (T9.8 fail-closed)."""
+        return self._rules_by_company.get(company_id)
+
+    def put_rules(self, rules: RulesConfig, *, company_id: str = DEMO_COMPANY_ID) -> RulesConfig:
         """Replace rules only. Caller must pass an already validated `RulesConfig`."""
-        self.rules = rules
-        return self.rules
+        self._rules_by_company[company_id] = rules
+        return rules
+
+    # --- decisions --------------------------------------------------------------
 
     def has_invoice(self, invoice_id: str, owner_id: str) -> bool:
         return (owner_id, invoice_id) in self._invoice_keys
+
+    def has_company_invoice(self, invoice_id: str, company_id: str) -> bool:
+        return any(
+            record.invoice_id == invoice_id
+            for record in self.decisions_for(company_id).values()
+        )
+
+    def decisions_for(self, company_id: str) -> dict[str, DecisionRecord]:
+        return {
+            record_id: record
+            for record_id, record in self.decisions.items()
+            if self._decision_company.get(record_id) == company_id
+        }
+
+    def list_decisions_for_company(
+        self, company_id: str, decision: str | None = None
+    ) -> list[DecisionRecord]:
+        records = list(self.decisions_for(company_id).values())
+        if decision is None:
+            return records
+        return [item for item in records if item.decision == decision]
+
+    def get_for_company(self, decision_id: str, company_id: str) -> DecisionRecord | None:
+        if self._decision_company.get(decision_id) != company_id:
+            return None
+        return self.decisions.get(decision_id)
 
     def list_decisions_for_owner(
         self, owner_id: str, decision: str | None = None
@@ -128,13 +284,18 @@ class MemoryStore:
         return self._chain[-1].record_hash if self._chain else GENESIS_PREV_HASH
 
     def add_decision(
-        self, record: DecisionRecord, owner_id: str = "test-user-id"
+        self,
+        record: DecisionRecord,
+        owner_id: str = "test-user-id",
+        *,
+        company_id: str = DEMO_COMPANY_ID,
     ) -> DecisionRecord:
         key = (owner_id, record.invoice_id)
         if record.id in self.decisions or key in self._invoice_keys:
             raise DuplicateDecisionError(record.invoice_id)
         self.decisions[record.id] = record
         self._owners[record.id] = owner_id
+        self._decision_company[record.id] = company_id
         self._invoice_keys.add(key)
         # Append-only: chain from the current tip, inside the same call
         # `SqlStore.add_decision` chains inside its session -- both run
@@ -177,12 +338,14 @@ class MemoryStore:
         author: str,
         reason: str,
         at: datetime,
+        company_id: str = DEMO_COMPANY_ID,
     ) -> RulesConfig:
         """T7.4 (D059): append allowlist + `allowlist_change`; decision row unchanged."""
-        onboarding = self.rules.vendor_onboarding
-        if onboarding is None or not onboarding.enabled:
+        rules = self.rules_for(company_id)
+        onboarding = rules.vendor_onboarding if rules is not None else None
+        if rules is None or onboarding is None or not onboarding.enabled:
             raise VendorOnboardingDisabledError()
-        record = self.decisions.get(decision_id)
+        record = self.get_for_company(decision_id, company_id)
         if record is None:
             raise KeyError(decision_id)
         if not any(c.rule == "R01" and c.result == "FALLA" for c in record.checks):
@@ -190,7 +353,7 @@ class MemoryStore:
         beneficiary = (record.extracted.beneficiary or "").strip()
         if not beneficiary:
             raise ValueError("missing_beneficiary")
-        allowed = {normalize_beneficiary(name) for name in self.rules.allowed_beneficiaries}
+        allowed = {normalize_beneficiary(name) for name in rules.allowed_beneficiaries}
         if normalize_beneficiary(beneficiary) in allowed:
             raise AlreadyAllowedError()
         addition = VendorAddition(
@@ -200,13 +363,13 @@ class MemoryStore:
             reason=reason,
             source_decision_id=decision_id,
         )
-        updated_rules = self.rules.model_copy(
+        updated_rules = rules.model_copy(
             update={
-                "allowed_beneficiaries": [*self.rules.allowed_beneficiaries, beneficiary],
-                "vendor_additions": [*self.rules.vendor_additions, addition],
+                "allowed_beneficiaries": [*rules.allowed_beneficiaries, beneficiary],
+                "vendor_additions": [*rules.vendor_additions, addition],
             }
         )
-        self.rules = updated_rules
+        self._rules_by_company[company_id] = updated_rules
         change = AllowlistChangePayload(
             beneficiary=beneficiary,
             author=author,
@@ -234,13 +397,9 @@ class MemoryStore:
         Walks `self._chain` in append order and, for each entry, recomputes
         its hash from *current* stored data -- a `decision` entry re-reads
         `self.decisions[ref_id]` (minus `human_events`); a `human_event`
-        entry re-reads its own stored, immutable payload. A direct-store
-        tamper is demonstrated by mutating `self.decisions` or `self._chain`
-        directly, bypassing this class's own methods -- exactly like editing
-        `DecisionRecordRow`/`ChainEntryRow` through a raw `Session` bypasses
-        `SqlStore`. A ``ref_id`` removed from ``self.decisions`` (simulating
-        a deleted row) is reported as the break point instead of raising out
-        of this read-only endpoint.
+        entry re-reads its own stored, immutable payload. A ``ref_id``
+        removed from ``self.decisions`` (simulating a deleted row) is
+        reported as the break point instead of raising.
         """
         entries: list[tuple[str, object, str, str]] = []
         for entry in self._chain:
@@ -262,24 +421,32 @@ class MemoryStore:
 
     # --- T9.1 (D061): vendor agreement registry ---------------------------------
 
-    def list_agreement_vendor_keys(self) -> list[str]:
-        return sorted(self._agreement_versions.keys())
+    def list_agreement_vendor_keys(self, *, company_id: str = DEMO_COMPANY_ID) -> list[str]:
+        return sorted(key for cid, key in self._agreement_versions if cid == company_id)
 
-    def list_agreement_versions(self, vendor_key: str) -> list[VendorAgreementVersion]:
+    def list_agreement_versions(
+        self, vendor_key: str, *, company_id: str = DEMO_COMPANY_ID
+    ) -> list[VendorAgreementVersion]:
         """Oldest-first, mirroring insertion order (`version` ascending)."""
-        return list(self._agreement_versions.get(vendor_key, []))
+        return list(self._agreement_versions.get((company_id, vendor_key), []))
 
-    def get_active_agreement_version(self, vendor_key: str) -> VendorAgreementVersion | None:
-        for version in reversed(self._agreement_versions.get(vendor_key, [])):
+    def get_active_agreement_version(
+        self, vendor_key: str, *, company_id: str = DEMO_COMPANY_ID
+    ) -> VendorAgreementVersion | None:
+        for version in reversed(self._agreement_versions.get((company_id, vendor_key), [])):
             if version.status == "active":
                 return version
         return None
 
-    def list_active_agreements(self) -> list[ActiveAgreement]:
+    def list_active_agreements(
+        self, *, company_id: str = DEMO_COMPANY_ID
+    ) -> list[ActiveAgreement]:
         """Every vendor's current `active` version, for `compile_rules` (§4)."""
         result: list[ActiveAgreement] = []
-        for vendor_key in self._agreement_versions:
-            active = self.get_active_agreement_version(vendor_key)
+        for cid, vendor_key in self._agreement_versions:
+            if cid != company_id:
+                continue
+            active = self.get_active_agreement_version(vendor_key, company_id=company_id)
             if active is not None:
                 result.append(
                     ActiveAgreement(
@@ -301,6 +468,7 @@ class MemoryStore:
         source_sha256: str | None,
         spans: dict[str, str],
         at: datetime,
+        company_id: str = DEMO_COMPANY_ID,
     ) -> VendorAgreementVersion:
         """§3 `PUT /agreements/{vendor_key}`: append a new `active` version,
         supersede the previous one (if any), and append one `agreement_change`
@@ -308,19 +476,19 @@ class MemoryStore:
         """
         from app.rules.agreements import AgreementConflictError
 
-        if vendor_key_conflicts_with_base(self.rules, vendor_key):
+        rules = self.rules_for(company_id)
+        if rules is not None and vendor_key_conflicts_with_base(rules, vendor_key):
             raise AgreementConflictError(vendor_key)
 
-        existing = self._agreement_versions.setdefault(vendor_key, [])
+        existing = self._agreement_versions.setdefault((company_id, vendor_key), [])
         # `current_version` is the latest version number ever assigned to this
         # vendor_key, regardless of status -- a confirm after a `deactivate`
-        # (no `active` row) must still require the real latest version, not
-        # reset to 0 and collide with an already-used version number.
+        # (no `active` row) must still require the real latest version.
         current_version = existing[-1].version if existing else 0
         if expected_version != current_version:
             raise AgreementVersionConflictError(vendor_key, expected_version, current_version)
 
-        current_active = self.get_active_agreement_version(vendor_key)
+        current_active = self.get_active_agreement_version(vendor_key, company_id=company_id)
         if current_active is not None:
             superseded = current_active.model_copy(update={"status": "superseded"})
             existing[existing.index(current_active)] = superseded
@@ -341,16 +509,21 @@ class MemoryStore:
         return new_version
 
     def deactivate_agreement(
-        self, vendor_key: str, *, author: str, at: datetime
+        self,
+        vendor_key: str,
+        *,
+        author: str,
+        at: datetime,
+        company_id: str = DEMO_COMPANY_ID,
     ) -> VendorAgreementVersion:
         """§3 `POST /agreements/{vendor_key}/deactivate`: a new `inactive`
         version, carrying forward the last confirmed terms for audit.
         """
-        current = self.get_active_agreement_version(vendor_key)
+        current = self.get_active_agreement_version(vendor_key, company_id=company_id)
         if current is None:
             raise AgreementNotFoundError(vendor_key)
 
-        existing = self._agreement_versions[vendor_key]
+        existing = self._agreement_versions[(company_id, vendor_key)]
         existing[existing.index(current)] = current.model_copy(update={"status": "superseded"})
 
         new_version = VendorAgreementVersion(

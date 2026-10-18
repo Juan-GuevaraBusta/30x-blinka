@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { fetchUpstreamText } from "@/lib/upstream-error";
+import { identityFromRequest } from "@/lib/upstream-request";
 
 const API_URL = process.env.API_URL ?? "http://127.0.0.1:8000";
 // T5.9 (D055): server-side only. Never read as NEXT_PUBLIC_*; the browser never sees it.
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY;
 
-async function proxy(method: "GET" | "PUT", body?: string): Promise<NextResponse> {
-  const headers: Record<string, string> = {};
+async function proxy(
+  method: "GET" | "PUT",
+  request: NextRequest,
+  body?: string,
+): Promise<NextResponse> {
+  // T9.8 (D067): rules are per company; the API resolves it from X-User-Id.
+  const headers: Record<string, string> = identityFromRequest(request);
   if (body) {
     headers["Content-Type"] = "application/json";
   }
@@ -29,11 +35,11 @@ async function proxy(method: "GET" | "PUT", body?: string): Promise<NextResponse
   });
 }
 
-export async function GET(): Promise<NextResponse> {
-  return proxy("GET");
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  return proxy("GET", request);
 }
 
 export async function PUT(request: NextRequest): Promise<NextResponse> {
   const body = await request.text();
-  return proxy("PUT", body);
+  return proxy("PUT", request, body);
 }

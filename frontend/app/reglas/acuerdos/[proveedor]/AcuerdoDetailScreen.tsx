@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Section } from "@/components/ui/Section";
 import { describeAgreement } from "@/lib/agreement-present";
 import { AGREEMENT_KIND_LABELS, type AgreementHistory } from "@/lib/agreement-types";
+import { apiFetch } from "@/lib/session";
 
 type LoadState =
   | { status: "loading" }
@@ -16,7 +17,7 @@ type LoadState =
 
 async function loadHistory(vendorKey: string): Promise<LoadState> {
   try {
-    const res = await fetch(`/api/agreements/${encodeURIComponent(vendorKey)}`, {
+    const res = await apiFetch(`/api/agreements/${encodeURIComponent(vendorKey)}`, {
       cache: "no-store",
     });
     if (res.status === 404) {
@@ -67,7 +68,7 @@ export default function AcuerdoDetailScreen({ vendorKeyParam }: { vendorKeyParam
         setDeactivating(false);
         return;
       }
-      const res = await fetch(`/api/agreements/${encodeURIComponent(vendorKey)}/deactivate`, {
+      const res = await apiFetch(`/api/agreements/${encodeURIComponent(vendorKey)}/deactivate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ author }),

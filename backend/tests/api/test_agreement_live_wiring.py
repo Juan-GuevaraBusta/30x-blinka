@@ -31,6 +31,7 @@ from sqlalchemy import create_engine
 from tests.api.support import (
     RULES_PATH,
     USER_HEADERS,
+    attach_test_user,
     load_approver_emails,
     load_approver_groups,
 )
@@ -113,6 +114,7 @@ def _client(store: SqlStore, extractor: _FakeExtractor, *, contracts_dir: Path):
             contracts_dir=contracts_dir,
         )
 
+    attach_test_user(store)
     processor = make_production_processor(
         store, deps_factory=deps_factory, checkpointer=MemorySaver()
     )
@@ -457,6 +459,7 @@ def _client_with_jev(store: SqlStore, extractor: _FakeExtractor, jev, *, contrac
             contracts_dir=contracts_dir,
         )
 
+    attach_test_user(store)
     processor = make_production_processor(
         store, deps_factory=deps_factory, checkpointer=MemorySaver()
     )

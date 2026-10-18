@@ -8,10 +8,21 @@ from collections.abc import Callable, Mapping
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, UploadFile
+from fastapi import (
+    Depends,
+    FastAPI,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+)
 from pydantic import ValidationError
 
 from app.api.approval import build_approval_status, enforce_route_approval
+from app.api.companies import build_company_router
 from app.api.rate_limit import FixedWindowLimiter, RateLimitMiddleware
 from app.api.schemas import (
     MAX_INVOICE_BYTES,
@@ -39,13 +50,23 @@ from app.api.store import (
     R01NotFailedError,
     VendorOnboardingDisabledError,
 )
+from app.api.tenancy import (
+    CURRENT_COMPANY,
+    DEMO_COMPANY_ID,
+    Company,
+    Member,
+    apply_unconfigured_guard,
+    approver_groups_for,
+    draft_rules_payload,
+    fallback_rules,
+)
 from app.api.user_scope import require_user_id
 from app.extraction.agreement_draft import draft_agreement
 from app.extraction.ingest import IngestChannel, IngestError, ingest_bytes
 from app.inbox.routes import build_inbox_router
 from app.models.agreement import VendorAgreementVersion
 from app.models.domain import DecisionRecord, HumanAction, HumanEvent
-from app.models.rules_config import RulesConfig
+from app.models.rules_config import CompanyRef, RulesConfig
 from app.rules.agreements import AgreementConflictError, compile_rules
 from app.rules.normalize import normalize_beneficiary, normalize_invoice_number
 
@@ -63,6 +84,17 @@ MetricsReader = Callable[[], MetricsReading | None]
 # Production alternative, not implemented here (hackathon scope): a DB row
 # lock (`SELECT ... FOR UPDATE`) or `SERIALIZABLE` isolation.
 _INVOICE_LOCK = threading.Lock()
+
+
+def _tenant(request: Request, user_id: Annotated[str, Depends(require_user_id)]) -> Member:
+    """T9.8 (D067): the caller's company comes only from its membership."""
+    member = request.app.state.store.membership(user_id)
+    if member is None:
+        raise HTTPException(status_code=403, detail="no_company")
+    return member
+
+
+Tenant = Annotated[Member, Depends(_tenant)]
 
 
 def create_app(
@@ -103,6 +135,7 @@ def create_app(
         approver_groups if approver_groups is not None else {}
     )
     app = FastAPI(title="blinka-invoice-agent", openapi_url=None)
+    app.state.store = store
     app.add_middleware(RateLimitMiddleware, limiter=limiter)
 
     def _check_admin_key(
@@ -118,32 +151,81 @@ def create_app(
         """
         _require_admin_key(admin_api_key, x_admin_key)
 
+    def _company(member: Member) -> Company:
+        company = store.get_company(member.company_id)
+        if company is None:
+            raise HTTPException(status_code=403, detail="no_company")
+        return company
+
+    def _require_admin_role(member: Member) -> None:
+        if member.role != "admin":
+            raise HTTPException(status_code=403, detail="admin_required")
+
+    def _approvers(company_id: str) -> tuple[frozenset[str], Mapping[str, frozenset[str]]]:
+        """Company approvers: members with approver groups. The demo company
+        also keeps `data/company.json`'s static allowlist (T5.9/T7.1)."""
+        is_demo = company_id == DEMO_COMPANY_ID
+        groups = approver_groups_for(
+            store.list_members(company_id), dict(allowed_groups) if is_demo else None
+        )
+        emails: set[str] = set(allowed_approvers) if is_demo else set()
+        for members in groups.values():
+            emails.update(members)
+        return frozenset(emails), groups
+
+    def _base_rules(company_id: str) -> RulesConfig:
+        rules = store.rules_for(company_id)
+        if rules is not None:
+            return rules
+        company = store.get_company(company_id)
+        assert company is not None
+        return fallback_rules(store.template_rules, company)
+
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
     @app.get("/rules")
-    def get_rules() -> RulesConfig:
-        return store.rules
+    def get_rules(member: Tenant) -> dict[str, Any]:
+        """T9.8: the company's rules, or an empty draft while unconfigured."""
+        rules = store.rules_for(member.company_id)
+        if rules is None:
+            return draft_rules_payload(store.template_rules, _company(member))
+        return rules.model_dump(mode="json")
 
     @app.put("/rules")
     def put_rules(
         body: RulesConfig,
+        member: Tenant,
         _admin: None = Depends(_check_admin_key),
     ) -> RulesConfig:
         # `_admin` (Depends) runs before `body` is parsed, so an unauthenticated
         # caller gets 401/503, never 422 (R3-auth-after-body-validation). A valid
         # body that fails RulesConfig's own validators still rejects with 422.
-        return store.put_rules(body)
+        _require_admin_role(member)
+        company = _company(member)
+        # T9.8: the company's base currency is fixed at creation and drives FX.
+        rules = body.model_copy(
+            update={
+                "company": CompanyRef(
+                    name=body.company.name, base_currency=company.base_currency
+                )
+            }
+        )
+        return store.put_rules(rules, company_id=member.company_id)
 
     @app.get("/rules/effective")
-    def get_effective_rules() -> EffectiveRulesBody:
+    def get_effective_rules(member: Tenant) -> EffectiveRulesBody:
         """T9.1 (D061) §3: rules the motor/graph actually use, plus provenance."""
-        compiled = compile_rules(store.rules, store.list_active_agreements())
+        compiled = compile_rules(
+            _base_rules(member.company_id),
+            store.list_active_agreements(company_id=member.company_id),
+        )
         return EffectiveRulesBody(rules=compiled.rules, provenance=compiled.provenance)
 
     @app.post("/agreements/draft")
     async def draft_agreement_endpoint(
+        member: Tenant,
         text: Annotated[str | None, Form()] = None,
         file: Annotated[UploadFile | None, File()] = None,
         _admin: None = Depends(_check_admin_key),
@@ -171,7 +253,7 @@ def create_app(
             raise HTTPException(status_code=422, detail=exc.code) from exc
 
         llm = agreement_llm if agreement_llm is not None else _NULL_AGREEMENT_LLM
-        result = draft_agreement(ingested.text, llm, company_name=store.rules.company.name)
+        result = draft_agreement(ingested.text, llm, company_name=_company(member).name)
         return AgreementDraftResponseBody(
             draft=result.draft,
             spans=result.spans,
@@ -180,10 +262,11 @@ def create_app(
         )
 
     @app.get("/agreements")
-    def list_agreements() -> list[AgreementListEntryBody]:
+    def list_agreements(member: Tenant) -> list[AgreementListEntryBody]:
+        cid = member.company_id
         entries: list[AgreementListEntryBody] = []
-        for vendor_key in store.list_agreement_vendor_keys():
-            active = store.get_active_agreement_version(vendor_key)
+        for vendor_key in store.list_agreement_vendor_keys(company_id=cid):
+            active = store.get_active_agreement_version(vendor_key, company_id=cid)
             if active is None:
                 continue
             terms = active.terms
@@ -203,21 +286,24 @@ def create_app(
         return entries
 
     @app.get("/agreements/{vendor_key}")
-    def get_agreement(vendor_key: str) -> AgreementHistoryBody:
-        versions = store.list_agreement_versions(vendor_key)
+    def get_agreement(vendor_key: str, member: Tenant) -> AgreementHistoryBody:
+        cid = member.company_id
+        versions = store.list_agreement_versions(vendor_key, company_id=cid)
         if not versions:
             raise HTTPException(status_code=404, detail="not_found")
-        active = store.get_active_agreement_version(vendor_key)
+        active = store.get_active_agreement_version(vendor_key, company_id=cid)
         return AgreementHistoryBody(vendor_key=vendor_key, active=active, versions=versions)
 
     @app.put("/agreements/{vendor_key}")
     def confirm_agreement_endpoint(
         vendor_key: str,
         body: ConfirmAgreementBody,
+        member: Tenant,
         _admin: None = Depends(_check_admin_key),
     ) -> VendorAgreementVersion:
         """T9.1 (D061) §3: a human confirms (I2) -- creates the next version."""
-        _require_known_approver(body.confirmed_by, allowed_approvers)
+        _require_admin_role(member)
+        _require_known_approver(body.confirmed_by, _approvers(member.company_id)[0])
         if body.terms.vendor_key != vendor_key:
             raise HTTPException(status_code=422, detail="vendor_key_mismatch")
         try:
@@ -229,6 +315,7 @@ def create_app(
                 source_sha256=body.source_sha256,
                 spans=body.spans,
                 at=clock(),
+                company_id=member.company_id,
             )
         except AgreementConflictError:
             raise HTTPException(
@@ -241,20 +328,24 @@ def create_app(
     def deactivate_agreement_endpoint(
         vendor_key: str,
         body: DeactivateAgreementBody,
+        member: Tenant,
         _admin: None = Depends(_check_admin_key),
     ) -> VendorAgreementVersion:
-        _require_known_approver(body.author, allowed_approvers)
+        _require_admin_role(member)
+        _require_known_approver(body.author, _approvers(member.company_id)[0])
         try:
-            return store.deactivate_agreement(vendor_key, author=body.author, at=clock())
+            return store.deactivate_agreement(
+                vendor_key, author=body.author, at=clock(), company_id=member.company_id
+            )
         except AgreementNotFoundError:
             raise HTTPException(status_code=404, detail="not_found") from None
 
     @app.get("/decisions")
     def list_decisions(
-        owner_id: Annotated[str, Depends(require_user_id)],
+        member: Tenant,
         decision: Annotated[Literal["PAGAR", "ESCALAR", "FRENAR"] | None, Query()] = None,
     ) -> list[DecisionRecord]:
-        return store.list_decisions_for_owner(owner_id, decision)
+        return store.list_decisions_for_company(member.company_id, decision)
 
     @app.get("/decisions/verify-chain")
     def verify_chain() -> ChainVerificationBody:
@@ -270,17 +361,17 @@ def create_app(
 
     @app.get("/decisions/{id}")
     def get_decision(
-        owner_id: Annotated[str, Depends(require_user_id)],
+        member: Tenant,
         id: str,
     ) -> DecisionRecord:
-        found = store.get_for_owner(id, owner_id)
+        found = store.get_for_company(id, member.company_id)
         if found is None:
             raise HTTPException(status_code=404, detail="not_found")
         return found
 
     @app.post("/invoices", status_code=201)
     async def post_invoice(
-        owner_id: Annotated[str, Depends(require_user_id)],
+        member: Tenant,
         file: Annotated[UploadFile, File()],
         invoice_id: Annotated[str, Form()],
         channel: Annotated[str, Form()],
@@ -299,7 +390,8 @@ def create_app(
         content = await _read_capped(file)
         if content is None:
             raise HTTPException(status_code=422, detail="invalid_file_size")
-        if store.has_invoice(meta.invoice_id, owner_id):
+        owner_id = member.user_id
+        if store.has_company_invoice(meta.invoice_id, member.company_id):
             raise HTTPException(status_code=409, detail="duplicate_invoice")
         # T5.13 follow-up (D063): the server's own clock is the authoritative
         # `received_at` for ledger windows (R03/R07/R05/R21) -- the client's
@@ -324,39 +416,61 @@ def create_app(
     def approve(
         id: str,
         body: HumanDecisionBody,
+        member: Tenant,
         _admin: None = Depends(_check_admin_key),
     ) -> DecisionRecord:
-        _require_known_approver(body.author, allowed_approvers)
-        found = store.get(id)
+        emails, groups = _require_approver(member, body.author)
+        found = store.get_for_company(id, member.company_id)
         if found is None:
             raise HTTPException(status_code=404, detail="not_found")
-        if _is_duplicate_of_settled(store, found):
+        if _is_duplicate_of_settled(store.decisions_for(member.company_id), found):
             raise HTTPException(status_code=409, detail="duplicate_of_settled")
-        return _add_human_event(store, clock, id, body, "aprobada_humano", allowed_groups)
+        return _add_human_event(
+            store, clock, found, body, "aprobada_humano", groups, _base_rules(member.company_id)
+        )
 
     @app.post("/decisions/{id}/reject")
     def reject(
         id: str,
         body: HumanDecisionBody,
+        member: Tenant,
         _admin: None = Depends(_check_admin_key),
     ) -> DecisionRecord:
-        _require_known_approver(body.author, allowed_approvers)
-        return _add_human_event(store, clock, id, body, "rechazada_humano", allowed_groups)
+        emails, groups = _require_approver(member, body.author)
+        found = store.get_for_company(id, member.company_id)
+        if found is None:
+            raise HTTPException(status_code=404, detail="not_found")
+        return _add_human_event(
+            store, clock, found, body, "rechazada_humano", groups, _base_rules(member.company_id)
+        )
+
+    def _require_approver(
+        member: Member, author: str
+    ) -> tuple[frozenset[str], Mapping[str, frozenset[str]]]:
+        """T9.8: `author` must be an approver of the caller's company, and the
+        caller must be an approver too (a plain member cannot act)."""
+        emails, groups = _approvers(member.company_id)
+        _require_known_approver(author, emails)
+        if not member.is_approver and member.email not in emails:
+            raise HTTPException(status_code=403, detail="approver_required")
+        return emails, groups
 
     @app.post("/decisions/{id}/add-beneficiary")
     def add_beneficiary(
         id: str,
         body: HumanDecisionBody,
+        member: Tenant,
         _admin: None = Depends(_check_admin_key),
     ) -> RulesConfig:
         """T7.4 (D059): audited allowlist append from an R01 FRENAR record (I2)."""
-        _require_known_approver(body.author, allowed_approvers)
+        _require_approver(member, body.author)
         try:
             return store.add_beneficiary_from_decision(
                 id,
                 author=body.author,
                 reason=body.reason,
                 at=clock(),
+                company_id=member.company_id,
             )
         except VendorOnboardingDisabledError:
             raise HTTPException(status_code=403, detail="vendor_onboarding_disabled") from None
@@ -368,12 +482,16 @@ def create_app(
             raise HTTPException(status_code=409, detail="already_allowed") from None
 
     @app.get("/decisions/{id}/approval")
-    def get_approval(id: str) -> ApprovalStatusBody:
+    def get_approval(id: str, member: Tenant) -> ApprovalStatusBody:
         """Read-only «x de N» status (T7.1, D059 §4). Never mutates `decision` (I2)."""
-        found = store.get(id)
+        found = store.get_for_company(id, member.company_id)
         if found is None:
             raise HTTPException(status_code=404, detail="not_found")
-        return build_approval_status(found, rules=store.rules, approver_groups=allowed_groups)
+        return build_approval_status(
+            found,
+            rules=_base_rules(member.company_id),
+            approver_groups=_approvers(member.company_id)[1],
+        )
 
     @app.get("/metrics")
     def metrics() -> MetricsBody:
@@ -392,6 +510,10 @@ def create_app(
     @app.get("/openapi.json")
     def openapi_json() -> dict[str, object]:
         return app.openapi()
+
+    app.include_router(
+        build_company_router(store, clock=clock, check_admin_key=_check_admin_key)
+    )
 
     # T9.2 (D061): mounts POST/GET /inbox and the human process/dismiss actions
     # on the SAME app (same rate limiter) and reuses `_decide_and_store_invoice`
@@ -428,10 +550,24 @@ _NULL_AGREEMENT_LLM = _NullAgreementLlm()
 def _decide_and_store_invoice(
     processor: Processor, store: MemoryStore, upload: InvoiceUpload, owner_id: str
 ) -> DecisionRecord:
-    """Serialize decide + persist so a concurrent invoice always sees this one (T5.8)."""
+    """Serialize decide + persist so a concurrent invoice always sees this one (T5.8).
+
+    T9.8 (D067): the decision belongs to the uploader's company. While that
+    company is unconfigured, the record is raised to at least ESCALAR.
+    """
+    member = store.membership(owner_id)
+    if member is None:
+        raise HTTPException(status_code=403, detail="no_company")
+    company_id = member.company_id
     with _INVOICE_LOCK:
-        record = processor(upload, owner_id)
-        return store.add_decision(record, owner_id)
+        token = CURRENT_COMPANY.set(company_id)
+        try:
+            record = processor(upload, owner_id)
+        finally:
+            CURRENT_COMPANY.reset(token)
+        if store.rules_for(company_id) is None:
+            record = apply_unconfigured_guard(record)
+        return store.add_decision(record, owner_id, company_id=company_id)
 
 
 def _require_admin_key(configured: str | None, provided: str | None) -> None:
@@ -455,7 +591,9 @@ def _require_known_approver(author: str, approver_emails: frozenset[str]) -> Non
         raise HTTPException(status_code=422, detail="unknown_approver")
 
 
-def _is_duplicate_of_settled(store: MemoryStore, found: DecisionRecord) -> bool:
+def _is_duplicate_of_settled(
+    decisions: Mapping[str, DecisionRecord], found: DecisionRecord
+) -> bool:
     """P0 safety fix: refuse to approve an invoice that is an exact duplicate
     (same normalized beneficiary + invoice number) of an already settled
     decision (PAGAR, or any decision with an ``aprobada_humano`` event --
@@ -468,7 +606,7 @@ def _is_duplicate_of_settled(store: MemoryStore, found: DecisionRecord) -> bool:
     number = normalize_invoice_number(found.extracted.invoice_number)
     if beneficiary is None or number is None:
         return False
-    for other in store.decisions.values():
+    for other in decisions.values():
         if other.id == found.id:
             continue
         settled = other.decision == "PAGAR" or any(
@@ -487,21 +625,20 @@ def _is_duplicate_of_settled(store: MemoryStore, found: DecisionRecord) -> bool:
 def _add_human_event(
     store: MemoryStore,
     clock: Clock,
-    decision_id: str,
+    found: DecisionRecord,
     body: HumanDecisionBody,
     action: HumanAction,
     approver_groups: Mapping[str, frozenset[str]],
+    rules: RulesConfig,
 ) -> DecisionRecord:
     # I2 / I4: append a human event. Do not rewrite decision or severity.
-    found = store.get(decision_id)
-    if found is None:
-        raise HTTPException(status_code=404, detail="not_found")
+    decision_id = found.id
     if found.decision != "ESCALAR":
         raise HTTPException(status_code=409, detail="not_escalated")
     # T7.1 (D059) §4: only applies when the record carries an R14 in FALLA;
     # otherwise returns None and behavior is unchanged from before T7.1.
     error = enforce_route_approval(
-        found, body.author, action, rules=store.rules, approver_groups=approver_groups
+        found, body.author, action, rules=rules, approver_groups=approver_groups
     )
     if error is not None:
         status_code = 422 if error == "approver_not_in_route" else 409

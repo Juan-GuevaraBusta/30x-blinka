@@ -31,6 +31,7 @@ DEFAULT_OUTPUT: Path = REPO_ROOT / "backend" / "sql" / "seed_demo.sql"
 # Fixed, deterministic `confirmed_at` for the SQL-only demo rows (no clock, no
 # network -- this script is pure except for the final file write in `main`).
 _SEED_CONFIRMED_AT = "2026-01-01T00:00:00+00:00"
+DEMO_COMPANY_ID = "demo-acme"
 
 _HEADER = """\
 -- Semilla de demo para Postgres/Supabase (bypassa la cadena de auditoria) --------------------
@@ -68,12 +69,22 @@ def render_sql() -> str:
     demo_agreements = build_demo_agreements()
     confirmed_by = pick_approver_email()
 
-    lines: list[str] = [_HEADER, "", "-- 1. Reglas base (rules_document)", ""]
+    company = _sql_string_literal(DEMO_COMPANY_ID)
+    lines: list[str] = [_HEADER, "", "-- 0. Empresa demo (T9.8)", ""]
+    lines.append(
+        "INSERT INTO companies (id, name, name_key, base_currency, is_demo, created_by, "
+        "created_at)\n"
+        f"VALUES ({company}, 'Acme Demo Inc.', 'acme demo inc.', 'USD', TRUE, NULL, "
+        f"{_sql_string_literal(_SEED_CONFIRMED_AT)})\n"
+        "ON CONFLICT (id) DO NOTHING;"
+    )
+    lines += ["", "-- 1. Reglas base (rules_document)", ""]
     rules_json = demo_rules.model_dump_json()
     lines.append(
-        "INSERT INTO rules_document (payload)\n"
-        f"SELECT {_sql_string_literal(rules_json)}\n"
-        "WHERE NOT EXISTS (SELECT 1 FROM rules_document);"
+        "INSERT INTO rules_document (id, payload, company_id)\n"
+        "SELECT COALESCE((SELECT MAX(id) FROM rules_document), 0) + 1, "
+        f"{_sql_string_literal(rules_json)}, {company}\n"
+        f"WHERE NOT EXISTS (SELECT 1 FROM rules_document WHERE company_id = {company});"
     )
     lines.append("")
     lines.append("-- 2. Acuerdos de proveedores demo (vendor_agreement_version, v1 activa)")
@@ -82,9 +93,10 @@ def render_sql() -> str:
         terms_json = terms.model_dump_json()
         lines.append(
             "INSERT INTO vendor_agreement_version "
-            "(vendor_key, version, terms_json, source_sha256, spans_json, "
+            "(company_id, vendor_key, version, terms_json, source_sha256, spans_json, "
             "confirmed_by, confirmed_at, status)\n"
             "VALUES (\n"
+            f"    {company},\n"
             f"    {_sql_string_literal(vendor_key)},\n"
             "    1,\n"
             f"    {_sql_string_literal(terms_json)},\n"
@@ -94,7 +106,7 @@ def render_sql() -> str:
             f"    {_sql_string_literal(_SEED_CONFIRMED_AT)},\n"
             f"    {_sql_string_literal('active')}\n"
             ")\n"
-            "ON CONFLICT (vendor_key, version) DO NOTHING;"
+            "ON CONFLICT (company_id, vendor_key, version) DO NOTHING;"
         )
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"

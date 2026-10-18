@@ -5,7 +5,13 @@ from __future__ import annotations
 import pytest
 from app.models.domain import Decision
 from fastapi.testclient import TestClient
-from tests.api.support import ADMIN_HEADERS, USER_HEADERS, build_client, make_record
+from tests.api.support import (
+    ADMIN_HEADERS,
+    USER_HEADERS,
+    attach_test_user,
+    build_client,
+    make_record,
+)
 
 
 def test_list_decisions_empty(client: TestClient) -> None:
@@ -23,10 +29,18 @@ def test_list_decisions_requires_user_header() -> None:
     assert response.json()["detail"] == "missing_user_id"
 
 
-def test_list_decisions_isolated_by_owner() -> None:
+def test_list_decisions_isolated_by_company() -> None:
+    """T9.8 (D067): decisions are scoped by the caller's company, not by uploader."""
     client, store, _clock = build_client()
+    other = store.create_company(
+        name="Otra SA", base_currency="USD", is_demo=False, created_by="owner-b", at="t"
+    )
+    attach_test_user(store, user_id="owner-a", email="a@demo.test")
+    attach_test_user(store, user_id="owner-b", email="b@otra.test", company_id=other.id)
     store.add_decision(make_record(id="dec_a", invoice_id="INV-A"), owner_id="owner-a")
-    store.add_decision(make_record(id="dec_b", invoice_id="INV-B"), owner_id="owner-b")
+    store.add_decision(
+        make_record(id="dec_b", invoice_id="INV-B"), owner_id="owner-b", company_id=other.id
+    )
 
     as_a = client.get("/decisions", headers={**USER_HEADERS, "X-User-Id": "owner-a"})
     as_b = client.get("/decisions", headers={**USER_HEADERS, "X-User-Id": "owner-b"})

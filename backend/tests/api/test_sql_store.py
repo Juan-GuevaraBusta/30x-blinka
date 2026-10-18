@@ -19,6 +19,8 @@ from sqlalchemy.orm import Session
 from tests.api.support import (
     ADMIN_HEADERS,
     TEST_ADMIN_KEY,
+    USER_HEADERS,
+    attach_test_user,
     load_approver_emails,
     load_rules,
     make_record,
@@ -168,6 +170,7 @@ def test_http_sql_store_rules_survive_restart(tmp_path) -> None:
     init_database(engine)
     store = SqlStore(engine)
     store.put_rules(load_rules())
+    attach_test_user(store)
     frozen = datetime(2026, 3, 4, 12, 0, tzinfo=UTC)
     approvers = load_approver_emails()
     app = create_app(
@@ -178,7 +181,7 @@ def test_http_sql_store_rules_survive_restart(tmp_path) -> None:
         admin_api_key=TEST_ADMIN_KEY,
         approver_emails=approvers,
     )
-    client = TestClient(app)
+    client = TestClient(app, headers=USER_HEADERS)
 
     custom = RulesConfig.model_validate({**rules_payload(), "human_approval_threshold": 2500.0})
     put = client.put(
@@ -209,7 +212,7 @@ def test_http_sql_store_rules_survive_restart(tmp_path) -> None:
         admin_api_key=TEST_ADMIN_KEY,
         approver_emails=approvers,
     )
-    client2 = TestClient(app2)
+    client2 = TestClient(app2, headers=USER_HEADERS)
 
     rules_body = client2.get("/rules").json()
     assert rules_body["human_approval_threshold"] == 2500.0

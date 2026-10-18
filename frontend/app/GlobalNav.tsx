@@ -4,13 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { isActiveNavLink, NAV_LINKS } from "@/lib/nav";
+import { roleLabel, setMe, useMe } from "@/lib/me";
+import { isActiveNavLink, NAV_LINKS, visibleNavLinks } from "@/lib/nav";
 import { clearStoredUserId, getStoredUserId } from "@/lib/session";
 
 const RAIL_DISCLAIMER = "Esta mesa registra la decisión. No mueve dinero.";
 
 function NavLinks({ orientation }: { orientation: "vertical" | "horizontal" }) {
   const pathname = usePathname();
+  const me = useMe();
+  const links = visibleNavLinks(NAV_LINKS, me?.member);
   const listClass =
     orientation === "vertical"
       ? "flex flex-col gap-0.5"
@@ -18,7 +21,7 @@ function NavLinks({ orientation }: { orientation: "vertical" | "horizontal" }) {
 
   return (
     <ul className={listClass}>
-      {NAV_LINKS.map((link) => {
+      {links.map((link) => {
         const active = isActiveNavLink(pathname ?? "/", link.href);
         return (
           <li key={link.href}>
@@ -58,11 +61,25 @@ function SignOutButton() {
       className="mt-2 w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-ink-muted hover:bg-paper hover:text-ink focus-ring"
       onClick={() => {
         clearStoredUserId();
+        setMe(null);
         window.location.href = "/entrar";
       }}
     >
       Salir
     </button>
+  );
+}
+
+function CompanyBadge() {
+  const me = useMe();
+  if (!me?.company) return null;
+  const role = roleLabel(me.member?.role);
+  return (
+    <p className="mt-1 text-xs text-ink-muted" aria-label="Empresa y rol">
+      <span className="font-medium text-ink">{me.company.name}</span>
+      {role ? ` · ${role}` : ""}
+      {me.member?.is_approver ? " · aprobador" : ""}
+    </p>
   );
 }
 
@@ -75,6 +92,7 @@ export default function GlobalNav() {
             Blinka
           </Link>
           <p className="mt-0.5 text-xs text-ink-muted">Agente de pagos</p>
+          <CompanyBadge />
         </div>
         <nav aria-label="Principal" className="overflow-x-auto border-t border-line px-2 py-2">
           <NavLinks orientation="horizontal" />
@@ -90,6 +108,7 @@ export default function GlobalNav() {
             Blinka
           </Link>
           <p className="mt-1 text-xs text-ink-muted">Agente de pagos</p>
+          <CompanyBadge />
         </div>
         <nav className="flex-1 px-3">
           <NavLinks orientation="vertical" />

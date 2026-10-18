@@ -13,7 +13,7 @@ from app.persistence.sql_store import SqlStore
 from fastapi.testclient import TestClient
 from langgraph.checkpoint.memory import MemorySaver
 from sqlalchemy import create_engine
-from tests.api.support import RULES_PATH
+from tests.api.support import RULES_PATH, attach_test_user
 from tests.test_invoice_graph import PAY_CHAT, _deps
 from tests.test_tracing import _SYNTH_OWNER, _FakeTrace
 
@@ -24,6 +24,7 @@ def test_post_invoice_passes_x_user_id_to_tracer_open_config(tmp_path) -> None:
     init_database(engine)
     store = SqlStore(engine)
     seed_rules(store, RULES_PATH)
+    attach_test_user(store, user_id=_SYNTH_OWNER)
     tracer = _FakeTrace()
 
     def deps_factory(

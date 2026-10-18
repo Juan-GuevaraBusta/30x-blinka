@@ -122,9 +122,12 @@ npm test
   del ledger es un lock de proceso; el despliegue debe correr un único
   worker de `uvicorn` (sin `--workers`), no coordina entre réplicas
   (`backend/app/api/app.py`).
-- **Autenticación de usuario pendiente.** `X-User-Id` no se verifica del
-  lado del servidor todavía; eso llega con `T9.6.0` (`docs/TASK_BOARD.md`
-  fila T9.6, PENDIENTE).
+- **Identidad sin verificar (hackathon).** El navegador envía el id y el
+  correo de Supabase como `X-User-Id` / `X-User-Email` y el API no verifica
+  el JWT: quien conozca el id de otro usuario puede actuar como él dentro de
+  su empresa (`docs/T9_8_SPEC.md` §5). La empresa de cada usuario sale de
+  `company_members` (T9.8); la bandeja de correos sigue por usuario y usa los
+  aprobadores de la demo.
 - **Nota sobre el holdout.** Durante otra tarea, el *motor* (sin LLM) se
   corrió una vez sobre el holdout como chequeo de regresión; eso no es la
   corrida e2e de holdout que hace T5.1 y no se usó para calibrar nada

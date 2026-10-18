@@ -27,7 +27,32 @@ TEST_ADMIN_KEY = "test-admin-key"
 ADMIN_HEADERS = {"X-Admin-Key": TEST_ADMIN_KEY}
 
 TEST_USER_ID = "test-user-id"
+TEST_USER_EMAIL = "test-user@demo.test"
 USER_HEADERS = {"X-User-Id": TEST_USER_ID}
+
+
+def attach_test_user(
+    store: object,
+    *,
+    user_id: str = TEST_USER_ID,
+    email: str = TEST_USER_EMAIL,
+    company_id: str | None = None,
+    role: str = "admin",
+    approver_groups: tuple[str, ...] = ("finanzas", "cfo"),
+) -> None:
+    """T9.8 (D067): API tests act as an admin+approver of the demo company."""
+    from app.api.tenancy import DEMO_COMPANY_ID
+
+    if store.membership(user_id) is not None:  # type: ignore[attr-defined]
+        return
+    store.add_member(  # type: ignore[attr-defined]
+        company_id=company_id or DEMO_COMPANY_ID,
+        user_id=user_id,
+        email=email,
+        role=role,
+        approver_groups=approver_groups,
+        at="2026-03-04T12:00:00+00:00",
+    )
 
 _EXAMPLE: dict[str, object] = {
     "id": "dec_0042",
@@ -142,6 +167,7 @@ def build_client(
     approver_groups: dict[str, frozenset[str]] | None = None,
 ) -> tuple[TestClient, MemoryStore, MutableClock]:
     rules_store = store if store is not None else MemoryStore(load_rules())
+    attach_test_user(rules_store)
     frozen = clock if clock is not None else MutableClock(datetime(2026, 3, 4, 12, 0, tzinfo=UTC))
 
     def default_processor(upload: InvoiceUpload, owner_id: str) -> DecisionRecord:

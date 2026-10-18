@@ -17,7 +17,7 @@ import {
 } from "@/lib/approvals";
 import type { ApprovalStatusBody } from "@/lib/approval-status-present";
 import { approvalCountLabel, routeDisplayLabel } from "@/lib/approval-status-present";
-import { apiFetch } from "@/lib/session";
+import { apiFetch, getStoredUserEmail } from "@/lib/session";
 
 const I8_NOTE =
   "Aprobar o rechazar registra un evento humano. No se mueve dinero; la decisión del agente sigue siendo ESCALAR.";
@@ -34,7 +34,8 @@ type CardDraft = {
 
 function emptyDraft(): CardDraft {
   return {
-    author: DEFAULT_APPROVAL_AUTHOR,
+    // T9.8: the signed-in approver by default; the API checks it is a company approver.
+    author: getStoredUserEmail() ?? DEFAULT_APPROVAL_AUTHOR,
     reason: "",
     fieldError: null,
     actionError: null,

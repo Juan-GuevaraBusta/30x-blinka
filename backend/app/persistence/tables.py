@@ -3,7 +3,7 @@ append-only hash chain."""
 
 from __future__ import annotations
 
-from sqlalchemy import Integer, MetaData, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Integer, MetaData, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 metadata = MetaData()
@@ -18,6 +18,41 @@ class RulesDocument(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     payload: Mapped[str] = mapped_column(Text, nullable=False)
+    # T9.8 (D067): one rules document per company. Nullable only for legacy
+    # rows; the boot migration backfills them to the demo company.
+    company_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+
+
+class CompanyRow(Base):
+    """T9.8 (D067): a tenant. `name_key` is the normalized name (unique)."""
+
+    __tablename__ = "companies"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    name_key: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    base_currency: Mapped[str] = mapped_column(String, nullable=False)
+    is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[str] = mapped_column(String, nullable=False)
+
+
+class CompanyMemberRow(Base):
+    """T9.8 (D067): user -> company link. `user_id` is unique: one company per
+    user in the MVP. `approver_groups` is a JSON list; non-empty = approver."""
+
+    __tablename__ = "company_members"
+    __table_args__ = (
+        UniqueConstraint("company_id", "user_id", name="uq_company_member"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    company_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    email: Mapped[str] = mapped_column(String, nullable=False)
+    role: Mapped[str] = mapped_column(String, nullable=False)
+    approver_groups: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    created_at: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class DecisionRecordRow(Base):
@@ -30,6 +65,7 @@ class DecisionRecordRow(Base):
     decision: Mapped[str] = mapped_column(String, nullable=False)
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     payload: Mapped[str] = mapped_column(Text, nullable=False)
+    company_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
 
 
 class VendorAgreementVersionRow(Base):
@@ -44,7 +80,9 @@ class VendorAgreementVersionRow(Base):
 
     __tablename__ = "vendor_agreement_version"
     __table_args__ = (
-        UniqueConstraint("vendor_key", "version", name="uq_agreement_vendor_version"),
+        UniqueConstraint(
+            "company_id", "vendor_key", "version", name="uq_agreement_company_vendor_version"
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -56,6 +94,7 @@ class VendorAgreementVersionRow(Base):
     confirmed_by: Mapped[str] = mapped_column(String, nullable=False)
     confirmed_at: Mapped[str] = mapped_column(String, nullable=False)
     status: Mapped[str] = mapped_column(String, nullable=False)
+    company_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
 
 
 class ChainEntryRow(Base):
@@ -89,3 +128,4 @@ class ChainEntryRow(Base):
     payload: Mapped[str | None] = mapped_column(Text, nullable=True)
     prev_hash: Mapped[str] = mapped_column(String, nullable=False)
     record_hash: Mapped[str] = mapped_column(String, nullable=False)
+    company_id: Mapped[str | None] = mapped_column(String, nullable=True)

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { AlertPanel } from "@/components/ui/AlertPanel";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { AGREEMENT_KIND_LABELS, type AgreementListEntry } from "@/lib/agreement-types";
+import { apiFetch } from "@/lib/session";
 
 type LoadState =
   | { status: "loading" }
@@ -14,7 +15,7 @@ type LoadState =
 
 async function loadAgreements(): Promise<LoadState> {
   try {
-    const res = await fetch("/api/agreements", { cache: "no-store" });
+    const res = await apiFetch("/api/agreements", { cache: "no-store" });
     if (!res.ok) {
       return { status: "error", message: `No se pudieron cargar los acuerdos (HTTP ${res.status}).` };
     }

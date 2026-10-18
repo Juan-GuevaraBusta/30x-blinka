@@ -20,7 +20,14 @@ from app.rules.approval_policy import ApprovalPolicyGroupError
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
-from tests.api.support import ADMIN_HEADERS, COMPANY_PATH, RULES_PATH, TEST_ADMIN_KEY
+from tests.api.support import (
+    ADMIN_HEADERS,
+    COMPANY_PATH,
+    RULES_PATH,
+    TEST_ADMIN_KEY,
+    USER_HEADERS,
+    attach_test_user,
+)
 
 
 def test_postgresql_scheme_rewritten_without_connecting() -> None:
@@ -42,7 +49,8 @@ def test_factory_sqlite_seed_get_put(tmp_path) -> None:
     db = tmp_path / "boot.sqlite"
     mapping = {"DATABASE_URL": f"sqlite:///{db}", "ADMIN_API_KEY": TEST_ADMIN_KEY}
     app = create_production_app(mapping, rules_path=RULES_PATH, cors_origins="")
-    client = TestClient(app)
+    attach_test_user(app.state.store)
+    client = TestClient(app, headers=USER_HEADERS)
 
     health = client.get("/health")
     assert health.status_code == 200
@@ -66,7 +74,8 @@ def test_second_seed_does_not_overwrite_put(tmp_path) -> None:
     db = tmp_path / "boot.sqlite"
     mapping = {"DATABASE_URL": f"sqlite:///{db}", "ADMIN_API_KEY": TEST_ADMIN_KEY}
     app = create_production_app(mapping, rules_path=RULES_PATH, cors_origins="")
-    client = TestClient(app)
+    attach_test_user(app.state.store)
+    client = TestClient(app, headers=USER_HEADERS)
     base = client.get("/rules").json()
     custom = {**base, "human_approval_threshold": 2500.0}
     client.put("/rules", json=custom, headers=ADMIN_HEADERS)
@@ -83,7 +92,8 @@ def test_put_rules_returns_503_when_admin_api_key_env_unset(tmp_path) -> None:
     db = tmp_path / "boot.sqlite"
     mapping = {"DATABASE_URL": f"sqlite:///{db}"}
     app = create_production_app(mapping, rules_path=RULES_PATH, cors_origins="")
-    client = TestClient(app)
+    attach_test_user(app.state.store)
+    client = TestClient(app, headers=USER_HEADERS)
 
     response = client.put(
         "/rules", json=client.get("/rules").json(), headers=ADMIN_HEADERS
@@ -97,8 +107,7 @@ def test_decisions_empty_after_seed(tmp_path) -> None:
     db = tmp_path / "boot.sqlite"
     mapping = {"DATABASE_URL": f"sqlite:///{db}"}
     app = create_production_app(mapping, rules_path=RULES_PATH, cors_origins="")
-    from tests.api.support import USER_HEADERS
-
+    attach_test_user(app.state.store)
     client = TestClient(app, headers=USER_HEADERS)
 
     assert client.get("/decisions").json() == []
@@ -210,7 +219,8 @@ def test_boot_falls_back_to_seed_when_persisted_rules_fail_new_validator(
     mapping = {"DATABASE_URL": f"sqlite:///{db}", "ADMIN_API_KEY": TEST_ADMIN_KEY}
 
     app = create_production_app(mapping, rules_path=RULES_PATH, cors_origins="")
-    client = TestClient(app)
+    attach_test_user(app.state.store)
+    client = TestClient(app, headers=USER_HEADERS)
 
     response = client.get("/rules")
     assert response.status_code == 200

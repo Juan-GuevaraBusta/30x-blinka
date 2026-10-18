@@ -7,9 +7,10 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { AlertPanel } from "@/components/ui/AlertPanel";
 import type { RulesConfig } from "@/lib/rules-types";
 import { cloneRulesConfig, validateDraft } from "@/lib/rules-form";
+import { apiFetch } from "@/lib/session";
 
 async function fetchRules(): Promise<RulesConfig> {
-  const res = await fetch("/api/rules", { cache: "no-store" });
+  const res = await apiFetch("/api/rules", { cache: "no-store" });
   if (!res.ok) {
     throw new Error(`No se pudieron cargar las reglas (HTTP ${res.status}).`);
   }
@@ -17,7 +18,7 @@ async function fetchRules(): Promise<RulesConfig> {
 }
 
 async function putRules(document: RulesConfig): Promise<RulesConfig> {
-  const res = await fetch("/api/rules", {
+  const res = await apiFetch("/api/rules", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(document),

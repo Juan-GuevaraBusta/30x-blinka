@@ -14,6 +14,7 @@ import {
   type AgreementFormState,
 } from "@/lib/agreement-form";
 import type { AgreementDraftResponse, AgreementKind } from "@/lib/agreement-types";
+import { apiFetch } from "@/lib/session";
 
 const KIND_OPTIONS: { value: AgreementKind; label: string }[] = [
   { value: "retainer", label: "Retainer (monto fijo periódico)" },
@@ -73,7 +74,7 @@ export default function NuevoAcuerdoScreen({ initialVendorName }: { initialVendo
       } else {
         body.append("text", text);
       }
-      const res = await fetch("/api/agreements/draft", { method: "POST", body });
+      const res = await apiFetch("/api/agreements/draft", { method: "POST", body });
       if (!res.ok) {
         const detail = await res.json().catch(() => ({ detail: "error" }));
         setError(`No se pudo generar el borrador (${res.status}): ${detail.detail ?? "error"}`);
@@ -98,7 +99,7 @@ export default function NuevoAcuerdoScreen({ initialVendorName }: { initialVendo
     setError(null);
     setConfirming(true);
     try {
-      const res = await fetch(`/api/agreements/${encodeURIComponent(terms.vendor_key ?? "")}`, {
+      const res = await apiFetch(`/api/agreements/${encodeURIComponent(terms.vendor_key ?? "")}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -12,11 +12,18 @@ independent of `--with-rules`, for the 3 demo vendors (see
 mode; it is sent as the `X-Admin-Key` header on every write request and is
 never printed anywhere (plan, logs, or errors).
 
+T9.8 (D067): every write is scoped to the demo company «Acme Demo Inc.».
+The script first attaches its writer to that company through
+`PUT /admin/members` (X-Admin-Key only): the real Supabase user given with
+`--member-user-id/--member-email` (admin, approver groups finanzas+cfo), or a
+service user `seed-demo-script` when none is given.
+
 Usage::
 
     python backend/scripts/seed_demo.py                       # dry run
     python backend/scripts/seed_demo.py --with-rules           # dry run, incl. rules
-    ADMIN_API_KEY=... python backend/scripts/seed_demo.py --apply --with-rules
+    ADMIN_API_KEY=... python backend/scripts/seed_demo.py --apply --with-rules \
+        --member-user-id <supabase-uuid> --member-email <email> --role admin
 """
 
 from __future__ import annotations
@@ -42,6 +49,9 @@ from scripts._demo_fixtures import (
 )
 
 DEFAULT_BASE_URL = "http://localhost:8000"
+DEMO_COMPANY_ID = "demo-acme"
+SEED_SERVICE_USER_ID = "seed-demo-script"
+DEMO_APPROVER_GROUPS = ["finanzas", "cfo"]
 
 
 @dataclass(frozen=True)
@@ -111,7 +121,9 @@ def _agreement_matches(current_terms_json: Any, demo_terms: VendorAgreement) -> 
 def build_plan(
     *, with_rules: bool, demo_agreements: Mapping[str, VendorAgreement]
 ) -> list[PlannedCall]:
-    plan: list[PlannedCall] = []
+    plan: list[PlannedCall] = [
+        PlannedCall("PUT", "/admin/members", "attach the writer to «Acme Demo Inc.»")
+    ]
     if with_rules:
         plan.append(PlannedCall("GET", "/rules", "check the current rules document"))
         plan.append(
@@ -139,10 +151,38 @@ def _print_plan(plan: list[PlannedCall]) -> None:
         print(f"  {call.method} {call.path} -- {call.summary}")
 
 
+def _apply_member_step(
+    transport: Transport,
+    base_url: str,
+    admin_key: str,
+    *,
+    user_id: str,
+    email: str,
+    role: str,
+) -> bool:
+    body = {
+        "company_id": DEMO_COMPANY_ID,
+        "user_id": user_id,
+        "email": email,
+        "role": role,
+        "approver_groups": DEMO_APPROVER_GROUPS,
+    }
+    result = transport("PUT", f"{base_url}/admin/members", {"X-Admin-Key": admin_key}, body)
+    if result.status_code == 200:
+        print(f"attached: {email} to «Acme Demo Inc.» as {role} (finanzas, cfo)")
+        return True
+    print(
+        f"error: PUT /admin/members failed with status {result.status_code}: {result.body}",
+        file=sys.stderr,
+    )
+    return False
+
+
 def _apply_rules_step(
     transport: Transport, base_url: str, write_headers: Mapping[str, str], demo_rules: RulesConfig
 ) -> None:
-    get_result = transport("GET", f"{base_url}/rules", {}, None)
+    read_headers = {"X-User-Id": write_headers["X-User-Id"]}
+    get_result = transport("GET", f"{base_url}/rules", read_headers, None)
     if get_result.status_code == 200 and _rules_matches(get_result.body, demo_rules):
         print("skip: rules already up to date")
         return
@@ -166,7 +206,8 @@ def _apply_agreement_step(
     confirmed_by: str,
 ) -> None:
     path = f"/agreements/{vendor_key}"
-    get_result = transport("GET", f"{base_url}{path}", {}, None)
+    read_headers = {"X-User-Id": write_headers["X-User-Id"]}
+    get_result = transport("GET", f"{base_url}{path}", read_headers, None)
     if get_result.status_code == 404:
         expected_version = 0
     elif get_result.status_code == 200 and isinstance(get_result.body, dict):
@@ -221,6 +262,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Also seed the demo RulesConfig via PUT /rules (opt-in, idempotent).",
     )
     parser.add_argument(
+        "--member-user-id",
+        help="Supabase user id to attach to «Acme Demo Inc.» (approver groups finanzas+cfo).",
+    )
+    parser.add_argument("--member-email", help="Email of --member-user-id.")
+    parser.add_argument(
+        "--role", choices=["admin", "member"], default="admin", help="Role (default admin)."
+    )
+    parser.add_argument(
         "--apply",
         action="store_true",
         help="Actually perform the HTTP calls. Without this flag, only the plan is printed.",
@@ -243,8 +292,32 @@ def run(args: argparse.Namespace, transport: Transport, env: Mapping[str, str]) 
         )
         return 1
 
+    if bool(args.member_user_id) != bool(args.member_email):
+        print("error: --member-user-id and --member-email go together", file=sys.stderr)
+        return 1
+
     confirmed_by = pick_approver_email()
-    write_headers = {"X-Admin-Key": admin_key, "X-User-Id": confirmed_by}
+    writer_id = args.member_user_id or SEED_SERVICE_USER_ID
+    writer_email = args.member_email or confirmed_by
+    writer_role = args.role if args.member_user_id else "admin"
+    if not _apply_member_step(
+        transport,
+        args.base_url,
+        admin_key,
+        user_id=writer_id,
+        email=writer_email,
+        role=writer_role,
+    ):
+        return 1
+    if writer_role != "admin":
+        # Rules/agreements need an admin writer: fall back to the service user.
+        writer_id = SEED_SERVICE_USER_ID
+        if not _apply_member_step(
+            transport, args.base_url, admin_key,
+            user_id=writer_id, email=confirmed_by, role="admin",
+        ):
+            return 1
+    write_headers = {"X-Admin-Key": admin_key, "X-User-Id": writer_id}
 
     if args.with_rules:
         demo_rules = build_demo_rules_config()

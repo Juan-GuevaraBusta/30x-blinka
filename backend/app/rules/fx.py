@@ -94,3 +94,32 @@ def convert_to_base(
         currency=code,
         error=None,
     )
+
+
+def rebase_fx_table(table: FxTable, base_currency: str) -> FxTable:
+    """T9.8 (D067): the same fixed table expressed in a company's base currency.
+
+    `fx.json` quotes USD per 1 unit; a company whose base is EUR needs EUR per
+    1 unit: every rate divided by the EUR rate. Same base -> the table itself
+    (byte-identical behavior for the USD demo). Unknown base -> KeyError
+    (company creation already rejects it with 422).
+    """
+    code = normalize_currency(base_currency)
+    if code is None:
+        raise KeyError(base_currency)
+    if code == normalize_currency(table.base_currency):
+        return table
+    pivot = table.rates.get(code)
+    if pivot is None or pivot <= 0:
+        raise KeyError(base_currency)
+    return FxTable(
+        as_of=table.as_of,
+        base_currency=code,
+        quote=f"{code.lower()}_per_1_unit",
+        rates={k: v / pivot for k, v in table.rates.items()},
+    )
+
+
+def supported_currencies(table: FxTable | None = None) -> frozenset[str]:
+    source = table if table is not None else load_fx_table()
+    return frozenset(source.rates.keys())

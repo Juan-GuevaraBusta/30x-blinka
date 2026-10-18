@@ -7,6 +7,7 @@ import { AlertPanel } from "@/components/ui/AlertPanel";
 import { PageHeader } from "@/components/ui/PageHeader";
 import type { AgreementListEntry } from "@/lib/agreement-types";
 import { mergeVendorData, vendorProvenanceLabel, type EffectiveRulesResponse, type VendorSummary } from "@/lib/vendor-aggregate";
+import { apiFetch } from "@/lib/session";
 
 type LoadState =
   | { status: "loading" }
@@ -16,8 +17,8 @@ type LoadState =
 async function loadVendors(): Promise<LoadState> {
   try {
     const [effectiveRes, agreementsRes] = await Promise.all([
-      fetch("/api/rules/effective", { cache: "no-store" }),
-      fetch("/api/agreements", { cache: "no-store" }),
+      apiFetch("/api/rules/effective", { cache: "no-store" }),
+      apiFetch("/api/agreements", { cache: "no-store" }),
     ]);
     if (!effectiveRes.ok) {
       return { status: "error", message: `No se pudieron cargar los proveedores (HTTP ${effectiveRes.status}).` };

@@ -96,11 +96,83 @@ def ensure_owner_id_column(engine: Engine) -> None:
         )
 
 
+_COMPANY_SCOPED_TABLES = (
+    "rules_document",
+    "vendor_agreement_version",
+    "decision_record",
+    "chain_entries",
+)
+
+
+def ensure_company_tenancy(engine: Engine) -> None:
+    """T9.8 (D067), idempotent: add `company_id` to legacy tables, create the
+    demo company «Acme Demo Inc.» (USD) and assign it every legacy row whose
+    `company_id` is still NULL. On Postgres, also swap the pre-T9.8 agreement
+    uniqueness `(vendor_key, version)` for `(company_id, vendor_key, version)`
+    so two companies can each confirm v1 for the same vendor.
+    """
+    from datetime import UTC, datetime
+
+    from app.api.tenancy import DEMO_BASE_CURRENCY, DEMO_COMPANY_ID, DEMO_COMPANY_NAME
+    from app.api.tenancy import normalize_company_name as _normalize
+
+    inspector = inspect(engine)
+    tables = set(inspector.get_table_names())
+    for table in _COMPANY_SCOPED_TABLES:
+        if table not in tables:
+            continue
+        columns = {col["name"] for col in inspector.get_columns(table)}
+        if "company_id" not in columns:
+            with engine.begin() as conn:
+                conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN company_id VARCHAR'))
+
+    with engine.begin() as conn:
+        exists = conn.execute(
+            text("SELECT 1 FROM companies WHERE id = :id"), {"id": DEMO_COMPANY_ID}
+        ).first()
+        if exists is None:
+            conn.execute(
+                text(
+                    "INSERT INTO companies (id, name, name_key, base_currency, is_demo, "
+                    "created_by, created_at) VALUES (:id, :name, :key, :cur, :demo, NULL, :at)"
+                ),
+                {
+                    "id": DEMO_COMPANY_ID,
+                    "name": DEMO_COMPANY_NAME,
+                    "key": _normalize(DEMO_COMPANY_NAME),
+                    "cur": DEMO_BASE_CURRENCY,
+                    "demo": True,
+                    "at": datetime.now(UTC).isoformat(),
+                },
+            )
+        for table in _COMPANY_SCOPED_TABLES:
+            if table in tables:
+                conn.execute(
+                    text(f'UPDATE "{table}" SET company_id = :cid WHERE company_id IS NULL'),
+                    {"cid": DEMO_COMPANY_ID},
+                )
+        if engine.dialect.name.startswith("postgres"):
+            conn.execute(
+                text(
+                    "ALTER TABLE vendor_agreement_version "
+                    "DROP CONSTRAINT IF EXISTS uq_agreement_vendor_version"
+                )
+            )
+            conn.execute(
+                text(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS uq_agreement_company_vendor_version_idx "
+                    "ON vendor_agreement_version (company_id, vendor_key, version)"
+                )
+            )
+
+
 _API_TABLES = (
     "rules_document",
     "decision_record",
     "chain_entries",
     "vendor_agreement_version",
+    "companies",
+    "company_members",
 )
 _SUPABASE_BROWSER_ROLES = ("anon", "authenticated")
 

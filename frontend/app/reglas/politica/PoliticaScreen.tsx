@@ -17,6 +17,7 @@ import {
   textToGroups,
   validateApprovalPolicyDraft,
 } from "@/lib/approval-policy-form";
+import { apiFetch } from "@/lib/session";
 
 const FIXED_NOTE =
   "Estas rutas solo pueden pedir más aprobaciones; nunca autorizan un pago que las reglas frenen o escalen.";
@@ -41,7 +42,7 @@ function extractRoutes(document: RulesDocument): ApprovalRoute[] {
 }
 
 async function fetchRulesDocument(): Promise<RulesDocument> {
-  const res = await fetch("/api/rules", { cache: "no-store" });
+  const res = await apiFetch("/api/rules", { cache: "no-store" });
   if (!res.ok) {
     throw new Error(`No se pudieron cargar las reglas (HTTP ${res.status}).`);
   }
@@ -204,7 +205,7 @@ export default function PoliticaScreen() {
     setSaving(true);
     try {
       const merged = { ...fullDocument, approval_policy: result.policy };
-      const res = await fetch("/api/rules", {
+      const res = await apiFetch("/api/rules", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(merged),

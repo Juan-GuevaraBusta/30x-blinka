@@ -30,7 +30,7 @@ from app.persistence import SqlStore, init_database, seed_rules
 from app.rules.ledger_queries import period_paid_total
 from langgraph.checkpoint.memory import MemorySaver
 from sqlalchemy import create_engine
-from tests.api.support import RULES_PATH, make_record
+from tests.api.support import RULES_PATH, attach_test_user, make_record
 
 # Widens the read -> decide -> persist window so two real OS threads can
 # interleave without the lock. With the lock held, this only makes the test
@@ -82,6 +82,7 @@ def _make_store(tmp_path, name: str) -> SqlStore:
     init_database(engine)
     store = SqlStore(engine)
     seed_rules(store, RULES_PATH)
+    attach_test_user(store)
     return store
 
 

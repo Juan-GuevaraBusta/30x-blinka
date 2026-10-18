@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { getSupabaseClient } from "@/lib/supabase-client";
-import { setStoredUserId } from "@/lib/session";
+import { setStoredUser } from "@/lib/session";
 
 type Mode = "login" | "register";
 
@@ -34,7 +34,7 @@ export default function EntrarPage() {
           );
           return;
         }
-        setStoredUserId(data.session.user.id);
+        setStoredUser(data.session.user.id, data.session.user.email ?? email);
       } else {
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
@@ -48,7 +48,7 @@ export default function EntrarPage() {
           setError("No se pudo obtener la sesión.");
           return;
         }
-        setStoredUserId(data.session.user.id);
+        setStoredUser(data.session.user.id, data.session.user.email ?? email);
       }
       router.replace("/");
     } catch {

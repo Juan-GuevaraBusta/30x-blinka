@@ -9,7 +9,7 @@ v1 superseded, v2 active; `verify-chain` ok and detects tampering with the
 from __future__ import annotations
 
 from app.api import create_app
-from tests.api.support import ADMIN_HEADERS, build_client
+from tests.api.support import ADMIN_HEADERS, attach_test_user, build_client
 
 
 class FakeAgreementLlm:
@@ -122,6 +122,7 @@ def test_draft_with_fake_llm_returns_cited_fields() -> None:
         approver_groups=load_approver_groups(),
         agreement_llm=llm,
     )
+    attach_test_user(mem_store)
     client = TestClient(app, headers={"X-User-Id": "test-user-id"})
 
     response = client.post(
@@ -196,6 +197,7 @@ def test_draft_vendor_equal_to_paying_company_is_left_missing() -> None:
         approver_groups=load_approver_groups(),
         agreement_llm=llm,
     )
+    attach_test_user(mem_store)
     client = TestClient(app, headers={"X-User-Id": "test-user-id"})
 
     response = client.post(

@@ -41,13 +41,15 @@ def test_generated_sql_uses_rules_document_not_exists_pattern() -> None:
     sql = render_sql()
 
     assert "INSERT INTO rules_document" in sql
-    assert "WHERE NOT EXISTS (SELECT 1 FROM rules_document)" in sql
+    assert (
+        "WHERE NOT EXISTS (SELECT 1 FROM rules_document WHERE company_id = 'demo-acme')" in sql
+    )
 
 
 def test_generated_sql_uses_on_conflict_do_nothing_for_agreements() -> None:
     sql = render_sql()
 
-    assert sql.count("ON CONFLICT (vendor_key, version) DO NOTHING") == 3
+    assert sql.count("ON CONFLICT (company_id, vendor_key, version) DO NOTHING") == 3
     assert "INSERT INTO vendor_agreement_version" in sql
     for name in DEMO_VENDOR_NAMES:
         assert name in sql

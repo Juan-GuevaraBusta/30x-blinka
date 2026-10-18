@@ -14,6 +14,7 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 
 from app.api.schemas import InvoiceRejected, InvoiceUpload
+from app.api.tenancy import CURRENT_COMPANY, DEMO_COMPANY_ID, Company, fallback_rules
 from app.config import Settings, load_settings, resolve_backend
 from app.extraction.ingest import IngestChannel
 from app.graph.build import GraphError, run_invoice
@@ -31,7 +32,7 @@ from app.rules.agreements import (
     compile_rules,
 )
 from app.rules.context import ContractTerms, LedgerEntry
-from app.rules.fx import FxTable, load_fx_table
+from app.rules.fx import FxTable, load_fx_table, rebase_fx_table
 from app.rules.ledger import Ledger
 from app.rules.settlement import settlement_amount_base
 
@@ -98,7 +99,18 @@ def _record_settlement(record: DecisionRecord, fx: FxTable) -> LedgerEntry | Non
     )
 
 
-def settled_ledger_from_store(store: SqlStore, fx: FxTable | None = None) -> Ledger:
+def _company_decisions(store: SqlStore, company_id: str) -> dict[str, DecisionRecord]:
+    """T9.8: only this company's decisions feed its ledger. Duck-typed stores
+    without `decisions_for` (test doubles) expose a single tenant."""
+    decisions_for = getattr(store, "decisions_for", None)
+    if decisions_for is None:
+        return store.decisions
+    return decisions_for(company_id)
+
+
+def settled_ledger_from_store(
+    store: SqlStore, fx: FxTable | None = None, *, company_id: str = DEMO_COMPANY_ID
+) -> Ledger:
     """Prior PAGAR lines and human approvals already persisted (T7.4 R20).
 
     T5.13 (D063): ``amount_base`` is recomputed from amount + currency with the
@@ -106,7 +118,7 @@ def settled_ledger_from_store(store: SqlStore, fx: FxTable | None = None) -> Led
     """
     table = fx if fx is not None else load_fx_table()
     settled = Ledger.empty()
-    for record in store.decisions.values():
+    for record in _company_decisions(store, company_id).values():
         settlement = _record_settlement(record, table)
         if settlement is not None:
             settled = settled.record_settlement(settlement, invoice_id=record.invoice_id)
@@ -155,7 +167,7 @@ def _pending_ledger_line(record: DecisionRecord, fx: FxTable) -> LedgerEntry | N
 
 
 def pending_ledger_from_store(
-    store: SqlStore, fx: FxTable | None = None
+    store: SqlStore, fx: FxTable | None = None, *, company_id: str = DEMO_COMPANY_ID
 ) -> tuple[LedgerEntry, ...]:
     """Decisions still awaiting a human call (R05 duplicate-of-pending only).
 
@@ -167,7 +179,7 @@ def pending_ledger_from_store(
     """
     table = fx if fx is not None else load_fx_table()
     lines: list[LedgerEntry] = []
-    for record in store.decisions.values():
+    for record in _company_decisions(store, company_id).values():
         line = _pending_ledger_line(record, table)
         if line is not None:
             lines.append(line)
@@ -186,7 +198,7 @@ def ledger_view_for_upload(upload: InvoiceUpload, prior: Ledger) -> tuple[Ledger
 
 
 def effective_rules_and_contracts(
-    store: SqlStore,
+    store: SqlStore, *, company_id: str = DEMO_COMPANY_ID
 ) -> tuple[RulesConfig, dict[str, ContractTerms]]:
     """T9.1 (D061) §4: the rules the live pipeline must use -- `store.rules`
     (base, hand-edited) plus every active, confirmed vendor agreement
@@ -201,10 +213,18 @@ def effective_rules_and_contracts(
     in `app.api.asgi.create_production_app`): log it and fall back to the
     unmodified base rules with no agreement contract for this request.
     """
-    active = store.list_active_agreements()
+    base = store.rules_for(company_id)
+    if base is None:
+        # T9.8 (D067): unconfigured company -> fail-closed fallback rules
+        # (R01 fails with ESCALAR), no agreements compiled in. Never PAGAR.
+        company = store.get_company(company_id) or Company(
+            id=company_id, name="", base_currency="USD", is_demo=False,
+            created_by=None, created_at="",
+        )
+        return fallback_rules(store.template_rules, company), {}
+    active = store.list_active_agreements(company_id=company_id)
     if not active:
-        return store.rules, {}
-    base = store.rules
+        return base, {}
     try:
         compiled = compile_rules(base, active)
     except AgreementConflictError as exc:
@@ -278,24 +298,37 @@ def _trace_session(config: ProductionProcessorConfig) -> TraceSession | None:
 def process_upload(
     config: ProductionProcessorConfig, upload: InvoiceUpload, owner_id: str
 ) -> DecisionRecord:
-    # fx.json comes from the configured data root: the module-relative default
-    # path does not exist when the package is installed into site-packages.
-    fx_path = config.data_root / "data" / "fx.json"
-    fx_table = load_fx_table(fx_path) if fx_path.is_file() else load_fx_table()
-    prior = settled_ledger_from_store(config.store, fx_table)
-    ledger_view = ledger_view_for_upload(upload, prior)
+    # T9.8 (D067): the company is set by the API around this call.
+    company_id = CURRENT_COMPANY.get()
     # T9.1 (D061) §4: the live pipeline decides against the EFFECTIVE rules
     # (base + compiled active confirmed agreements), and a vendor with an
     # active agreement uses its confirmed terms for R06/contract lookup
     # instead of `data/contracts/*.txt`.
-    rules, agreement_contracts = effective_rules_and_contracts(config.store)
+    rules, agreement_contracts = effective_rules_and_contracts(
+        config.store, company_id=company_id
+    )
+    # fx.json comes from the configured data root: the module-relative default
+    # path does not exist when the package is installed into site-packages.
+    # T9.8: expressed in the company's base currency.
+    fx_path = config.data_root / "data" / "fx.json"
+    fx_table = load_fx_table(fx_path) if fx_path.is_file() else load_fx_table()
+    try:
+        company_fx = rebase_fx_table(fx_table, rules.company.base_currency)
+    except KeyError:
+        raise InvoiceRejected("unsupported_base_currency") from None
+    rebased = company_fx is not fx_table
+    fx_table = company_fx
+    prior = settled_ledger_from_store(config.store, fx_table, company_id=company_id)
+    ledger_view = ledger_view_for_upload(upload, prior)
     deps = config.deps_factory(config.settings, rules, ledger_view)
+    if rebased:
+        deps = dataclasses.replace(deps, fx=fx_table)
     if agreement_contracts:
         deps = dataclasses.replace(deps, agreement_contracts=agreement_contracts)
     # P0 safety fix: invoices still ESCALAR (no human decision yet) feed R05
     # duplicate-of-pending only; never merged into `ledger_view` above, so
     # R03/R07/R17/R21 never count an unapproved invoice toward a budget.
-    pending_view = pending_ledger_from_store(config.store, fx_table)
+    pending_view = pending_ledger_from_store(config.store, fx_table, company_id=company_id)
     if pending_view:
         deps = dataclasses.replace(deps, pending_ledger=pending_view)
     channel: IngestChannel = upload.channel
