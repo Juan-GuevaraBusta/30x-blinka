@@ -48,7 +48,7 @@ Regenerado desde la columna Estado de `docs/TASK_BOARD.md` (2026-10-17). F0–F4
 
 F0–F4 ya están cerradas por las gates G0–G4 arriba; el detalle tarea por tarea queda en `docs/TASK_BOARD.md`.
 
-- **F5:** T5.7 (unificar import del backend), T5.8 (lock de ledger por periodo), T5.9 (clave de admin + validar aprobador), T5.12 (decodificar streams FlateDecode en PDF).
+- **F5:** T5.7 (unificar import del backend), T5.8 (lock de ledger por periodo), T5.9 (clave de admin + validar aprobador; `ADMIN_API_KEY` en Render/Vercel y humo público 2026-10-18 en fila T5.9 del tablero), T5.12 (decodificar streams FlateDecode en PDF).
 - **F6:** T6.4 (CI con gate de eval y CodeQL), T6.5 (licencia/seguridad/contribución), T6.6 (página de estado y sincronización del roadmap), T6.7 (navegación global, tablero inicial y decisiones clicables).
 
 Detalle completo de cada tarea, dueño y evidencia: `docs/TASK_BOARD.md`.
