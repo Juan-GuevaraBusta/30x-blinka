@@ -35,8 +35,10 @@ _logger = logging.getLogger(__name__)
 
 
 class UnsupportedDatabaseUrlError(Exception):
-    def __init__(self) -> None:
-        super().__init__("unsupported_database_url")
+    def __init__(self, scheme: str = "") -> None:
+        # Only the scheme (text before "://") is reported, never credentials.
+        detail = f": scheme {scheme!r}" if scheme else ""
+        super().__init__(f"unsupported_database_url{detail}")
 
 
 class InvalidCorsOriginsError(Exception):
@@ -56,6 +58,13 @@ class InvalidRateLimitError(Exception):
 
 def prepare_database_url(url: str) -> str:
     """Normalize SQLAlchemy URL for sqlite and Postgres (T4.9 §5). No network I/O."""
+    # Tolerate common dashboard paste mistakes: whitespace, surrounding quotes,
+    # a pasted "DATABASE_URL=" prefix and the psycopg2 driver name.
+    url = url.strip().strip("'\"").strip()
+    if url.upper().startswith("DATABASE_URL="):
+        url = url.split("=", 1)[1].strip().strip("'\"").strip()
+    if url.startswith("postgresql+psycopg2://"):
+        url = "postgresql://" + url[len("postgresql+psycopg2://") :]
     if url.startswith("sqlite:"):
         return url
     if url.startswith("postgres://"):
@@ -65,7 +74,7 @@ def prepare_database_url(url: str) -> str:
     elif url.startswith("postgresql+psycopg://"):
         normalized = url
     else:
-        raise UnsupportedDatabaseUrlError()
+        raise UnsupportedDatabaseUrlError(url.split("://", 1)[0] if "://" in url else "")
 
     parsed = urlparse(normalized)
     host = (parsed.hostname or "").lower()

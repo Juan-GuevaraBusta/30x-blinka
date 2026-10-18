@@ -7,6 +7,7 @@ import json
 import pytest
 from app.api.asgi import (
     InvalidCorsOriginsError,
+    UnsupportedDatabaseUrlError,
     create_production_app,
     load_approver_emails,
     load_approver_groups,
@@ -336,3 +337,25 @@ def test_create_production_app_rejects_approval_policy_unreachable_min_approvals
 
     with pytest.raises(ApprovalPolicyGroupError):
         create_production_app(mapping, rules_path=rules_path, cors_origins="")
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "  postgresql://u:p@db.example.supabase.co:5432/postgres\n",
+        '"postgresql://u:p@db.example.supabase.co:5432/postgres"',
+        "'postgres://u:p@db.example.supabase.co:5432/postgres'",
+        "postgresql+psycopg2://u:p@db.example.supabase.co:5432/postgres",
+        "DATABASE_URL=postgresql://u:p@db.example.supabase.co:5432/postgres",
+    ],
+)
+def test_prepare_database_url_tolerates_common_paste_mistakes(raw: str) -> None:
+    url = prepare_database_url(raw)
+    assert url.startswith("postgresql+psycopg://u:p@db.example.supabase.co:5432/postgres")
+
+
+def test_unsupported_database_url_names_only_the_scheme() -> None:
+    with pytest.raises(UnsupportedDatabaseUrlError) as exc:
+        prepare_database_url("mysql://user:secret@host/db")
+    assert "mysql" in str(exc.value)
+    assert "secret" not in str(exc.value)
