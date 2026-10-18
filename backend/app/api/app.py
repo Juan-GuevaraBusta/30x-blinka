@@ -13,7 +13,6 @@ from pydantic import ValidationError
 
 from app.api.approval import build_approval_status, enforce_route_approval
 from app.api.rate_limit import FixedWindowLimiter, RateLimitMiddleware
-from app.api.user_scope import require_user_id
 from app.api.schemas import (
     MAX_INVOICE_BYTES,
     ApprovalStatusBody,
@@ -26,6 +25,7 @@ from app.api.schemas import (
     MetricsReading,
 )
 from app.api.store import DuplicateDecisionError, MemoryStore
+from app.api.user_scope import require_user_id
 from app.models.domain import DecisionRecord, HumanAction, HumanEvent
 from app.models.rules_config import RulesConfig
 

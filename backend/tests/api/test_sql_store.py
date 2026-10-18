@@ -19,7 +19,6 @@ from sqlalchemy.orm import Session
 from tests.api.support import (
     ADMIN_HEADERS,
     TEST_ADMIN_KEY,
-    USER_HEADERS,
     load_approver_emails,
     load_rules,
     make_record,

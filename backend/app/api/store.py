@@ -83,7 +83,9 @@ class MemoryStore:
     def _chain_tip(self) -> str:
         return self._chain[-1].record_hash if self._chain else GENESIS_PREV_HASH
 
-    def add_decision(self, record: DecisionRecord, owner_id: str = "test-user-id") -> DecisionRecord:
+    def add_decision(
+        self, record: DecisionRecord, owner_id: str = "test-user-id"
+    ) -> DecisionRecord:
         key = (owner_id, record.invoice_id)
         if record.id in self.decisions or key in self._invoice_keys:
             raise DuplicateDecisionError(record.invoice_id)

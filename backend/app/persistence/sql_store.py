@@ -78,7 +78,9 @@ class SqlStore:
                 return None
             return DecisionRecord.model_validate_json(row.payload)
 
-    def add_decision(self, record: DecisionRecord, owner_id: str = "test-user-id") -> DecisionRecord:
+    def add_decision(
+        self, record: DecisionRecord, owner_id: str = "test-user-id"
+    ) -> DecisionRecord:
         payload = record.model_dump_json()
         with Session(self._engine) as session:
             next_position = session.scalar(
