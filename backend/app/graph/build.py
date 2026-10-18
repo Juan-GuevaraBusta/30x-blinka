@@ -41,6 +41,7 @@ from app.records.build import (
 )
 from app.rules.context import ContractTerms, RuleContext
 from app.rules.decide import decide
+from app.rules.normalize import normalize_beneficiary
 from app.rules.run_checks import run_deterministic_checks
 from app.rules.settlement import with_base_amount
 from app.rules.variable_pricing import find_pricing_terms
@@ -194,6 +195,23 @@ def _make_nodes(deps: GraphDeps):
     ) -> Command[Literal["jev_checks", "escalate_technical"]]:
         try:
             extraction = Extraction.model_validate(state["extraction"])
+            # T9.1 (D061) §4: a vendor with an active, confirmed fixed-amount
+            # agreement uses its terms directly -- no LLM call -- instead of
+            # `lookup_contract` over `data/contracts/*.txt`.
+            vendor_key = normalize_beneficiary(extraction.beneficiary)
+            agreement_terms = (
+                deps.agreement_contracts.get(vendor_key) if vendor_key is not None else None
+            )
+            if agreement_terms is not None:
+                cited = agreement_terms.cited_clauses[0] if agreement_terms.cited_clauses else None
+                return Command(
+                    goto="jev_checks",
+                    update={
+                        "contract_terms": agreement_terms.model_dump(mode="json"),
+                        "contract_confirmed": True,
+                        "cited_clause": cited,
+                    },
+                )
             record = lookup_contract(
                 extraction.beneficiary,
                 deps.extractor,

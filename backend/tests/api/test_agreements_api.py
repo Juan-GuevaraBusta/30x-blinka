@@ -137,6 +137,79 @@ def test_draft_with_fake_llm_returns_cited_fields() -> None:
     assert "vendor_name" not in body["missing"]
 
 
+def test_draft_vendor_equal_to_paying_company_is_left_missing() -> None:
+    """The endpoint passes `store.rules.company.name` into `draft_agreement`
+    (main 55ec605): a model that proposes the paying company itself as the
+    vendor must never auto-fill that field -- it stays in `missing` for a
+    human to correct, never silently confirmed.
+    """
+    from datetime import UTC, datetime
+
+    from app.api.store import MemoryStore
+    from fastapi.testclient import TestClient
+    from tests.api.support import load_approver_emails, load_approver_groups, load_rules
+
+    company_name = load_rules().company.name
+    assert company_name == "Acme Demo Inc."
+
+    llm = FakeAgreementLlm(
+        {
+            "kind": "retainer",
+            "vendor_name": company_name,
+            "department": None,
+            "currency": "USD",
+            "valid_from": None,
+            "valid_to": None,
+            "periodicity": "monthly",
+            "amount_min": 800,
+            "amount_max": 800,
+            "total_cap": None,
+            "unit": None,
+            "rate": None,
+            "included_hours": None,
+            "overtime_multiplier": None,
+            "overtime_max_hours": None,
+            "period_cap": None,
+            "items": None,
+            "tiers": None,
+            "quotes": {
+                "vendor_name": f"{company_name} es el beneficiario.",
+                "currency": "800 USD mensuales.",
+                "periodicity": "800 USD mensuales.",
+                "amount_min": "800 USD mensuales.",
+                "amount_max": "800 USD mensuales.",
+            },
+        }
+    )
+
+    def default_processor(upload, owner_id):  # pragma: no cover - not exercised here
+        raise AssertionError("not used")
+
+    mem_store = MemoryStore(load_rules())
+    app = create_app(
+        mem_store,
+        default_processor,
+        clock=lambda: datetime(2026, 3, 4, 12, 0, tzinfo=UTC),
+        rate_limit=1000,
+        admin_api_key="test-admin-key",
+        approver_emails=load_approver_emails(),
+        approver_groups=load_approver_groups(),
+        agreement_llm=llm,
+    )
+    client = TestClient(app, headers={"X-User-Id": "test-user-id"})
+
+    response = client.post(
+        "/agreements/draft",
+        data={"text": f"{company_name} es el beneficiario. 800 USD mensuales."},
+        headers=ADMIN_HEADERS,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "vendor_name" not in body["draft"]
+    assert "vendor_name" in body["missing"]
+
+
 # --- confirm (PUT) -------------------------------------------------------------
 
 

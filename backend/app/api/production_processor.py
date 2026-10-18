@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import dataclasses
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
@@ -12,21 +14,28 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 
 from app.api.schemas import InvoiceRejected, InvoiceUpload
-from app.config import Settings, load_settings
+from app.config import Settings, load_settings, resolve_backend
 from app.extraction.ingest import IngestChannel
 from app.graph.build import GraphError, run_invoice
 from app.graph.deps import GraphDeps
 from app.graph.folder_batch import RULES_VERSION, repo_root_from_module
 from app.graph.tracing import TraceSession
 from app.jev.decision_client import build_decision_client
-from app.llm import HttpTransport, get_llm
+from app.llm import HttpTransport, get_llm, model_for_role
 from app.models.domain import DecisionRecord, HumanEvent
 from app.models.rules_config import RulesConfig
 from app.persistence.sql_store import SqlStore
-from app.rules.context import LedgerEntry
+from app.rules.agreements import (
+    AgreementConflictError,
+    agreement_contract_map,
+    compile_rules,
+)
+from app.rules.context import ContractTerms, LedgerEntry
 from app.rules.fx import FxTable, load_fx_table
 from app.rules.ledger import Ledger
 from app.rules.settlement import settlement_amount_base
+
+_logger = logging.getLogger(__name__)
 
 Processor = Callable[[InvoiceUpload, str], DecisionRecord]
 DepsFactory = Callable[[Settings, RulesConfig, tuple[LedgerEntry, ...]], GraphDeps]
@@ -111,6 +120,37 @@ def ledger_view_for_upload(upload: InvoiceUpload, prior: Ledger) -> tuple[Ledger
     return prior.as_tuple()
 
 
+def effective_rules_and_contracts(
+    store: SqlStore,
+) -> tuple[RulesConfig, dict[str, ContractTerms]]:
+    """T9.1 (D061) §4: the rules the live pipeline must use -- `store.rules`
+    (base, hand-edited) plus every active, confirmed vendor agreement
+    compiled in on top -- and the vendor_key -> fixed-amount contract-terms
+    map the graph's `contract_lookup` node uses instead of `data/contracts/*.txt`.
+
+    Same `GET /rules/effective` single source of truth (`app.api.app`). With
+    no active agreements, `compile_rules(base, []) is base`: byte-identical
+    to today. A base/agreement conflict (`AgreementConflictError`, §4) is a
+    configuration drift that must never take the whole upload pipeline down
+    (I3 fail-closed, same philosophy as the boot-time rules-schema fallback
+    in `app.api.asgi.create_production_app`): log it and fall back to the
+    unmodified base rules with no agreement contract for this request.
+    """
+    active = store.list_active_agreements()
+    if not active:
+        return store.rules, {}
+    base = store.rules
+    try:
+        compiled = compile_rules(base, active)
+    except AgreementConflictError as exc:
+        _logger.warning(
+            "agreement %s conflicts with hand-written rules; using base rules only",
+            exc.vendor_key,
+        )
+        return base, {}
+    return compiled.rules, agreement_contract_map(active)
+
+
 def build_graph_deps(
     settings: Settings,
     rules: RulesConfig,
@@ -121,6 +161,14 @@ def build_graph_deps(
 ) -> GraphDeps:
     fx_table = load_fx_table(data_root / "data" / "fx.json")
     jev_client = build_decision_client(settings, transport=transport)
+    # The JEV label must report the model actually used: the native
+    # `jev_model` only when the native backend is in play, otherwise the
+    # plan-B role model `graph/folder_batch.py` already resolves the same way.
+    jev_label = (
+        settings.jev_model
+        if resolve_backend(settings) == "jev"
+        else model_for_role("jev", settings)
+    )
     return GraphDeps(
         extractor=get_llm("extractor", settings, transport=transport),
         verifier=get_llm("verifier", settings, transport=transport),
@@ -132,7 +180,7 @@ def build_graph_deps(
         rules_version=RULES_VERSION,
         model_extractor=settings.extractor_model,
         model_verifier=settings.verifier_model,
-        jev_label=settings.jev_model,
+        jev_label=jev_label,
         contracts_dir=data_root / "data" / "contracts",
     )
 
@@ -157,8 +205,14 @@ def process_upload(
     fx_table = load_fx_table(fx_path) if fx_path.is_file() else load_fx_table()
     prior = settled_ledger_from_store(config.store, fx_table)
     ledger_view = ledger_view_for_upload(upload, prior)
-    rules = config.store.rules
+    # T9.1 (D061) §4: the live pipeline decides against the EFFECTIVE rules
+    # (base + compiled active confirmed agreements), and a vendor with an
+    # active agreement uses its confirmed terms for R06/contract lookup
+    # instead of `data/contracts/*.txt`.
+    rules, agreement_contracts = effective_rules_and_contracts(config.store)
     deps = config.deps_factory(config.settings, rules, ledger_view)
+    if agreement_contracts:
+        deps = dataclasses.replace(deps, agreement_contracts=agreement_contracts)
     channel: IngestChannel = upload.channel
     try:
         return run_invoice(
@@ -217,6 +271,7 @@ def make_production_processor(
 __all__ = [
     "ProductionProcessorConfig",
     "build_graph_deps",
+    "effective_rules_and_contracts",
     "ledger_view_for_upload",
     "make_production_processor",
     "process_upload",

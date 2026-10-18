@@ -42,6 +42,7 @@ from app.api.store import (
 from app.api.user_scope import require_user_id
 from app.extraction.agreement_draft import draft_agreement
 from app.extraction.ingest import IngestChannel, IngestError, ingest_bytes
+from app.inbox.routes import build_inbox_router
 from app.models.agreement import VendorAgreementVersion
 from app.models.domain import DecisionRecord, HumanAction, HumanEvent
 from app.models.rules_config import RulesConfig
@@ -74,6 +75,7 @@ def create_app(
     approver_emails: frozenset[str] | None = None,
     approver_groups: Mapping[str, frozenset[str]] | None = None,
     agreement_llm: Any | None = None,
+    inbox_llm: Any | None = None,
 ) -> FastAPI:
     """Build the app. Tests pass `store`, `processor`, `clock`, and `rate_limit`.
 
@@ -89,6 +91,10 @@ def create_app(
     (same shape as the extractor client used for `lookup_contract` -- an object
     with `.complete_json(system, user) -> dict`). `None` (the default) means the
     endpoint always returns the empty, fail-closed draft -- never a 500.
+
+    T9.2 (D061): `inbox_llm` is the same-shaped client the `/inbox` gray-zone
+    tie-break uses (`app.inbox`); `None` (the default) means every gray-zone
+    email fails closed to `revision` instead of calling a model.
     """
     limiter = FixedWindowLimiter(rate_limit, clock)
     allowed_approvers = approver_emails if approver_emails is not None else frozenset()
@@ -164,7 +170,7 @@ def create_app(
             raise HTTPException(status_code=422, detail=exc.code) from exc
 
         llm = agreement_llm if agreement_llm is not None else _NULL_AGREEMENT_LLM
-        result = draft_agreement(ingested.text, llm)
+        result = draft_agreement(ingested.text, llm, company_name=store.rules.company.name)
         return AgreementDraftResponseBody(
             draft=result.draft,
             spans=result.spans,
@@ -294,10 +300,16 @@ def create_app(
             raise HTTPException(status_code=422, detail="invalid_file_size")
         if store.has_invoice(meta.invoice_id, owner_id):
             raise HTTPException(status_code=409, detail="duplicate_invoice")
+        # T5.13 follow-up (D063): the server's own clock is the authoritative
+        # `received_at` for ledger windows (R03/R07/R05/R21) -- the client's
+        # claimed date is kept only as metadata (`claimed_received_at`), never
+        # used to decide which period/window this invoice falls into. A
+        # resubmission that lies about the date still lands in the real window.
         upload = InvoiceUpload(
             invoice_id=meta.invoice_id,
             channel=meta.channel,
-            received_at=meta.received_at,
+            received_at=clock(),
+            claimed_received_at=meta.received_at,
             content=content,
         )
         try:
@@ -374,6 +386,20 @@ def create_app(
     @app.get("/openapi.json")
     def openapi_json() -> dict[str, object]:
         return app.openapi()
+
+    # T9.2 (D061): mounts POST/GET /inbox and the human process/dismiss actions
+    # on the SAME app (same rate limiter) and reuses `_decide_and_store_invoice`
+    # (same lock, same `store.add_decision`) -- no decision logic duplicated.
+    app.include_router(
+        build_inbox_router(
+            store,
+            processor=processor,
+            clock=clock,
+            approver_emails=allowed_approvers,
+            decide_and_store_invoice=_decide_and_store_invoice,
+            llm=inbox_llm,
+        )
+    )
 
     return app
 

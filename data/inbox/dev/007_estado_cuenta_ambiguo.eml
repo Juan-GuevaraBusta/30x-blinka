@@ -1,0 +1,11 @@
+Message-ID: <dev-007@inbox.demo.test>
+From: cuentas@algun-proveedor.demo.test
+To: ap@acme.demo.test
+Subject: Estado de cuenta
+Date: 2026-05-26
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Adjuntamos el estado de cuenta correspondiente al periodo.
+Revise el detalle de su factura mas reciente si corresponde.
+Documento ficticio. No representa a ninguna empresa real.

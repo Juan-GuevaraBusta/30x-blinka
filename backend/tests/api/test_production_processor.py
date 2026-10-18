@@ -17,7 +17,7 @@ from app.persistence import SqlStore
 from fastapi.testclient import TestClient
 from langgraph.checkpoint.memory import MemorySaver
 from sqlalchemy import create_engine
-from tests.api.support import RULES_PATH, make_record
+from tests.api.support import REPO_ROOT, RULES_PATH, load_rules, make_record
 
 _META = {
     "invoice_id": "INV-G4-001",
@@ -171,6 +171,61 @@ def test_production_app_post_persists_with_mocked_graph(
     got = client.get("/decisions/dec_boot")
     assert got.status_code == 200
     assert got.json()["summary"] == expected.summary
+
+
+def test_build_graph_deps_labels_native_jev_backend() -> None:
+    """`jev_label` must report the model actually used (`folder_batch.py`'s
+    pattern), not always `settings.jev_model` regardless of backend."""
+    from app.api.production_processor import build_graph_deps
+    from app.config import Settings
+
+    settings = Settings(
+        llm_api_key="k",
+        llm_base_url="https://llm.test",
+        extractor_model="extractor-x",
+        verifier_model="verifier-y",
+        jev_api_key="jev-key",
+        jev_model="jev-native-v1",
+        decision_backend="jev",
+    )
+    deps = build_graph_deps(settings, load_rules(), (), data_root=REPO_ROOT)
+    assert deps.jev_label == "jev-native-v1"
+
+
+def test_build_graph_deps_labels_plan_b_jev_model() -> None:
+    """Plan-B (LLM-backed) JEV must label the role model actually used --
+    `jev_planb_model`, falling back to `extractor_model` -- never the native
+    `jev_model` it never calls."""
+    from app.api.production_processor import build_graph_deps
+    from app.config import Settings
+
+    settings = Settings(
+        llm_api_key="k",
+        llm_base_url="https://llm.test",
+        extractor_model="extractor-x",
+        verifier_model="verifier-y",
+        jev_model="jev-native-v1",
+        jev_planb_model="planb-model-z",
+        decision_backend="plan_b",
+    )
+    deps = build_graph_deps(settings, load_rules(), (), data_root=REPO_ROOT)
+    assert deps.jev_label == "planb-model-z"
+
+
+def test_build_graph_deps_plan_b_falls_back_to_extractor_model() -> None:
+    from app.api.production_processor import build_graph_deps
+    from app.config import Settings
+
+    settings = Settings(
+        llm_api_key="k",
+        llm_base_url="https://llm.test",
+        extractor_model="extractor-x",
+        verifier_model="verifier-y",
+        jev_model="jev-native-v1",
+        decision_backend="plan_b",
+    )
+    deps = build_graph_deps(settings, load_rules(), (), data_root=REPO_ROOT)
+    assert deps.jev_label == "extractor-x"
 
 
 def test_process_upload_reads_fx_from_data_root_not_package_path(tmp_path, monkeypatch) -> None:

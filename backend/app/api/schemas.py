@@ -28,10 +28,17 @@ class InvoiceRejected(Exception):
 
 @dataclass(frozen=True)
 class InvoiceUpload:
+    """``received_at`` is the authoritative timestamp ledger windows use (T5.13
+    follow-up, D063): the server's own clock, never the client's claim.
+    ``claimed_received_at`` keeps the client-supplied value as metadata only --
+    it is never read by R03/R05/R07/R21.
+    """
+
     invoice_id: str
     channel: ChannelName
     received_at: datetime
     content: bytes
+    claimed_received_at: datetime | None = None
 
 
 class InvoiceMeta(BaseModel):

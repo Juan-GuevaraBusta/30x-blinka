@@ -1,0 +1,13 @@
+Message-ID: <dev-003@inbox.demo.test>
+From: billing@northstar-analytics.demo.test
+To: ap@acme.demo.test
+Subject: Invoice #INV-NA-3003 from Northstar Analytics
+Date: 2026-05-22
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Invoice #INV-NA-3003
+Amount Due: USD 620
+Due date: 2026-06-20
+Bill to: Acme Demo Inc.
+Documento ficticio. No representa a ninguna empresa real.

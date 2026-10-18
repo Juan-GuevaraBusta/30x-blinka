@@ -1,0 +1,130 @@
+[
+  {
+    "file": "001_factura_pdf_proveedor_conocido.eml",
+    "classification": "es_factura",
+    "sender_emails": [
+      "billing@nebula-compute.demo.test"
+    ],
+    "allowed_beneficiaries": [],
+    "llm_response": null,
+    "expected_decision": "FRENAR",
+    "expected_rules": [
+      "R01"
+    ]
+  },
+  {
+    "file": "002_factura_en_cuerpo.eml",
+    "classification": "es_factura",
+    "sender_emails": [],
+    "allowed_beneficiaries": [],
+    "llm_response": null,
+    "expected_decision": "FRENAR",
+    "expected_rules": [
+      "R01"
+    ]
+  },
+  {
+    "file": "003_factura_ingles_invoice.eml",
+    "classification": "es_factura",
+    "sender_emails": [],
+    "allowed_beneficiaries": [],
+    "llm_response": null,
+    "expected_decision": null,
+    "expected_rules": []
+  },
+  {
+    "file": "004_boletin_bulk.eml",
+    "classification": "no_es_factura",
+    "sender_emails": [],
+    "allowed_beneficiaries": [],
+    "llm_response": null,
+    "expected_decision": null,
+    "expected_rules": []
+  },
+  {
+    "file": "005_recordatorio_pago.eml",
+    "classification": "no_es_factura",
+    "sender_emails": [],
+    "allowed_beneficiaries": [],
+    "llm_response": null,
+    "expected_decision": null,
+    "expected_rules": []
+  },
+  {
+    "file": "006_respuesta_automatica.eml",
+    "classification": "no_es_factura",
+    "sender_emails": [],
+    "allowed_beneficiaries": [],
+    "llm_response": null,
+    "expected_decision": null,
+    "expected_rules": []
+  },
+  {
+    "file": "007_estado_cuenta_ambiguo.eml",
+    "classification": "revision",
+    "sender_emails": [],
+    "allowed_beneficiaries": [],
+    "llm_response": {
+      "classification": "revision",
+      "reason": "Estado de cuenta ambiguo; requiere revisión humana."
+    },
+    "expected_decision": null,
+    "expected_rules": []
+  },
+  {
+    "file": "008_remitente_desconocido_pdf.eml",
+    "classification": "es_factura",
+    "sender_emails": [],
+    "allowed_beneficiaries": [],
+    "llm_response": null,
+    "expected_decision": "FRENAR",
+    "expected_rules": [
+      "R01"
+    ]
+  },
+  {
+    "file": "009_factura_inyeccion_cuerpo.eml",
+    "classification": "es_factura",
+    "sender_emails": [
+      "billing@globex-llc.demo.test"
+    ],
+    "allowed_beneficiaries": [],
+    "llm_response": null,
+    "expected_decision": "ESCALAR",
+    "expected_rules": [
+      "R13"
+    ]
+  },
+  {
+    "file": "010_reenvio_mismo_message_id.eml",
+    "classification": "es_factura",
+    "sender_emails": [],
+    "allowed_beneficiaries": [],
+    "llm_response": null,
+    "expected_decision": "FRENAR",
+    "expected_rules": [
+      "R01"
+    ],
+    "note": "Same Message-ID as 002 on purpose (resend scenario, §2/§8.5)."
+  },
+  {
+    "file": "011_inyeccion_sin_factura.eml",
+    "classification": "revision",
+    "sender_emails": [],
+    "allowed_beneficiaries": [],
+    "llm_response": null,
+    "expected_decision": null,
+    "expected_rules": []
+  },
+  {
+    "file": "012_pdf_ambiguo_multiple.eml",
+    "classification": "revision",
+    "sender_emails": [
+      "billing@horizonte-digital.demo.test"
+    ],
+    "allowed_beneficiaries": [],
+    "llm_response": null,
+    "expected_decision": null,
+    "expected_rules": []
+  }
+]

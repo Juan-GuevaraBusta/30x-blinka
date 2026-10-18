@@ -1,0 +1,12 @@
+Message-ID: <dev-004@inbox.demo.test>
+From: newsletter@noticias-demo.test
+To: ap@acme.demo.test
+Subject: Boletín mensual de novedades
+Date: 2026-05-23
+List-Unsubscribe: <mailto:unsub@noticias-demo.test>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Estas son las novedades del mes.
+Gracias por suscribirse.
+Documento ficticio. No representa a ninguna empresa real.

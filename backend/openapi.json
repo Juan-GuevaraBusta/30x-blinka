@@ -102,7 +102,7 @@
     "/rules/effective": {
       "get": {
         "summary": "Get Effective Rules",
-        "description": "T9.1 (D061) §3: rules the motor/graph actually use, plus provenance.",
+        "description": "T9.1 (D061) \u00a73: rules the motor/graph actually use, plus provenance.",
         "operationId": "get_effective_rules_rules_effective_get",
         "responses": {
           "200": {
@@ -121,7 +121,7 @@
     "/agreements/draft": {
       "post": {
         "summary": "Draft Agreement Endpoint",
-        "description": "T9.1 (D061) §3: text or a `.txt`/`.pdf` file, via `ingest_bytes` (same\nnormalization as an invoice upload). The LLM only ever proposes (I7);\nnothing persisted here.",
+        "description": "T9.1 (D061) \u00a73: text or a `.txt`/`.pdf` file, via `ingest_bytes` (same\nnormalization as an invoice upload). The LLM only ever proposes (I7);\nnothing persisted here.",
         "operationId": "draft_agreement_endpoint_agreements_draft_post",
         "parameters": [
           {
@@ -236,7 +236,7 @@
       },
       "put": {
         "summary": "Confirm Agreement Endpoint",
-        "description": "T9.1 (D061) §3: a human confirms (I2) -- creates the next version.",
+        "description": "T9.1 (D061) \u00a73: a human confirms (I2) -- creates the next version.",
         "operationId": "confirm_agreement_endpoint_agreements__vendor_key__put",
         "parameters": [
           {
@@ -764,7 +764,7 @@
     "/decisions/{id}/approval": {
       "get": {
         "summary": "Get Approval",
-        "description": "Read-only «x de N» status (T7.1, D059 §4). Never mutates `decision` (I2).",
+        "description": "Read-only \u00abx de N\u00bb status (T7.1, D059 \u00a74). Never mutates `decision` (I2).",
         "operationId": "get_approval_decisions__id__approval_get",
         "parameters": [
           {
@@ -838,6 +838,285 @@
           }
         }
       }
+    },
+    "/inbox": {
+      "post": {
+        "summary": "Post Inbox",
+        "operationId": "post_inbox_inbox_post",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxMessage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Inbox",
+        "operationId": "list_inbox_inbox_get",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InboxMessage"
+                  },
+                  "title": "Response List Inbox Inbox Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/inbox/{id}": {
+      "get": {
+        "summary": "Get Inbox",
+        "operationId": "get_inbox_inbox__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxMessage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/inbox/{id}/process": {
+      "post": {
+        "summary": "Process Inbox",
+        "operationId": "process_inbox_inbox__id__process_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InboxProcessBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxMessage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/inbox/{id}/dismiss": {
+      "post": {
+        "summary": "Dismiss Inbox",
+        "operationId": "dismiss_inbox_inbox__id__dismiss_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InboxDismissBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxMessage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -877,7 +1156,7 @@
           "source_sha256"
         ],
         "title": "AgreementDraftResponseBody",
-        "description": "POST /agreements/draft response (§3). Never persisted."
+        "description": "POST /agreements/draft response (\u00a73). Never persisted."
       },
       "AgreementHistoryBody": {
         "properties": {
@@ -911,7 +1190,7 @@
           "versions"
         ],
         "title": "AgreementHistoryBody",
-        "description": "GET /agreements/{vendor_key} (§3): current + full version history."
+        "description": "GET /agreements/{vendor_key} (\u00a73): current + full version history."
       },
       "AgreementInstallmentItem": {
         "properties": {
@@ -1012,7 +1291,7 @@
           "valid_to"
         ],
         "title": "AgreementListEntryBody",
-        "description": "One row of GET /agreements (§3): the vendor's current active version."
+        "description": "One row of GET /agreements (\u00a73): the vendor's current active version."
       },
       "AmountRange": {
         "properties": {
@@ -1034,7 +1313,7 @@
           "max"
         ],
         "title": "AmountRange",
-        "description": "Expected amount window for a calendar-periodicity series (T7.2 §2)."
+        "description": "Expected amount window for a calendar-periodicity series (T7.2 \u00a72)."
       },
       "ApprovalPolicy": {
         "properties": {
@@ -1053,7 +1332,7 @@
           "routes"
         ],
         "title": "ApprovalPolicy",
-        "description": "Routes evaluated in order; first match wins (T7.1 §2). Last route is catch-all."
+        "description": "Routes evaluated in order; first match wins (T7.1 \u00a72). Last route is catch-all."
       },
       "ApprovalRoute": {
         "properties": {
@@ -1138,7 +1417,7 @@
           "pending_checks"
         ],
         "title": "ApprovalStatusBody",
-        "description": "GET /decisions/{id}/approval response (T7.1, D059 §4). Read-only."
+        "description": "GET /decisions/{id}/approval response (T7.1, D059 \u00a74). Read-only."
       },
       "Body_draft_agreement_endpoint_agreements_draft_post": {
         "properties": {
@@ -1459,7 +1738,7 @@
           "expected_version"
         ],
         "title": "ConfirmAgreementBody",
-        "description": "PUT /agreements/{vendor_key} (§3)."
+        "description": "PUT /agreements/{vendor_key} (\u00a73)."
       },
       "DeactivateAgreementBody": {
         "properties": {
@@ -1476,7 +1755,7 @@
           "author"
         ],
         "title": "DeactivateAgreementBody",
-        "description": "POST /agreements/{vendor_key}/deactivate (§3). Admin-key gated; `author`\nis logged on the new `inactive` version and the `agreement_change` entry,\nsame audit convention as T7.4's add-beneficiary action."
+        "description": "POST /agreements/{vendor_key}/deactivate (\u00a73). Admin-key gated; `author`\nis logged on the new `inactive` version and the `agreement_change` entry,\nsame audit convention as T7.4's add-beneficiary action."
       },
       "DecisionRecord": {
         "properties": {
@@ -1608,7 +1887,7 @@
           "provenance"
         ],
         "title": "EffectiveRulesBody",
-        "description": "GET /rules/effective (§3): compiled rules plus provenance."
+        "description": "GET /rules/effective (\u00a73): compiled rules plus provenance."
       },
       "Extraction": {
         "properties": {
@@ -1718,7 +1997,7 @@
                 "enum": [
                   "servicios",
                   "productos",
-                  "suscripción",
+                  "suscripci\u00f3n",
                   "honorarios",
                   "otro"
                 ]
@@ -1964,6 +2243,201 @@
         ],
         "title": "HumanEvent"
       },
+      "InboxDismissBody": {
+        "properties": {
+          "author": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Author"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "author",
+          "reason"
+        ],
+        "title": "InboxDismissBody",
+        "description": "`POST /inbox/{id}/dismiss` (\u00a75): leaves an event, never deletes."
+      },
+      "InboxEvent": {
+        "properties": {
+          "author": {
+            "type": "string",
+            "title": "Author"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "procesada_humano",
+              "descartada_humano"
+            ],
+            "title": "Action"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "author",
+          "at",
+          "action",
+          "reason"
+        ],
+        "title": "InboxEvent"
+      },
+      "InboxMessage": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "owner_id": {
+            "type": "string",
+            "title": "Owner Id"
+          },
+          "message_id": {
+            "type": "string",
+            "title": "Message Id"
+          },
+          "from_addr": {
+            "type": "string",
+            "title": "From Addr"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Received At"
+          },
+          "classification": {
+            "type": "string",
+            "enum": [
+              "es_factura",
+              "no_es_factura",
+              "revision"
+            ],
+            "title": "Classification"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "signals": {
+            "items": {
+              "$ref": "#/components/schemas/InboxSignalBody"
+            },
+            "type": "array",
+            "title": "Signals"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "classified_by": {
+            "type": "string",
+            "enum": [
+              "rules",
+              "llm",
+              "human"
+            ],
+            "title": "Classified By"
+          },
+          "decision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Id"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/InboxEvent"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "owner_id",
+          "message_id",
+          "from_addr",
+          "subject",
+          "received_at",
+          "classification",
+          "score",
+          "reason",
+          "classified_by"
+        ],
+        "title": "InboxMessage",
+        "description": "\u00a75 `inbox_message` row shape, as the API's public response body."
+      },
+      "InboxProcessBody": {
+        "properties": {
+          "author": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Author"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "author"
+        ],
+        "title": "InboxProcessBody",
+        "description": "`POST /inbox/{id}/process` (\u00a75): author must be a known approver."
+      },
+      "InboxSignalBody": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points"
+          },
+          "evidence": {
+            "type": "string",
+            "title": "Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "points",
+          "evidence"
+        ],
+        "title": "InboxSignalBody"
+      },
       "InstallmentsAgreement": {
         "properties": {
           "vendor_name": {
@@ -2088,7 +2562,7 @@
                 "enum": [
                   "servicios",
                   "productos",
-                  "suscripción",
+                  "suscripci\u00f3n",
                   "honorarios",
                   "otro"
                 ]
@@ -2489,7 +2963,7 @@
           "R13"
         ],
         "title": "OnFail",
-        "description": "R01–R13 (required), plus R14 (optional, additive per T7.1/D059).\n\nValues are only FRENAR or ESCALAR. ``R14`` defaults to ``ESCALAR`` so\nevery existing rules package without the key keeps parsing unchanged."
+        "description": "R01\u2013R13 (required), plus R14 (optional, additive per T7.1/D059).\n\nValues are only FRENAR or ESCALAR. ``R14`` defaults to ``ESCALAR`` so\nevery existing rules package without the key keeps parsing unchanged."
       },
       "OvertimeTerms": {
         "properties": {
@@ -2547,6 +3021,7 @@
               "monthly",
               "biweekly",
               "quarterly",
+              "annual",
               "installments",
               "milestones"
             ],
@@ -2620,7 +3095,7 @@
           "currency"
         ],
         "title": "PaymentSeries",
-        "description": "Declared payment calendar for one vendor (T7.2 §2, D059).\n\n`monthly`/`biweekly`/`quarterly` are calendar periodicities: they need\n`expected_amount` and `start` (an open-ended `end` means no upper bound).\n`installments`/`milestones` instead declare an explicit, non-empty\n`items` list with their own per-item amount and window."
+        "description": "Declared payment calendar for one vendor (T7.2 \u00a72, D059).\n\n`monthly`/`biweekly`/`quarterly`/`annual` are calendar periodicities: they need\n`expected_amount` and `start` (an open-ended `end` means no upper bound).\n`installments`/`milestones` instead declare an explicit, non-empty\n`items` list with their own per-item amount and window."
       },
       "PeriodLimit": {
         "properties": {
@@ -2702,7 +3177,7 @@
           "formula"
         ],
         "title": "PricingTerms",
-        "description": "Declared variable-pricing formula for one vendor (T7.3 §2, D059)."
+        "description": "Declared variable-pricing formula for one vendor (T7.3 \u00a72, D059)."
       },
       "PricingTolerance": {
         "properties": {
@@ -2716,7 +3191,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "PricingTolerance",
-        "description": "Absolute slack on variable-pricing recomputation (T7.3 §2)."
+        "description": "Absolute slack on variable-pricing recomputation (T7.3 \u00a72)."
       },
       "RetainerAgreement": {
         "properties": {
@@ -2788,7 +3263,8 @@
             "enum": [
               "monthly",
               "biweekly",
-              "quarterly"
+              "quarterly",
+              "annual"
             ],
             "title": "Periodicity"
           },
@@ -2872,7 +3348,7 @@
                 "enum": [
                   "servicios",
                   "productos",
-                  "suscripción",
+                  "suscripci\u00f3n",
                   "honorarios",
                   "otro"
                 ]
@@ -2887,7 +3363,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "RouteMatch",
-        "description": "All present fields combine with AND (T7.1 §2). Empty means catch-all."
+        "description": "All present fields combine with AND (T7.1 \u00a72). Empty means catch-all."
       },
       "RouteRequire": {
         "properties": {
@@ -3070,7 +3546,7 @@
           "amount"
         ],
         "title": "SeriesItem",
-        "description": "One explicit installment/milestone (T7.2 §2)."
+        "description": "One explicit installment/milestone (T7.2 \u00a72)."
       },
       "TieredFormula": {
         "properties": {
@@ -3540,7 +4016,7 @@
           "status"
         ],
         "title": "VendorAgreementVersion",
-        "description": "One solo-anexar version row (§2 `vendor_agreement_version`), as a value\nobject shared by `MemoryStore`/`SqlStore` and the `/agreements` API\nresponses. Never mutated once confirmed -- a later confirm or deactivate\nappends a new version with its own `status`, it never edits this one."
+        "description": "One solo-anexar version row (\u00a72 `vendor_agreement_version`), as a value\nobject shared by `MemoryStore`/`SqlStore` and the `/agreements` API\nresponses. Never mutated once confirmed -- a later confirm or deactivate\nappends a new version with its own `status`, it never edits this one."
       },
       "VendorOnboarding": {
         "properties": {
@@ -3558,7 +4034,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "VendorOnboarding",
-        "description": "Optional audited vendor allowlist from R01 failures (T7.4 §2, D059)."
+        "description": "Optional audited vendor allowlist from R01 failures (T7.4 \u00a72, D059)."
       },
       "VerifierIssue": {
         "properties": {

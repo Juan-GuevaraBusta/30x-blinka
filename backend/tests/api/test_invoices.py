@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from app.api.schemas import InvoiceRejected, InvoiceUpload
 from app.models.domain import DecisionRecord
-from tests.api.support import build_client, make_record
+from tests.api.support import MutableClock, build_client, make_record
 
 _META = {
     "invoice_id": "INV-0042",
@@ -54,6 +56,31 @@ def test_post_invoice_returns_processor_record() -> None:
     assert seen[0].invoice_id == "INV-0042"
     assert seen[0].channel == "pdf_text"
     assert seen[0].received_at.tzinfo is not None
+
+
+def test_post_invoice_uses_server_clock_not_client_claimed_date() -> None:
+    """T5.13 follow-up (D063): the server's own clock is the authoritative
+    ``received_at`` for ledger windows. A resubmission that lies about the
+    date (claiming it happened years ago, to dodge R03/R05/R07/R21) must
+    still land at the real, current moment -- the client's claim is kept
+    only as ``claimed_received_at`` metadata, never used to pick a window.
+    """
+    frozen = MutableClock(datetime(2026, 3, 4, 12, 0, tzinfo=UTC))
+    seen: list[InvoiceUpload] = []
+
+    def processor(upload: InvoiceUpload, owner_id: str) -> DecisionRecord:
+        seen.append(upload)
+        return make_record()
+
+    client, _store, _clock = build_client(processor=processor, clock=frozen)
+
+    old_claim = "2020-01-01T00:00:00Z"
+    response = _post(client, data={"received_at": old_claim})
+
+    assert response.status_code == 201
+    assert len(seen) == 1
+    assert seen[0].received_at == frozen.now
+    assert seen[0].claimed_received_at == datetime(2020, 1, 1, tzinfo=UTC)
 
 
 def test_duplicate_invoice_returns_409_without_second_call() -> None:

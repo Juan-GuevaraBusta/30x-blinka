@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from app.models.rules_config import RulesConfig
-from app.rules.context import LedgerEntry
+from app.rules.context import ContractTerms, LedgerEntry
 from app.rules.fx import FxTable
 
 
@@ -24,3 +24,10 @@ class GraphDeps:
     model_verifier: str
     jev_label: str
     contracts_dir: Path | None = None
+    # T9.1 (D061) §4: vendor_key -> confirmed fixed-amount contract terms from an
+    # active agreement. When present for the invoice's vendor, the graph's
+    # `contract_lookup` node uses these directly (no LLM) instead of
+    # `lookup_contract` over `data/contracts/*.txt`. Empty by default so every
+    # existing `GraphDeps(...)` call site (dev motor, folder batch, tests)
+    # keeps today's behavior untouched.
+    agreement_contracts: dict[str, ContractTerms] = field(default_factory=dict)
