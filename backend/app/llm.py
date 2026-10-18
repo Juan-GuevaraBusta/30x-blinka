@@ -135,9 +135,21 @@ def model_for_role(role: Role, settings: Settings) -> str:
     return _model_for_role(role, settings)
 
 
+def _strip_markdown_fence(content: str) -> str:
+    """Remove one surrounding ```json ... ``` fence; some models add it despite the prompt."""
+    text = content.strip()
+    if not (text.startswith("```") and text.endswith("```")) or len(text) < 6:
+        return content
+    body = text[3:-3]
+    first_newline = body.find("\n")
+    if first_newline != -1 and body[:first_newline].strip().lower() in ("", "json"):
+        body = body[first_newline + 1 :]
+    return body
+
+
 def _parse_json_object_content(content: str) -> dict | None:
     try:
-        parsed = json.loads(content)
+        parsed = json.loads(_strip_markdown_fence(content))
     except json.JSONDecodeError:
         return None
     if not isinstance(parsed, dict):

@@ -118,3 +118,23 @@ def test_complete_json_array_raises_invalid_json() -> None:
     with pytest.raises(DecisionClientError) as exc:
         client.complete_json("s", "u")
     assert exc.value.code == "invalid_json"
+
+
+def test_parse_json_object_accepts_markdown_fenced_json() -> None:
+    # Claude via OpenRouter wraps JSON in ```json fences; that made every
+    # verifier call fail with invalid_json in production.
+    from app.llm import _parse_json_object_content
+
+    assert _parse_json_object_content('```json\n{"consistent": true, "issues": []}\n```') == {
+        "consistent": True,
+        "issues": [],
+    }
+    assert _parse_json_object_content('```\n{"a": 1}\n```') == {"a": 1}
+
+
+def test_parse_json_object_still_rejects_non_objects_and_prose() -> None:
+    from app.llm import _parse_json_object_content
+
+    assert _parse_json_object_content("```json\n[1, 2]\n```") is None
+    assert _parse_json_object_content('Sure! {"a": 1}') is None
+    assert _parse_json_object_content("```json\nnot json\n```") is None

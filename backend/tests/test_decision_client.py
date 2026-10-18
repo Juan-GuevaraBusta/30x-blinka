@@ -208,7 +208,9 @@ def test_plan_b_falls_back_to_extractor_model_when_jev_model_unset() -> None:
     assert captured["model"] == s.extractor_model
 
 
-def test_plan_b_markdown_fences_invalid_json() -> None:
+def test_plan_b_markdown_fenced_json_is_parsed_but_still_schema_checked() -> None:
+    # Fences are stripped (models add them); an incomplete signal set still
+    # fails closed, now as schema_mismatch instead of invalid_json.
     s = _settings(DECISION_BACKEND="plan_b")
     questions = [INVOICE_QUESTIONS[0]]
 
@@ -220,7 +222,7 @@ def test_plan_b_markdown_fences_invalid_json() -> None:
     client = build_decision_client(s, transport=transport)
     with pytest.raises(DecisionClientError) as exc:
         client.ask("s", questions)
-    assert exc.value.code == "invalid_json"
+    assert exc.value.code == "schema_mismatch"
 
 
 def test_invoice_questions_frozen_set() -> None:
