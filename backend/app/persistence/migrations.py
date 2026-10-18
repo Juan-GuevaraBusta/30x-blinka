@@ -96,7 +96,12 @@ def ensure_owner_id_column(engine: Engine) -> None:
         )
 
 
-_API_TABLES = ("rules_document", "decision_record", "chain_entries")
+_API_TABLES = (
+    "rules_document",
+    "decision_record",
+    "chain_entries",
+    "vendor_agreement_version",
+)
 _SUPABASE_BROWSER_ROLES = ("anon", "authenticated")
 
 
