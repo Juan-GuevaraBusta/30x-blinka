@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-18T14:44:59.719146+00:00",
+  "generated_at": "2026-10-18T15:07:41.522081+00:00",
   "entries": [
     {
       "id": "motor_dev",
@@ -39,9 +39,9 @@
     },
     {
       "id": "holdout",
-      "label": "Holdout",
-      "value": "pendiente T5.1",
-      "source": "eval/reports/latest.md (no generado)"
+      "label": "Holdout (e2e, una sola corrida)",
+      "value": "n=10, unsafe_pay=0, autonomía 30.0%",
+      "source": "eval/reports/latest.md"
     }
   ]
 }

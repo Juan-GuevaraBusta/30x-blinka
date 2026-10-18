@@ -13,7 +13,8 @@ artifact's path as `source`:
 - `e2e_dev_autonomy` / `e2e_dev_unsafe_pay`: parsed from the "Después" column
   of `eval/reports/verifier_tuning.md`. Omitted (not fabricated) if parsing
   fails.
-- `holdout`: a fixed "not run yet" marker -- G5/T5.1 has not happened.
+- `holdout`: parsed from the holdout row of `eval/reports/latest.md` (T5.1);
+  a "pendiente" marker only if that report is missing.
 
 Run as `python eval/build_metrics_summary.py` from the repo root (or anywhere;
 it resolves paths from its own location, same as `eval/run_motor.py`).
@@ -139,11 +140,26 @@ def _verifier_tuning_entries() -> list[dict[str, Any]]:
 
 
 def _holdout_entry() -> dict[str, Any]:
-    return {
+    path = REPO_ROOT / "eval" / "reports" / "latest.md"
+    pending = {
         "id": "holdout",
         "label": "Holdout",
         "value": "pendiente T5.1",
         "source": "eval/reports/latest.md (no generado)",
+    }
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return pending
+    row = re.search(r"^\|\s*holdout\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*([\d.]+)%", text, re.MULTILINE)
+    if row is None:
+        return pending
+    total, unsafe_pay, autonomy = row.groups()
+    return {
+        "id": "holdout",
+        "label": "Holdout (e2e, una sola corrida)",
+        "value": f"n={total}, unsafe_pay={unsafe_pay}, autonomía {autonomy}%",
+        "source": "eval/reports/latest.md",
     }
 
 
