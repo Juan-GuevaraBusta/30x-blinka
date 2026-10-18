@@ -56,6 +56,7 @@ class Ledger:
                 received_at=row["received_at"],
                 decision=decision,
                 department=row.get("department"),
+                due_date=row.get("due_date"),
             )
             tie_id = row.get("invoice_id") or row["invoice_number"]
             lines.append((tie_id, entry))

@@ -8,6 +8,7 @@ ESCALAR is catalog semantics in `docs/04` §3, not a second JSON key.
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 from typing import Literal
 
@@ -18,6 +19,8 @@ from app.models.domain import InvoiceType
 FailAction = Literal["FRENAR", "ESCALAR"]
 PeriodType = Literal["calendar_month"]
 RouteApprovalMode = Literal["auto", "approvals"]
+SeriesPeriodicity = Literal["monthly", "biweekly", "quarterly", "installments", "milestones"]
+_CALENDAR_PERIODICITIES = frozenset({"monthly", "biweekly", "quarterly"})
 
 
 class CompanyRef(BaseModel):
@@ -64,6 +67,10 @@ class OnFail(BaseModel):
     R12: FailAction
     R13: FailAction
     R14: FailAction = "ESCALAR"
+    R15: FailAction = "ESCALAR"
+    R16: FailAction = "FRENAR"
+    R17: FailAction = "FRENAR"
+    # R18 is informational only and never fails (docs/T7_2_SPEC.md §3); no on_fail key.
 
 
 class RouteMatch(BaseModel):
@@ -143,6 +150,82 @@ class ApprovalPolicy(BaseModel):
         return self
 
 
+class AmountRange(BaseModel):
+    """Expected amount window for a calendar-periodicity series (T7.2 §2)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    min: float = Field(gt=0)
+    max: float = Field(gt=0)
+
+    @model_validator(mode="after")
+    def min_le_max(self) -> AmountRange:
+        if self.min > self.max:
+            raise ValueError("expected_amount.min must be <= max")
+        return self
+
+
+class SeriesItem(BaseModel):
+    """One explicit installment/milestone (T7.2 §2)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    key: str = Field(min_length=1)
+    due_from: date
+    due_to: date
+    amount: float = Field(gt=0)
+
+    @model_validator(mode="after")
+    def window_valid(self) -> SeriesItem:
+        if self.due_from > self.due_to:
+            raise ValueError("items[].due_from must be <= due_to")
+        return self
+
+
+class PaymentSeries(BaseModel):
+    """Declared payment calendar for one vendor (T7.2 §2, D059).
+
+    `monthly`/`biweekly`/`quarterly` are calendar periodicities: they need
+    `expected_amount` and `start` (an open-ended `end` means no upper bound).
+    `installments`/`milestones` instead declare an explicit, non-empty
+    `items` list with their own per-item amount and window.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1)
+    beneficiary: str = Field(min_length=1)
+    department: str | None = None
+    periodicity: SeriesPeriodicity
+    currency: str = Field(min_length=1)
+    expected_amount: AmountRange | None = None
+    start: date | None = None
+    end: date | None = None
+    total_cap: float | None = Field(default=None, gt=0)
+    items: list[SeriesItem] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def shape_matches_periodicity(self) -> PaymentSeries:
+        if self.periodicity in _CALENDAR_PERIODICITIES:
+            if self.expected_amount is None or self.start is None:
+                raise ValueError(
+                    f'periodicity "{self.periodicity}" needs expected_amount and start'
+                )
+            if self.items:
+                raise ValueError(f'periodicity "{self.periodicity}" must not set items')
+        else:
+            if not self.items:
+                raise ValueError(f'periodicity "{self.periodicity}" needs a non-empty items list')
+            if self.expected_amount is not None:
+                raise ValueError(
+                    f'periodicity "{self.periodicity}" must not set expected_amount'
+                )
+            keys = [item.key for item in self.items]
+            if len(set(keys)) != len(keys):
+                raise ValueError("items[].key entries must be unique")
+        return self
+
+
 class JevThresholds(BaseModel):
     """J1, J2, J3, J4, J6, J7 only. J5 is not a payment threshold."""
 
@@ -169,6 +252,7 @@ class RulesConfig(BaseModel):
     on_fail: OnFail
     jev_thresholds: JevThresholds
     approval_policy: ApprovalPolicy | None = None
+    payment_series: list[PaymentSeries] = Field(default_factory=list)
 
     @field_validator("allowed_beneficiaries")
     @classmethod

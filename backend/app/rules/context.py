@@ -24,6 +24,7 @@ class LedgerEntry(BaseModel):
     received_at: str  # ISO-8601
     decision: str
     department: str | None = None
+    due_date: str | None = None  # ISO-8601 date; T7.2 (D059), additive
 
 
 class ContractTerms(BaseModel):

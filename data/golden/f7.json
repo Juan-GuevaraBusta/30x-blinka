@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "split": "f7",
-  "enabled_features": ["T7.1"],
+  "enabled_features": ["T7.1", "T7.2"],
   "dataset_review": {
     "review_passes": 2,
     "method": "D011 (misma persona, segunda lectura); ver docs/DATA_MANIFEST.md"

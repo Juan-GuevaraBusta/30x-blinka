@@ -29,6 +29,9 @@ EXPECTED_ON_FAIL = {
     "R12": "FRENAR",
     "R13": "ESCALAR",
     "R14": "ESCALAR",
+    "R15": "ESCALAR",
+    "R16": "FRENAR",
+    "R17": "FRENAR",
 }
 
 EXPECTED_JEV = {

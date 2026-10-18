@@ -24,6 +24,10 @@ RuleCode = Literal[
     "R12",
     "R13",
     "R14",
+    "R15",
+    "R16",
+    "R17",
+    "R18",
 ]
 FailAction = Literal["FRENAR", "ESCALAR"]
 JevId = Literal["J1", "J2", "J3", "J4", "J5", "J6", "J7"]

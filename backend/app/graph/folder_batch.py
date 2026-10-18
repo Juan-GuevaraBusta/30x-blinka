@@ -122,6 +122,7 @@ def _record_settlement(record: DecisionRecord, received_at: str) -> LedgerEntry 
         received_at=received_at,
         decision="PAGAR",
         department=ext.department,
+        due_date=ext.due_date.isoformat() if ext.due_date else None,
     )
 
 

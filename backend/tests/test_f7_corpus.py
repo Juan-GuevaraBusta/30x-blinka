@@ -137,13 +137,13 @@ def test_dev_holdout_corpus_regeneration_still_unaffected() -> None:
     assert dev_catalog.read_bytes() == before
 
 
-def test_f7_golden_has_sixteen_entries_with_t71_enabled() -> None:
-    """T7.1 (D059) lands and enables its own feature; T7.2/T7.3 stay disabled
-    until they land too (docs/T7_6_SPEC.md §2)."""
+def test_f7_golden_has_sixteen_entries_with_t71_and_t72_enabled() -> None:
+    """T7.1 and T7.2 (D059) land and enable their own features; T7.3 stays
+    disabled until it lands too (docs/T7_6_SPEC.md §2)."""
     golden = _load_golden()
     assert golden["schema_version"] == 1
     assert golden["split"] == "f7"
-    assert golden["enabled_features"] == ["T7.1"]
+    assert golden["enabled_features"] == ["T7.1", "T7.2"]
     assert golden["dataset_review"]["review_passes"] == 2
     assert len(golden["entries"]) == 16
     assert {e["invoice_id"] for e in golden["entries"]} == set(EXPECTED_CASE_BY_ID)
@@ -202,10 +202,10 @@ def test_f7_rules_json_is_base_rules_plus_new_sections() -> None:
 @pytest.mark.xfail(
     strict=True,
     reason=(
-        "data/f7/rules.json declares payment_series/variable_pricing, which "
-        "RulesConfig does not accept yet (extra=forbid); approval_policy landed "
-        "with T7.1. Each of T7.2/T7.3 adds its own field additively; once both "
-        "have landed this should start passing and the xfail must be removed."
+        "data/f7/rules.json declares variable_pricing, which RulesConfig does "
+        "not accept yet (extra=forbid); approval_policy landed with T7.1 and "
+        "payment_series with T7.2. Once T7.3 lands too, this should start "
+        "passing and the xfail must be removed."
     ),
 )
 def test_f7_rules_json_validates_against_rules_config() -> None:
@@ -222,4 +222,4 @@ def test_f7_rules_json_fails_only_on_the_remaining_new_sections() -> None:
         for err in errors
         if err["type"] == "extra_forbidden" and err["loc"]
     }
-    assert extra_fields == {"payment_series", "variable_pricing"}
+    assert extra_fields == {"variable_pricing"}

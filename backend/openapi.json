@@ -511,6 +511,28 @@
   },
   "components": {
     "schemas": {
+      "AmountRange": {
+        "properties": {
+          "min": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Min"
+          },
+          "max": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Max"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "min",
+          "max"
+        ],
+        "title": "AmountRange",
+        "description": "Expected amount window for a calendar-periodicity series (T7.2 §2)."
+      },
       "ApprovalPolicy": {
         "properties": {
           "routes": {
@@ -723,7 +745,11 @@
               "R11",
               "R12",
               "R13",
-              "R14"
+              "R14",
+              "R15",
+              "R16",
+              "R17",
+              "R18"
             ],
             "title": "Rule"
           },
@@ -1498,6 +1524,33 @@
             ],
             "title": "R14",
             "default": "ESCALAR"
+          },
+          "R15": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R15",
+            "default": "ESCALAR"
+          },
+          "R16": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R16",
+            "default": "FRENAR"
+          },
+          "R17": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R17",
+            "default": "FRENAR"
           }
         },
         "additionalProperties": false,
@@ -1519,6 +1572,110 @@
         ],
         "title": "OnFail",
         "description": "R01–R13 (required), plus R14 (optional, additive per T7.1/D059).\n\nValues are only FRENAR or ESCALAR. ``R14`` defaults to ``ESCALAR`` so\nevery existing rules package without the key keeps parsing unchanged."
+      },
+      "PaymentSeries": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id"
+          },
+          "beneficiary": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Beneficiary"
+          },
+          "department": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department"
+          },
+          "periodicity": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "biweekly",
+              "quarterly",
+              "installments",
+              "milestones"
+            ],
+            "title": "Periodicity"
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Currency"
+          },
+          "expected_amount": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AmountRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "total_cap": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Cap"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SeriesItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "beneficiary",
+          "periodicity",
+          "currency"
+        ],
+        "title": "PaymentSeries",
+        "description": "Declared payment calendar for one vendor (T7.2 §2, D059).\n\n`monthly`/`biweekly`/`quarterly` are calendar periodicities: they need\n`expected_amount` and `start` (an open-ended `end` means no upper bound).\n`installments`/`milestones` instead declare an explicit, non-empty\n`items` list with their own per-item amount and window."
       },
       "PeriodLimit": {
         "properties": {
@@ -1706,6 +1863,13 @@
                 "type": "null"
               }
             ]
+          },
+          "payment_series": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentSeries"
+            },
+            "type": "array",
+            "title": "Payment Series"
           }
         },
         "additionalProperties": false,
@@ -1722,6 +1886,40 @@
           "jev_thresholds"
         ],
         "title": "RulesConfig"
+      },
+      "SeriesItem": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Key"
+          },
+          "due_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Due From"
+          },
+          "due_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Due To"
+          },
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "due_from",
+          "due_to",
+          "amount"
+        ],
+        "title": "SeriesItem",
+        "description": "One explicit installment/milestone (T7.2 §2)."
       },
       "TraceRef": {
         "properties": {

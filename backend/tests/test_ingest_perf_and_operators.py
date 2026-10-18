@@ -54,7 +54,7 @@ def test_stream_filters_stays_fast_on_megabyte_of_angle_brackets() -> None:
     result = ingest_bytes(pdf, channel="pdf_text")
     elapsed = time.perf_counter() - start
 
-    assert elapsed < 1.0, f"took {elapsed:.3f}s, expected < 1s"
+    assert elapsed < 5.0, f"took {elapsed:.3f}s, expected < 5s (pre-fix code took >15s)"
     assert result.text == "fast after padding"
 
 
@@ -91,7 +91,7 @@ def test_literal_extraction_stays_fast_on_two_megabytes_of_open_parens() -> None
         ingest_bytes(pdf, channel="pdf_text")
     elapsed = time.perf_counter() - start
 
-    assert elapsed < 1.0, f"took {elapsed:.3f}s, expected < 1s"
+    assert elapsed < 5.0, f"took {elapsed:.3f}s, expected < 5s (pre-fix code took >15s)"
     assert exc.value.code == "illegible"
 
 

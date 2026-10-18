@@ -16,6 +16,7 @@ from app.rules.ledger_queries import (
     period_paid_total,
 )
 from app.rules.normalize import normalize_beneficiary, normalize_currency
+from app.rules.payment_series import find_matching_series, paid_entries_for_series, period_key
 
 _RULE_NAMES: dict[str, str] = {
     "R01": "Beneficiario permitido",
@@ -32,6 +33,10 @@ _RULE_NAMES: dict[str, str] = {
     "R12": "Bloqueo manual",
     "R13": "Sin instrucciones embebidas",
     "R14": "Política de aprobación",
+    "R15": "Dentro de la serie pactada",
+    "R16": "Periodo ya pagado",
+    "R17": "Total de la serie",
+    "R18": "Periodo esperado sin factura",
 }
 
 
@@ -193,6 +198,45 @@ def _summary_line_for_check(check: CheckResult, ctx: RecordContext) -> str:
         return tpl.TEMPLATE_R14_FAIL.format(
             ruta=route_id, n=min_approvals, grupos=" o ".join(groups)
         )
+
+    if rule in ("R15", "R16", "R17") and ctx.rules.payment_series:
+        resolution = find_matching_series(ctx.rules.payment_series, ctx.extraction)
+        serie_id = resolution.series.id if resolution.series is not None else "s/serie"
+
+        if rule == "R15":
+            return tpl.TEMPLATE_R15_FAIL.format(serie=serie_id)
+
+        if rule == "R16":
+            periodo = "s/p"
+            numero = "s/n"
+            if resolution.series is not None and ctx.extraction.due_date is not None:
+                periodo = period_key(resolution.series, ctx.extraction.due_date) or "s/p"
+                for paid_entry in paid_entries_for_series(ctx.ledger, resolution.series):
+                    if paid_entry.due_date is None:
+                        continue
+                    entry_key = period_key(
+                        resolution.series, date.fromisoformat(paid_entry.due_date)
+                    )
+                    if (
+                        entry_key == periodo
+                        and paid_entry.invoice_number != ctx.extraction.invoice_number
+                    ):
+                        numero = paid_entry.invoice_number
+                        break
+            return tpl.TEMPLATE_R16_FAIL.format(periodo=periodo, serie=serie_id, numero=numero)
+
+        # rule == "R17"
+        acumulado = "0"
+        tope = "s/t"
+        if resolution.series is not None:
+            paid_total = sum(
+                entry.amount_base
+                for entry in paid_entries_for_series(ctx.ledger, resolution.series)
+            )
+            acumulado = _fmt_usd(paid_total)
+            if resolution.series.total_cap is not None:
+                tope = _fmt_usd(float(resolution.series.total_cap))
+        return tpl.TEMPLATE_R17_FAIL.format(serie=serie_id, acumulado=acumulado, tope=tope)
 
     fallbacks = {
         "R08": tpl.TEMPLATE_R08_FAIL,

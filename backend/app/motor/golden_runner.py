@@ -244,6 +244,7 @@ def run_golden_split(
                 received_at=entry["received_at"],
                 decision="PAGAR",
                 department=ext.department,
+                due_date=ext.due_date.isoformat() if ext.due_date else None,
             )
             settled = settled.record_settlement(settlement, invoice_id=entry["invoice_id"])
 

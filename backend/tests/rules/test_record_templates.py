@@ -373,3 +373,62 @@ def test_enrich_check_details_uses_r14_template_for_route_failure(rules, fx_tabl
     summary = build_summary(decision, checks, rctx)
     assert "R14" in summary
     assert explanation_covers_failed_checks(summary, checks)
+
+
+# --- T7.2 (D059) §3 — R16 uses its own template (serie, periodo, numero) ------------
+
+
+def test_enrich_check_details_uses_r16_template_for_duplicate_period(
+    rules, fx_table
+) -> None:
+    from app.models.rules_config import PaymentSeries
+    from app.rules.context import LedgerEntry
+
+    series = PaymentSeries.model_validate(
+        {
+            "id": "cuotasur-cuotas",
+            "beneficiary": "Globex LLC",
+            "periodicity": "installments",
+            "currency": "USD",
+            "total_cap": 2000,
+            "items": [
+                {"key": "1/3", "due_from": "2026-02-01", "due_to": "2026-02-28", "amount": 1000},
+                {"key": "2/3", "due_from": "2026-03-01", "due_to": "2026-03-31", "amount": 1000},
+            ],
+        }
+    )
+    policy_rules = rules.model_copy(update={"payment_series": [series]})
+    seed = LedgerEntry(
+        beneficiary="Globex LLC",
+        amount_base=1000.0,
+        currency="USD",
+        invoice_number="INV-SEED-2",
+        received_at="2026-03-01T09:00:00Z",
+        decision="PAGAR",
+        department="Ingenieria",
+        due_date="2026-03-05",
+    )
+    ctx = make_context(
+        policy_rules,
+        fx_table,
+        amount=1000.0,
+        amount_base=1000.0,
+        fee_amount=1000.0,
+        invoice_number="INV-NEW",
+        due_date="2026-03-10",
+        ledger=(seed,),
+    )
+    checks = run_deterministic_checks(ctx)
+    rctx = _record_ctx(ctx)
+    enriched = enrich_check_details(checks, rctx)
+    r16 = next(c for c in enriched if c.rule == "R16")
+    assert r16.result == "FALLA"
+    assert r16.detail == (
+        "Frenada: el periodo 2/3 de la serie cuotasur-cuotas ya se pagó con la "
+        "factura INV-SEED-2 (regla R16)."
+    )
+
+    decision = decide(checks)
+    summary = build_summary(decision, checks, rctx)
+    assert "R16" in summary
+    assert explanation_covers_failed_checks(summary, checks)

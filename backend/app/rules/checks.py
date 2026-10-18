@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 from app.models.domain import CheckEvidence, CheckResult, JevSignal
+from app.models.rules_config import PaymentSeries
 from app.rules.approval_policy import resolve_route
 from app.rules.context import RuleContext
 from app.rules.fx import convert_to_base
@@ -12,6 +15,12 @@ from app.rules.ledger_queries import (
     period_paid_total,
 )
 from app.rules.normalize import normalize_beneficiary, normalize_currency, normalize_party_name
+from app.rules.payment_series import (
+    expected_periods_before,
+    paid_entries_for_series,
+    period_key,
+    resolve_item_key,
+)
 
 RULE_NAMES: dict[str, str] = {
     "R01": "Beneficiario permitido",
@@ -28,6 +37,10 @@ RULE_NAMES: dict[str, str] = {
     "R12": "Bloqueo manual",
     "R13": "Sin instrucciones embebidas",
     "R14": "Política de aprobación",
+    "R15": "Dentro de la serie pactada",
+    "R16": "Periodo ya pagado",
+    "R17": "Total de la serie",
+    "R18": "Periodo esperado sin factura",
 }
 
 R13_PHRASES: tuple[str, ...] = (
@@ -272,6 +285,150 @@ def check_r14(ctx: RuleContext) -> CheckResult:
         f"groups={','.join(sorted(route.require.from_groups))}"
     )
     return failed.model_copy(update={"evidence": CheckEvidence(clause=route.id, quote=quote)})
+
+
+def check_r15_ambiguous_series() -> CheckResult:
+    """T7.2 (D059) — More than one `payment_series` matched this invoice.
+
+    `run_deterministic_checks` emits only this (never R16-R18, which need a
+    single resolved series) when `find_matching_series` reports ambiguity.
+    """
+    return _indeterminate("R15", "Más de una serie de pagos coincide con esta factura.")
+
+
+def check_r15(ctx: RuleContext, series: PaymentSeries) -> CheckResult:
+    """T7.2 (D059) — Within the vendor's pactated calendar/items. Can only ADD severity.
+
+    Emitted only when this invoice's beneficiary (and department, if the
+    series fixes one) matches `series` (`run_deterministic_checks` resolves
+    this once); without a matching series, R15-R18 are never emitted.
+    """
+    due_date = ctx.extraction.due_date
+    if due_date is None:
+        return _indeterminate("R15", "Fecha de pago ausente para validar la serie.")
+    amount_base = _amount_base(ctx)
+    if amount_base is None:
+        return _indeterminate("R15", "Monto en moneda base no disponible para validar la serie.")
+
+    if series.periodicity in ("installments", "milestones"):
+        key, count = resolve_item_key(series, due_date)
+        if count >= 2:
+            return _indeterminate(
+                "R15", f'Más de un ítem de la serie "{series.id}" contiene esta fecha.'
+            )
+        if count == 0 or key is None:
+            return _fail(
+                ctx,
+                "R15",
+                f'La fecha {due_date.isoformat()} no cae en ningún ítem de la serie "{series.id}".',
+            )
+        item = next(item for item in series.items if item.key == key)
+        if amount_base != item.amount:
+            return _fail(
+                ctx,
+                "R15",
+                f'El ítem "{key}" de la serie "{series.id}" espera USD {item.amount:g} '
+                f"y la factura cobra USD {amount_base:g}.",
+            )
+        return _ok("R15", f'La factura cae en el ítem "{key}" de la serie "{series.id}".')
+
+    assert series.start is not None and series.expected_amount is not None
+    if due_date < series.start or (series.end is not None and due_date > series.end):
+        return _fail(
+            ctx,
+            "R15",
+            f'La fecha {due_date.isoformat()} queda fuera de la vigencia de la serie '
+            f'"{series.id}".',
+        )
+    low, high = series.expected_amount.min, series.expected_amount.max
+    if not (low <= amount_base <= high):
+        return _fail(
+            ctx,
+            "R15",
+            f'USD {amount_base:g} queda fuera del monto esperado (USD {low:g}-{high:g}) '
+            f'de la serie "{series.id}".',
+        )
+    return _ok("R15", f'La factura cae dentro de la serie "{series.id}" pactada.')
+
+
+def check_r16(ctx: RuleContext, series: PaymentSeries) -> CheckResult:
+    """T7.2 (D059) — Same series period already paid with a different invoice number."""
+    due_date = ctx.extraction.due_date
+    if due_date is None:
+        return _indeterminate("R16", "Fecha de pago ausente para validar el periodo.")
+    current_key = period_key(series, due_date)
+    if current_key is None:
+        return _indeterminate(
+            "R16", f'No se pudo determinar el periodo de la serie "{series.id}".'
+        )
+    paid = paid_entries_for_series(ctx.ledger, series)
+    for entry in paid:
+        if entry.due_date is None:
+            return _indeterminate(
+                "R16",
+                f'Una factura ya pagada de la serie "{series.id}" no tiene fecha de pago '
+                "registrada.",
+            )
+    current_invoice_number = ctx.extraction.invoice_number
+    for entry in paid:
+        entry_due = date.fromisoformat(entry.due_date)  # type: ignore[arg-type]
+        if period_key(series, entry_due) == current_key and (
+            entry.invoice_number != current_invoice_number
+        ):
+            return _fail(
+                ctx,
+                "R16",
+                f'El periodo "{current_key}" de la serie "{series.id}" ya se pagó con la '
+                f"factura {entry.invoice_number}.",
+            )
+    return _ok(
+        "R16", f'El periodo "{current_key}" de la serie "{series.id}" no tiene pago previo.'
+    )
+
+
+def check_r17(ctx: RuleContext, series: PaymentSeries) -> CheckResult:
+    """T7.2 (D059) — Cumulative series total (paid + this payment) against `total_cap`."""
+    if series.total_cap is None:
+        return _ok("R17", f'La serie "{series.id}" no tiene tope total configurado.')
+    amount_base = _amount_base(ctx)
+    if amount_base is None:
+        return _indeterminate(
+            "R17", "Monto en moneda base no disponible para validar el tope de la serie."
+        )
+    paid = paid_entries_for_series(ctx.ledger, series)
+    total_paid = sum(entry.amount_base for entry in paid)
+    if total_paid + amount_base > series.total_cap:
+        return _fail(
+            ctx,
+            "R17",
+            f'La serie "{series.id}" acumula USD {total_paid:g}; sumar USD {amount_base:g} '
+            f"supera el tope de USD {series.total_cap:g}.",
+        )
+    return _ok("R17", f'La serie "{series.id}" queda dentro del tope total.')
+
+
+def check_r18(ctx: RuleContext, series: PaymentSeries) -> CheckResult:
+    """T7.2 (D059) — Informational only: never FALLA/INDETERMINADO, never changes decide()."""
+    due_date = ctx.extraction.due_date
+    if due_date is None:
+        return _ok("R18", f'Serie "{series.id}": sin fecha de pago para listar periodos.')
+    expected = expected_periods_before(series, due_date)
+    if not expected:
+        return _ok("R18", f'Serie "{series.id}": sin periodos previos pendientes.')
+    paid = paid_entries_for_series(ctx.ledger, series)
+    paid_keys: set[str] = set()
+    for entry in paid:
+        if entry.due_date is None:
+            continue
+        key = period_key(series, date.fromisoformat(entry.due_date))
+        if key is not None:
+            paid_keys.add(key)
+    current_key = period_key(series, due_date)
+    missing = [key for key in expected if key not in paid_keys and key != current_key]
+    if not missing:
+        return _ok("R18", f'Serie "{series.id}": sin periodos previos pendientes.')
+    listed = ", ".join(missing)
+    return _ok("R18", f'Serie "{series.id}": faltan facturas de los periodos {listed}.')
 
 
 CHECKS = (

@@ -74,3 +74,16 @@ TEMPLATE_R14_FAIL = (
     "Escalada: la política de la empresa (ruta {ruta}) exige {n} aprobaciones "
     "de {grupos} (regla R14)."
 )
+
+# T7.2 (D059) §3 — payment series per vendor (R15-R18). Only ADD severity, never PAGAR.
+TEMPLATE_R15_FAIL = (
+    "Escalada: la factura no cumple la serie pactada {serie} (regla R15)."
+)
+TEMPLATE_R16_FAIL = (
+    "Frenada: el periodo {periodo} de la serie {serie} ya se pagó con la "
+    "factura {numero} (regla R16)."
+)
+TEMPLATE_R17_FAIL = (
+    "Frenada: la serie {serie} acumulada (USD {acumulado}) más este pago supera "
+    "el tope de USD {tope} (regla R17)."
+)
