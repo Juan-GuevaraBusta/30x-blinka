@@ -113,6 +113,16 @@ Usuario: el equipo de finanzas de una empresa cliente de Blinka que paga a sus p
 
 **G7:** `unsafe_pay = 0` en dev, holdout y f7; motor dev 34/34. Specs: `docs/T7_1_SPEC.md` a `docs/T7_6_SPEC.md`.
 
+## F9 — Flujo determinista de punta a punta para la demo (D061)
+Dirección del cofundador de Blinka: política → acuerdos por proveedor → correos → PAGAR/FRENAR/ESCALAR → validar calendario y horas contra el acuerdo. Determinista primero; el LLM solo propone o desempata y nunca aplica ni paga. Sin chatbot, sin RAG, sin buzón real en el MVP. Todo lo nuevo solo sube severidad.
+- [ ] **T9.1** (P0) Registro estructurado de acuerdos (retainer, horas con extras, cuotas/hitos, precio unitario), versionado, compilado a `payment_series`, `variable_pricing` y altas por R20. *(Rules Engine + API + Frontend)*
+- [ ] **T9.2** (P0) Bandeja: `POST /inbox`, sondeo de carpeta local, clasificador de factura con señales y umbrales, desempate LLM acotado, pantalla `/bandeja`. *(Agent Graph + API + Frontend)*
+- [ ] **T9.3** (P0) Empresa semilla con política, 3 acuerdos e inbox que cubre cada historia; comando de reinicio; guion actualizado. *(Spec & Data + Docs & Judge)*
+- [ ] **T9.4** (P1) Subir documento de política → borrador con citas → diferencias → confirmación humana. *(Agent Graph + Frontend)*
+- [ ] **T9.5** (P1) Línea de tiempo del proveedor: último pago, próximo esperado, cadencia y horas extra. *(Frontend)*
+
+**G9:** demo end-to-end con la empresa semilla; `unsafe_pay = 0` en dev, f7 y el inbox semilla; motor dev 34/34. Specs: `docs/T9_1_SPEC.md` a `docs/T9_5_SPEC.md`.
+
 ---
 ## Líneas de corte (si vamos tarde)
 Sacrificar **en este orden**; todo lo anterior a "nunca cortar" se puede recortar:
