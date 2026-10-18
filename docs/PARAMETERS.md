@@ -72,13 +72,13 @@ Por debajo del umbral → ESCALAR. Se calibran solo con el set de desarrollo (T5
 
 | Parámetro | Valor | Estado | Quién confirma |
 |---|---|---|---|
-| J1 beneficiario = emisor | 0.90 | PROPUESTO | Humano, luego calibración en dev |
-| J2 monto y moneda | 0.90 | PROPUESTO | Humano |
-| J3 fecha límite de pago | 0.85 | PROPUESTO | Humano |
-| J4 dirigido a la empresa | 0.85 | PROPUESTO | Humano |
+| J1 beneficiario = emisor | 0.90 | CALIBRADO EN DEV (T5.2) | Humano, luego calibración en dev |
+| J2 monto y moneda | 0.90 | CALIBRADO EN DEV (T5.2) | Humano |
+| J3 fecha límite de pago | 0.85 | CALIBRADO EN DEV (T5.2) | Humano |
+| J4 dirigido a la empresa | 0.85 | CALIBRADO EN DEV (T5.2) | Humano |
 | J5 tipo de factura | Sin umbral. Se registra. No decide el pago. | PROPUESTO | Humano |
-| J6 la cláusula citada respalda el cobro | 0.85 | PROPUESTO | Humano |
-| J7 instrucciones a un sistema | 0.50 | PROPUESTO | Humano |
+| J6 la cláusula citada respalda el cobro | 0.85 | CALIBRADO EN DEV (T5.2) | Humano |
+| J7 instrucciones a un sistema | 0.50 | CALIBRADO EN DEV (T5.2) | Humano |
 
 ## Tasas FX
 
