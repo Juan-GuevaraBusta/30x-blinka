@@ -5,7 +5,7 @@ Copiar **todo el bloque** de abajo como primer mensaje en un chat nuevo.
 ---
 
 ```text
-Repo: /Users/juanluisguevarabustamante/Developer/personal/hackathons/30x-blinka
+Repo: raíz de este repositorio (`30x-blinka`), clonado localmente en tu máquina
 Modelo de ejecución: Composer 2.5 (una sesión, dos fases: spec → implementación).
 
 ## Misión

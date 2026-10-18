@@ -81,7 +81,7 @@
 | Afirmación | Dónde verificarla |
 | Cero pagos indebidos | eval/reports/latest.md ; backend/tests/test_invariants.py |
 | El LLM no decide el pago | backend/app/rules/decide.py ; test_decide_pure.py |
-| Fail-closed ante error | backend/tests/test_fail_closed.py |
+| Fail-closed ante error | backend/tests/gate/test_fail_closed.py |
 | Explicación legible | docs/examples/records/ ; /decisiones/{id} |
 | Reglas configurables | data/rules.json ; /reglas |
 4. Cómo reproducir las métricas
