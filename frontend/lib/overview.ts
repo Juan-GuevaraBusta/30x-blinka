@@ -8,7 +8,7 @@ import {
 export const OVERVIEW_EXPLANATION =
   "Tachyon lee cada factura y decide PAGAR, FRENAR o ESCALAR según las reglas vigentes de la empresa (límites, beneficiarios permitidos, presupuestos por área). Nunca paga fuera de esas reglas, y cada decisión queda registrada con su explicación para que una persona pueda revisarla.";
 
-export type OverviewCardKey = DecisionListFilter;
+export type OverviewCardKey = Exclude<DecisionListFilter, "todas">;
 
 export type OverviewCardConfig = {
   key: OverviewCardKey;
@@ -19,11 +19,17 @@ export type OverviewCardConfig = {
 
 // Overview-specific card copy; filter keys, decision mapping and estado query values come from
 // decisions-list.ts (R2) so the two screens can never drift out of sync.
-const OVERVIEW_CARD_LABELS: Record<DecisionListFilter, string> = {
+const OVERVIEW_CARD_LABELS: Record<Exclude<DecisionListFilter, "todas">, string> = {
   pendientes: "Pendientes de aprobación",
   frenadas: "Frenadas",
   pagadas: "Pagadas",
 };
+
+// Overview keeps its three specific-status cards; "todas" has no single decision value
+// and is the /decisiones default tab, not a card here.
+const OVERVIEW_CARD_FILTERS = DECISION_LIST_FILTERS.filter(
+  (filter): filter is Exclude<DecisionListFilter, "todas"> => filter !== "todas",
+);
 
 /**
  * Three count cards on the home panel, each linking to the matching /decisiones filter (T6.7).
@@ -31,10 +37,10 @@ const OVERVIEW_CARD_LABELS: Record<DecisionListFilter, string> = {
  * (Pendientes, Frenadas, Pagadas) and the decision mapping / estado query value come from the
  * same single source as the decisions list page, instead of a second hardcoded copy.
  */
-export const OVERVIEW_CARDS: OverviewCardConfig[] = DECISION_LIST_FILTERS.map((filter) => ({
+export const OVERVIEW_CARDS: OverviewCardConfig[] = OVERVIEW_CARD_FILTERS.map((filter) => ({
   key: filter,
   label: OVERVIEW_CARD_LABELS[filter],
-  decision: filterToApiDecision(filter),
+  decision: filterToApiDecision(filter) as Decision,
   href: `/decisiones?estado=${filter}`,
 }));
 

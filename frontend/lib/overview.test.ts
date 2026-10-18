@@ -26,7 +26,9 @@ describe("OVERVIEW_CARDS", () => {
   });
 
   it("derives its key order and decision mapping from decisions-list.ts (R2, single source)", () => {
-    expect(OVERVIEW_CARDS.map((c) => c.key)).toEqual([...DECISION_LIST_FILTERS]);
+    expect(OVERVIEW_CARDS.map((c) => c.key)).toEqual(
+      DECISION_LIST_FILTERS.filter((key) => key !== "todas"),
+    );
     for (const card of OVERVIEW_CARDS) {
       expect(card.decision).toBe(filterToApiDecision(card.key));
       expect(card.href).toBe(`/decisiones?estado=${card.key}`);

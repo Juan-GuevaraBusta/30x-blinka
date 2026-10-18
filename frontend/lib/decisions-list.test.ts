@@ -10,10 +10,10 @@ import {
   rowStatusLabel,
 } from "./decisions-list";
 
-describe("DECISION_LIST_FILTERS and default (T6.7)", () => {
-  it("orders tabs Pendientes, Frenadas, Pagadas, with Pendientes as default", () => {
-    expect(DECISION_LIST_FILTERS).toEqual(["pendientes", "frenadas", "pagadas"]);
-    expect(DEFAULT_DECISION_LIST_FILTER).toBe("pendientes");
+describe("DECISION_LIST_FILTERS and default", () => {
+  it("orders tabs Todas, Pendientes, Frenadas, Pagadas, with Todas as default", () => {
+    expect(DECISION_LIST_FILTERS).toEqual(["todas", "pendientes", "frenadas", "pagadas"]);
+    expect(DEFAULT_DECISION_LIST_FILTER).toBe("todas");
   });
 });
 
@@ -22,6 +22,7 @@ describe("parseInitialFilter", () => {
     expect(parseInitialFilter("pagadas")).toBe("pagadas");
     expect(parseInitialFilter("frenadas")).toBe("frenadas");
     expect(parseInitialFilter("pendientes")).toBe("pendientes");
+    expect(parseInitialFilter("todas")).toBe("todas");
   });
 
   it("takes the first entry of an array value", () => {
@@ -40,6 +41,10 @@ describe("filterToApiDecision", () => {
     expect(filterToApiDecision("pagadas")).toBe("PAGAR");
     expect(filterToApiDecision("frenadas")).toBe("FRENAR");
     expect(filterToApiDecision("pendientes")).toBe("ESCALAR");
+  });
+
+  it("maps Todas to null (no `decision` query param, API returns every decision)", () => {
+    expect(filterToApiDecision("todas")).toBeNull();
   });
 });
 
@@ -70,5 +75,6 @@ describe("emptyStateMessage", () => {
     expect(emptyStateMessage("pendientes")).toBe(
       "No hay facturas pendientes de revisión.",
     );
+    expect(emptyStateMessage("todas")).toBe("No hay facturas registradas.");
   });
 });

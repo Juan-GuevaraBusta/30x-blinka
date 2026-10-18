@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { ChevronRight, FileSearch, ListChecks, Upload } from "lucide-react";
 
 import { AlertPanel } from "@/components/ui/AlertPanel";
-import { Badge, DECISION_META } from "@/components/ui/Badge";
+import { DECISION_META, DecisionBadge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -24,7 +24,6 @@ import {
   filterToApiDecision,
   formatListAmount,
   formatListBeneficiary,
-  rowStatusLabel,
 } from "@/lib/decisions-list";
 
 import ChainIntegrityBadge from "./ChainIntegrityBadge";
@@ -32,7 +31,7 @@ import ChainIntegrityBadge from "./ChainIntegrityBadge";
 const MONEY_NOTE =
   "Consultar esta lista no mueve dinero; solo refleja decisiones ya registradas.";
 
-type FilterTone = "pay" | "stop" | "escalate";
+type FilterTone = "pay" | "stop" | "escalate" | "neutral";
 
 const FILTER_TONES: Record<FilterTone, { active: string; icon: string; iconActive: string; bar: string }> = {
   pay: {
@@ -53,11 +52,18 @@ const FILTER_TONES: Record<FilterTone, { active: string; icon: string; iconActiv
     iconActive: "bg-escalate-600 text-white",
     bar: "bg-escalate-500",
   },
+  neutral: {
+    active: "border-brand-200 bg-brand-50 text-brand-800 shadow-sm",
+    icon: "bg-brand-50 text-brand-700",
+    iconActive: "bg-brand-600 text-white",
+    bar: "bg-brand-500",
+  },
 };
 
 type DecisionRow = {
   id: string;
   invoice_id: string;
+  received_at: string;
   decision: Decision;
   summary: string;
   extracted?: Extraction;
@@ -71,6 +77,8 @@ function isDecisionRow(value: unknown): value is DecisionRow {
     row.id.length > 0 &&
     typeof row.invoice_id === "string" &&
     row.invoice_id.length > 0 &&
+    typeof row.received_at === "string" &&
+    row.received_at.length > 0 &&
     (row.decision === "PAGAR" || row.decision === "ESCALAR" || row.decision === "FRENAR") &&
     typeof row.summary === "string" &&
     row.summary.length > 0
@@ -89,16 +97,20 @@ function parseDecisionList(payload: unknown): DecisionRow[] {
     rows.push({
       id: item.id,
       invoice_id: item.invoice_id,
+      received_at: item.received_at,
       decision: item.decision,
       summary: item.summary,
       extracted: item.extracted,
     });
   }
-  return rows;
+  // Most recent first, regardless of which filter (or "todas") is active.
+  return rows.sort((a, b) => b.received_at.localeCompare(a.received_at));
 }
 
-async function fetchDecisions(decision: Decision): Promise<DecisionRow[]> {
-  const res = await apiFetch(`/api/decisions?decision=${decision}`, { cache: "no-store" });
+/** `decision: null` (the "todas" tab) omits the filter so the API returns every decision. */
+async function fetchDecisions(decision: Decision | null): Promise<DecisionRow[]> {
+  const query = decision ? `?decision=${decision}` : "";
+  const res = await apiFetch(`/api/decisions${query}`, { cache: "no-store" });
   if (!res.ok) {
     throw new Error(`HTTP_${res.status}`);
   }
@@ -197,12 +209,12 @@ export default function DecisionsScreen({
 
       <fieldset>
         <legend className="mb-3 text-eyebrow uppercase text-ink-muted">Filtrar por estado</legend>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-4">
           {DECISION_LIST_FILTERS.map((key) => {
             const active = filter === key;
-            const meta = DECISION_META[filterToApiDecision(key)];
-            const Icon = meta.icon;
-            const tone = FILTER_TONES[meta.tone as FilterTone];
+            const apiDecision = filterToApiDecision(key);
+            const Icon = apiDecision ? DECISION_META[apiDecision].icon : ListChecks;
+            const tone = FILTER_TONES[apiDecision ? (DECISION_META[apiDecision].tone as FilterTone) : "neutral"];
             return (
               <button
                 key={key}
@@ -260,8 +272,6 @@ export default function DecisionsScreen({
         <>
           <div className="space-y-3 sm:hidden">
             {rows.map((row) => {
-              const meta = DECISION_META[row.decision];
-              const Icon = meta.icon;
               return (
                 <Link
                   key={row.id}
@@ -271,9 +281,7 @@ export default function DecisionsScreen({
                   <article>
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-mono text-sm font-semibold text-ink">{row.invoice_id}</p>
-                      <Badge tone={meta.tone} size="sm" icon={<Icon className="h-3.5 w-3.5" aria-hidden="true" />}>
-                        {rowStatusLabel(row.decision)}
-                      </Badge>
+                      <DecisionBadge decision={row.decision} size="sm" />
                     </div>
                     <p className="mt-2 text-sm text-ink">
                       {formatListBeneficiary(row.extracted)} ·{" "}
@@ -301,8 +309,6 @@ export default function DecisionsScreen({
               </THead>
               <tbody>
                 {rows.map((row) => {
-                  const meta = DECISION_META[row.decision];
-                  const Icon = meta.icon;
                   return (
                     <Tr key={row.id}>
                       <Td className="font-mono font-semibold">
@@ -319,9 +325,7 @@ export default function DecisionsScreen({
                         {formatListAmount(row.extracted)}
                       </Td>
                       <Td>
-                        <Badge tone={meta.tone} size="sm" icon={<Icon className="h-3.5 w-3.5" aria-hidden="true" />}>
-                          {rowStatusLabel(row.decision)}
-                        </Badge>
+                        <DecisionBadge decision={row.decision} size="sm" />
                       </Td>
                       <Td className="max-w-xs truncate text-ink-muted" title={decisionMotivo(row.summary)}>
                         {decisionMotivo(row.summary)}

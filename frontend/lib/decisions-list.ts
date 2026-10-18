@@ -1,18 +1,20 @@
 import type { Decision, Extraction } from "@/lib/decision-types";
 import { formatNullable } from "@/lib/decision-present";
 
-// T6.7 (D057): pending review comes first — that is the queue that needs attention.
-export const DECISION_LIST_FILTERS = ["pendientes", "frenadas", "pagadas"] as const;
+// "Todas" comes first and is the default (3 demo decisions must show together);
+// pending review comes next — that is the queue that needs attention.
+export const DECISION_LIST_FILTERS = ["todas", "pendientes", "frenadas", "pagadas"] as const;
 
 export type DecisionListFilter = (typeof DECISION_LIST_FILTERS)[number];
 
 export const FILTER_CONTROL_LABELS: Record<DecisionListFilter, string> = {
+  todas: "Todas",
   pendientes: "Pendientes",
   frenadas: "Frenadas",
   pagadas: "Pagadas",
 };
 
-export const DEFAULT_DECISION_LIST_FILTER: DecisionListFilter = "pendientes";
+export const DEFAULT_DECISION_LIST_FILTER: DecisionListFilter = "todas";
 
 /** Reads the `?estado=` query param (T6.7); falls back to the default filter when absent or invalid. */
 export function parseInitialFilter(value: string | string[] | undefined): DecisionListFilter {
@@ -23,8 +25,12 @@ export function parseInitialFilter(value: string | string[] | undefined): Decisi
   return DEFAULT_DECISION_LIST_FILTER;
 }
 
-/** Maps UI filter control to `GET /decisions?decision=` query value. */
-export function filterToApiDecision(filter: DecisionListFilter): Decision {
+/**
+ * Maps UI filter control to `GET /decisions?decision=` query value.
+ * `"todas"` maps to `null`: the API supports omitting `decision` entirely to
+ * return every decision, so no client-side merge is needed.
+ */
+export function filterToApiDecision(filter: DecisionListFilter): Decision | null {
   switch (filter) {
     case "pagadas":
       return "PAGAR";
@@ -32,6 +38,8 @@ export function filterToApiDecision(filter: DecisionListFilter): Decision {
       return "FRENAR";
     case "pendientes":
       return "ESCALAR";
+    case "todas":
+      return null;
   }
 }
 
@@ -75,6 +83,8 @@ export function emptyStateMessage(filter: DecisionListFilter): string {
       return "No hay facturas frenadas.";
     case "pendientes":
       return "No hay facturas pendientes de revisión.";
+    case "todas":
+      return "No hay facturas registradas.";
   }
 }
 
