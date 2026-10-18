@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable
 from datetime import datetime
 from typing import Annotated, Literal
@@ -26,6 +27,17 @@ from app.models.rules_config import RulesConfig
 Processor = Callable[[InvoiceUpload], DecisionRecord]
 Clock = Callable[[], datetime]
 MetricsReader = Callable[[], MetricsReading | None]
+
+# T5.8 (D055): process-wide lock serializing ledger-read -> decide -> persist
+# for POST /invoices (the only route that can settle PAGAR). Two concurrent
+# invoices, each individually under `limits.per_period`, previously read the
+# same prior-settled ledger, both decided PAGAR, and both persisted under
+# distinct invoice_ids -- jointly exceeding the period limit. This mutex only
+# serializes within one process: the deploy must run a single uvicorn worker
+# (no `--workers`), it does not coordinate across workers or replicas.
+# Production alternative, not implemented here (hackathon scope): a DB row
+# lock (`SELECT ... FOR UPDATE`) or `SERIALIZABLE` isolation.
+_INVOICE_LOCK = threading.Lock()
 
 
 def create_app(
@@ -99,11 +111,9 @@ def create_app(
             content=content,
         )
         try:
-            record = processor(upload)
+            return _decide_and_store_invoice(processor, store, upload)
         except InvoiceRejected as exc:
             raise HTTPException(status_code=422, detail=exc.detail) from exc
-        try:
-            return store.add_decision(record)
         except DuplicateDecisionError as exc:
             raise HTTPException(status_code=409, detail="duplicate_invoice") from exc
 
@@ -134,6 +144,15 @@ def create_app(
         return app.openapi()
 
     return app
+
+
+def _decide_and_store_invoice(
+    processor: Processor, store: MemoryStore, upload: InvoiceUpload
+) -> DecisionRecord:
+    """Serialize decide + persist so a concurrent invoice always sees this one (T5.8)."""
+    with _INVOICE_LOCK:
+        record = processor(upload)
+        return store.add_decision(record)
 
 
 def _add_human_event(
