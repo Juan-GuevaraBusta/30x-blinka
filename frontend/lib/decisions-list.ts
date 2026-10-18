@@ -1,16 +1,26 @@
 import type { Decision } from "@/lib/decision-types";
 
-export const DECISION_LIST_FILTERS = ["pagadas", "frenadas", "pendientes"] as const;
+// T6.7 (D057): pending review comes first — that is the queue that needs attention.
+export const DECISION_LIST_FILTERS = ["pendientes", "frenadas", "pagadas"] as const;
 
 export type DecisionListFilter = (typeof DECISION_LIST_FILTERS)[number];
 
 export const FILTER_CONTROL_LABELS: Record<DecisionListFilter, string> = {
-  pagadas: "Pagadas",
-  frenadas: "Frenadas",
   pendientes: "Pendientes",
+  frenadas: "Frenadas",
+  pagadas: "Pagadas",
 };
 
-export const DEFAULT_DECISION_LIST_FILTER: DecisionListFilter = "pagadas";
+export const DEFAULT_DECISION_LIST_FILTER: DecisionListFilter = "pendientes";
+
+/** Reads the `?estado=` query param (T6.7); falls back to the default filter when absent or invalid. */
+export function parseInitialFilter(value: string | string[] | undefined): DecisionListFilter {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw && (DECISION_LIST_FILTERS as readonly string[]).includes(raw)) {
+    return raw as DecisionListFilter;
+  }
+  return DEFAULT_DECISION_LIST_FILTER;
+}
 
 /** Maps UI filter control to `GET /decisions?decision=` query value. */
 export function filterToApiDecision(filter: DecisionListFilter): Decision {

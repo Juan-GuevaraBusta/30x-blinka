@@ -6,6 +6,17 @@ export const EVIDENCE_NULL_LABEL = "sin cita de cláusula en el registro";
 export const TRACE_NONE_LABEL = "sin traza";
 export const TRACE_LINK_LABEL = "Traza guardada en el registro (abre en pestaña nueva)";
 
+// T6.7 (D057): mirrors backend/app/models/domain.py SEVERITY (0 PAGAR, 1 ESCALAR, 2 FRENAR).
+export const SEVERITY_LABELS: Record<0 | 1 | 2, string> = {
+  0: "OK",
+  1: "Advertencia (Escalar)",
+  2: "Bloqueo (Frenar)",
+};
+
+export function severityLabel(severity: 0 | 1 | 2): string {
+  return SEVERITY_LABELS[severity];
+}
+
 export function isValidDecisionId(id: string): boolean {
   const trimmed = id.trim();
   if (trimmed.length === 0) return false;

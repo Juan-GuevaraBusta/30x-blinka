@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { isValidDecisionId } from "@/lib/decision-present";
+import { upstreamUnreachableResponse } from "@/lib/upstream-error";
 
 const API_URL = process.env.API_URL ?? "http://127.0.0.1:8000";
 // T5.9 (D055): server-side only. Never read as NEXT_PUBLIC_*; the browser never sees it.
@@ -20,15 +21,17 @@ export async function POST(
   if (ADMIN_API_KEY) {
     headers["X-Admin-Key"] = ADMIN_API_KEY;
   }
-  const upstream = await fetch(
-    `${API_URL}/decisions/${encodeURIComponent(id)}/reject`,
-    {
+  let upstream: Response;
+  try {
+    upstream = await fetch(`${API_URL}/decisions/${encodeURIComponent(id)}/reject`, {
       method: "POST",
       headers,
       body,
       cache: "no-store",
-    },
-  );
+    });
+  } catch {
+    return upstreamUnreachableResponse();
+  }
   const text = await upstream.text();
   return new NextResponse(text, {
     status: upstream.status,

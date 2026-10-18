@@ -3,6 +3,8 @@ import { DM_Sans, Source_Serif_4 } from "next/font/google";
 
 import "./globals.css";
 
+import GlobalNav from "./GlobalNav";
+
 const dmSans = DM_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
@@ -27,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${dmSans.variable} ${sourceSerif.variable} font-sans antialiased`}>
+        <GlobalNav />
         {children}
       </body>
     </html>

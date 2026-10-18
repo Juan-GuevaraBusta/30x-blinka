@@ -7,9 +7,18 @@ import {
   hasCheckEvidence,
   NULL_LABEL,
   ON_FAIL_NULL_LABEL,
+  severityLabel,
   tracePresentation,
   TRACE_NONE_LABEL,
 } from "./decision-present";
+
+describe("severityLabel", () => {
+  it("matches backend SEVERITY (0 PAGAR, 1 ESCALAR, 2 FRENAR)", () => {
+    expect(severityLabel(0)).toBe("OK");
+    expect(severityLabel(1)).toBe("Advertencia (Escalar)");
+    expect(severityLabel(2)).toBe("Bloqueo (Frenar)");
+  });
+});
 
 describe("formatNullable", () => {
   it("maps null to no consta", () => {

@@ -10,6 +10,7 @@ import {
   formatOnFail,
   hasCheckEvidence,
   isValidDecisionId,
+  severityLabel,
   tracePresentation,
 } from "@/lib/decision-present";
 
@@ -183,7 +184,9 @@ function RecordBody({ record }: { record: DecisionRecord }) {
           </div>
           <div className="rounded-md bg-ink px-4 py-3 text-surface">
             <p className="text-xs text-surface/70">Severidad (entero guardado)</p>
-            <p className="font-mono text-2xl tracking-wide">{record.severity}</p>
+            <p className="font-mono text-2xl tracking-wide">
+              {record.severity} · {severityLabel(record.severity)}
+            </p>
           </div>
         </div>
       </header>
@@ -194,7 +197,10 @@ function RecordBody({ record }: { record: DecisionRecord }) {
           <FieldRow label="Factura" value={record.invoice_id} />
           <FieldRow label="Recibida" value={record.received_at} />
           <FieldRow label="Decisión" value={record.decision} />
-          <FieldRow label="Severidad" value={String(record.severity)} />
+          <FieldRow
+            label="Severidad"
+            value={`${record.severity} · ${severityLabel(record.severity)}`}
+          />
         </dl>
         <div className="mt-4 border-t border-line/60 pt-4">
           <p className="text-sm font-medium text-ink">Versiones con las que se decidió</p>

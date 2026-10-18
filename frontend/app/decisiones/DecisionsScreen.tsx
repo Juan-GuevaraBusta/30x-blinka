@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import type { Decision, DecisionRecord } from "@/lib/decision-types";
@@ -19,6 +20,7 @@ const MONEY_NOTE =
   "Consultar esta lista no mueve dinero; solo refleja decisiones ya registradas.";
 
 type DecisionRow = {
+  id: string;
   invoice_id: string;
   decision: Decision;
   summary: string;
@@ -28,6 +30,8 @@ function isDecisionRow(value: unknown): value is DecisionRow {
   if (!value || typeof value !== "object") return false;
   const row = value as Partial<DecisionRecord>;
   return (
+    typeof row.id === "string" &&
+    row.id.length > 0 &&
     typeof row.invoice_id === "string" &&
     row.invoice_id.length > 0 &&
     (row.decision === "PAGAR" || row.decision === "ESCALAR" || row.decision === "FRENAR") &&
@@ -76,11 +80,41 @@ function fetchErrorMessage(err: unknown): string {
   return "No se pudo cargar el listado. Compruebe la conexión e intente de nuevo.";
 }
 
-export default function DecisionsScreen() {
-  const [filter, setFilter] = useState<DecisionListFilter>(DEFAULT_DECISION_LIST_FILTER);
+export default function DecisionsScreen({
+  initialFilter = DEFAULT_DECISION_LIST_FILTER,
+}: {
+  initialFilter?: DecisionListFilter;
+}) {
+  const [filter, setFilter] = useState<DecisionListFilter>(initialFilter);
   const [rows, setRows] = useState<DecisionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [counts, setCounts] = useState<Partial<Record<DecisionListFilter, number>>>({});
+
+  // T6.7 (D057): per-tab counts are cheap on these small synthetic lists.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const results = await Promise.allSettled(
+        DECISION_LIST_FILTERS.map(async (key) => {
+          const list = await fetchDecisions(filterToApiDecision(key));
+          return [key, list.length] as const;
+        }),
+      );
+      if (cancelled) return;
+      const next: Partial<Record<DecisionListFilter, number>> = {};
+      for (const result of results) {
+        if (result.status === "fulfilled") {
+          const [key, count] = result.value;
+          next[key] = count;
+        }
+      }
+      setCounts(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -135,6 +169,7 @@ export default function DecisionsScreen() {
                 }`}
               >
                 {FILTER_CONTROL_LABELS[key]}
+                {counts[key] !== undefined ? ` (${counts[key]})` : ""}
               </button>
             );
           })}
@@ -160,21 +195,24 @@ export default function DecisionsScreen() {
         <>
           <div className="space-y-4 sm:hidden">
             {rows.map((row) => (
-              <article
-                key={`${row.invoice_id}-${row.decision}`}
-                className="rounded-md border border-line bg-surface/90 p-4 shadow-sm ring-1 ring-line/60"
+              <Link
+                key={row.id}
+                href={`/decisiones/${encodeURIComponent(row.id)}`}
+                className="block rounded-md border border-line bg-surface/90 p-4 shadow-sm ring-1 ring-line/60 hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
               >
-                <p className="font-mono text-sm text-ink">{row.invoice_id}</p>
-                <p className={`mt-1 text-sm font-medium ${statusToneClass(row.decision)}`}>
-                  {rowStatusLabel(row.decision)}
-                </p>
-                <p
-                  className="mt-2 truncate text-sm text-ink-muted"
-                  title={decisionMotivo(row.summary)}
-                >
-                  {decisionMotivo(row.summary)}
-                </p>
-              </article>
+                <article>
+                  <p className="font-mono text-sm text-ink">{row.invoice_id}</p>
+                  <p className={`mt-1 text-sm font-medium ${statusToneClass(row.decision)}`}>
+                    {rowStatusLabel(row.decision)}
+                  </p>
+                  <p
+                    className="mt-2 truncate text-sm text-ink-muted"
+                    title={decisionMotivo(row.summary)}
+                  >
+                    {decisionMotivo(row.summary)}
+                  </p>
+                </article>
+              </Link>
             ))}
           </div>
 
@@ -195,8 +233,15 @@ export default function DecisionsScreen() {
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <tr key={`${row.invoice_id}-${row.decision}`} className="border-b border-line/80">
-                    <td className="py-3 pr-4 font-mono text-ink">{row.invoice_id}</td>
+                  <tr key={row.id} className="border-b border-line/80">
+                    <td className="py-3 pr-4 font-mono text-ink">
+                      <Link
+                        href={`/decisiones/${encodeURIComponent(row.id)}`}
+                        className="hover:underline focus:outline-none focus:ring-2 focus:ring-accent/40"
+                      >
+                        {row.invoice_id}
+                      </Link>
+                    </td>
                     <td className={`py-3 pr-4 font-medium ${statusToneClass(row.decision)}`}>
                       {rowStatusLabel(row.decision)}
                     </td>
