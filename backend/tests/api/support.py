@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Protocol
 
 from app.api import create_app
+from app.api.asgi import load_approver_emails as _load_approver_emails
 from app.api.schemas import InvoiceUpload, MetricsReading
 from app.api.store import MemoryStore
 from app.models.domain import Decision, DecisionRecord
@@ -89,9 +90,15 @@ def rules_payload() -> dict[str, object]:
 
 
 def load_approver_emails() -> frozenset[str]:
-    """Valid `author` values for approve/reject (T5.9, D055): data/company.json's approvers."""
-    payload = json.loads(COMPANY_PATH.read_text(encoding="utf-8"))
-    return frozenset(payload["approvers"].values())
+    """Valid `author` values for approve/reject (T5.9, D055, R2 follow-up).
+
+    Delegates to `app.api.asgi.load_approver_emails`, the single canonical
+    loader, instead of re-reading `data/company.json` with a second parallel
+    implementation (R2-duplicated-approver-loader). Tests pass `rules=None` to
+    exercise the same company.json fallback production hits on first boot.
+    """
+    data_root = REPO_ROOT
+    return _load_approver_emails(data_root, rules=None)
 
 
 def make_record(

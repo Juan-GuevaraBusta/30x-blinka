@@ -8,7 +8,7 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Annotated, Literal
 
-from fastapi import FastAPI, File, Form, Header, HTTPException, Query, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, UploadFile
 from pydantic import ValidationError
 
 from app.api.rate_limit import FixedWindowLimiter, RateLimitMiddleware
@@ -63,6 +63,19 @@ def create_app(
     app = FastAPI(title="blinka-invoice-agent", openapi_url=None)
     app.add_middleware(RateLimitMiddleware, limiter=limiter)
 
+    def _check_admin_key(
+        x_admin_key: Annotated[str | None, Header(alias="X-Admin-Key")] = None,
+    ) -> None:
+        """Depends() runs during FastAPI's dependency-resolution phase, which
+        completes before body fields are parsed into their Pydantic model
+        (`request_body_to_args` in fastapi/dependencies/utils.py runs after the
+        sub-dependency loop). Using this as a route dependency -- instead of a
+        plain in-body check -- is what guarantees an unauthenticated caller gets
+        401/503 even for a malformed body, never a 422 that leaks body-shape
+        information before authentication (R3-auth-after-body-validation).
+        """
+        _require_admin_key(admin_api_key, x_admin_key)
+
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
@@ -74,10 +87,11 @@ def create_app(
     @app.put("/rules")
     def put_rules(
         body: RulesConfig,
-        x_admin_key: Annotated[str | None, Header(alias="X-Admin-Key")] = None,
+        _admin: None = Depends(_check_admin_key),
     ) -> RulesConfig:
-        _require_admin_key(admin_api_key, x_admin_key)
-        # FastAPI rejects an invalid body with 422 before this runs, so the store stays.
+        # `_admin` (Depends) runs before `body` is parsed, so an unauthenticated
+        # caller gets 401/503, never 422 (R3-auth-after-body-validation). A valid
+        # body that fails RulesConfig's own validators still rejects with 422.
         return store.put_rules(body)
 
     @app.get("/decisions")
@@ -135,9 +149,8 @@ def create_app(
     def approve(
         id: str,
         body: HumanDecisionBody,
-        x_admin_key: Annotated[str | None, Header(alias="X-Admin-Key")] = None,
+        _admin: None = Depends(_check_admin_key),
     ) -> DecisionRecord:
-        _require_admin_key(admin_api_key, x_admin_key)
         _require_known_approver(body.author, allowed_approvers)
         return _add_human_event(store, clock, id, body, "aprobada_humano")
 
@@ -145,9 +158,8 @@ def create_app(
     def reject(
         id: str,
         body: HumanDecisionBody,
-        x_admin_key: Annotated[str | None, Header(alias="X-Admin-Key")] = None,
+        _admin: None = Depends(_check_admin_key),
     ) -> DecisionRecord:
-        _require_admin_key(admin_api_key, x_admin_key)
         _require_known_approver(body.author, allowed_approvers)
         return _add_human_event(store, clock, id, body, "rechazada_humano")
 

@@ -187,6 +187,51 @@ def test_get_endpoints_stay_public_without_header(path: str) -> None:
 # --- constant-time comparison is actually used --------------------------------------
 
 
+# --- R3: auth runs BEFORE body validation (401/503 before 422) --------------------
+
+
+def test_put_rules_with_invalid_body_and_no_key_returns_401_not_422() -> None:
+    """Follow-up to T5.9 review: an unauthenticated caller must never learn body
+    shape via 422 before the admin-key check runs."""
+    client, _store, _clock = build_client()
+
+    response = client.put("/rules", json={"not": "a rules document"})
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "missing_admin_key"}
+
+
+def test_put_rules_with_invalid_body_and_unset_key_returns_503() -> None:
+    client, _store, _clock = build_client(admin_api_key=None)
+
+    response = client.put("/rules", json={"not": "a rules document"})
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "admin_key_not_configured"}
+
+
+def test_approve_with_invalid_body_and_no_key_returns_401_not_422() -> None:
+    client, store, _clock = build_client()
+    store.add_decision(make_record())
+
+    response = client.post("/decisions/dec_0042/approve", json={"not": "valid"})
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "missing_admin_key"}
+    assert store.decisions["dec_0042"].human_events == []
+
+
+def test_reject_with_invalid_body_and_no_key_returns_401_not_422() -> None:
+    client, store, _clock = build_client()
+    store.add_decision(make_record())
+
+    response = client.post("/decisions/dec_0042/reject", json={"not": "valid"})
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "missing_admin_key"}
+    assert store.decisions["dec_0042"].human_events == []
+
+
 def test_admin_key_comparison_uses_compare_digest(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[tuple[bytes, bytes]] = []
     real_compare_digest = hmac.compare_digest
