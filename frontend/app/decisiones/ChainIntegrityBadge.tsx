@@ -1,11 +1,13 @@
 "use client";
 
+import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
+
+import { Badge } from "@/components/ui/Badge";
 
 import {
   type ChainVerification,
   chainBadgeLabel,
-  chainBadgeToneClass,
   isChainVerification,
 } from "@/lib/chain-integrity";
 
@@ -43,12 +45,20 @@ export default function ChainIntegrityBadge() {
   }
 
   return (
-    <p
-      className={`mt-2 text-xs font-medium ${chainBadgeToneClass(result)}`}
+    <Badge
+      tone={result.ok ? "pay" : "stop"}
+      className="animate-fade-up"
       role="status"
       data-testid="chain-integrity-badge"
+      icon={
+        result.ok ? (
+          <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+        ) : (
+          <ShieldAlert className="h-3.5 w-3.5" aria-hidden="true" />
+        )
+      }
     >
       {chainBadgeLabel(result)}
-    </p>
+    </Badge>
   );
 }

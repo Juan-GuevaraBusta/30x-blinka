@@ -43,9 +43,16 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <p className="text-sm text-ink-muted" role="status">
-        Cargando…
-      </p>
+      <div className="space-y-4" role="status" aria-live="polite">
+        <span className="sr-only">Cargando…</span>
+        <div className="skeleton h-4 w-40" aria-hidden="true" />
+        <div className="skeleton h-9 w-72" aria-hidden="true" />
+        <div className="grid gap-4 sm:grid-cols-3" aria-hidden="true">
+          <div className="skeleton h-32" />
+          <div className="skeleton h-32" />
+          <div className="skeleton h-32" />
+        </div>
+      </div>
     );
   }
 

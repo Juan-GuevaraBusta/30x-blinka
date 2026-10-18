@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { ArrowLeft, Bot, FileSignature, History, PowerOff, ShieldCheck } from "lucide-react";
+
 import { AlertPanel } from "@/components/ui/AlertPanel";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { buttonClass } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Section } from "@/components/ui/Section";
 import { describeAgreement } from "@/lib/agreement-present";
@@ -40,6 +44,12 @@ const STATUS_LABELS: Record<string, string> = {
   active: "Vigente",
   superseded: "Reemplazada",
   inactive: "Desactivada",
+};
+
+const STATUS_TONES: Record<string, BadgeTone> = {
+  active: "pay",
+  superseded: "info",
+  inactive: "neutral",
 };
 
 export default function AcuerdoDetailScreen({ vendorKeyParam }: { vendorKeyParam: string }) {
@@ -88,9 +98,10 @@ export default function AcuerdoDetailScreen({ vendorKeyParam }: { vendorKeyParam
 
   if (state.status === "loading") {
     return (
-      <p className="text-sm text-ink-muted" role="status">
-        Cargando acuerdo…
-      </p>
+      <div className="space-y-3" role="status">
+        <p className="text-sm text-ink-muted">Cargando acuerdo…</p>
+        <div className="skeleton h-40" aria-hidden="true" />
+      </div>
     );
   }
 
@@ -98,7 +109,8 @@ export default function AcuerdoDetailScreen({ vendorKeyParam }: { vendorKeyParam
     return (
       <div className="space-y-4">
         <AlertPanel>{state.message}</AlertPanel>
-        <Link href="/reglas/acuerdos" className="text-sm text-accent hover:underline focus-ring">
+        <Link href="/reglas/acuerdos" className={buttonClass("secondary", "sm")}>
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Volver a acuerdos
         </Link>
       </div>
@@ -112,9 +124,14 @@ export default function AcuerdoDetailScreen({ vendorKeyParam }: { vendorKeyParam
     <div className="space-y-6">
       <PageHeader
         title={active?.terms.vendor_name ?? vendorKey}
+        icon={FileSignature}
         description={
           <p>
-            <Link href="/reglas/acuerdos" className="text-accent hover:underline focus-ring">
+            <Link
+              href="/reglas/acuerdos"
+              className="inline-flex items-center gap-1 font-semibold text-brand-700 hover:underline focus-ring"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
               Acuerdos
             </Link>
           </p>
@@ -124,33 +141,45 @@ export default function AcuerdoDetailScreen({ vendorKeyParam }: { vendorKeyParam
       {actionError ? <AlertPanel>{actionError}</AlertPanel> : null}
 
       {active ? (
-        <Section title="Versión vigente">
-          <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
-            <div>
-              <dt className="text-ink-muted">Tipo</dt>
-              <dd className="font-medium text-ink">{AGREEMENT_KIND_LABELS[active.terms.kind]}</dd>
+        <Section
+          title="Versión vigente"
+          icon={ShieldCheck}
+          action={
+            <Badge tone="pay" icon={<ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />}>
+              Vigente
+            </Badge>
+          }
+        >
+          <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+            <div className="rounded-lg bg-surface-sunken px-3 py-2.5">
+              <dt className="text-eyebrow uppercase text-ink-muted">Tipo</dt>
+              <dd className="mt-1 font-semibold text-ink">{AGREEMENT_KIND_LABELS[active.terms.kind]}</dd>
             </div>
-            <div>
-              <dt className="text-ink-muted">Versión</dt>
-              <dd className="font-medium text-ink">v{active.version}</dd>
+            <div className="rounded-lg bg-surface-sunken px-3 py-2.5">
+              <dt className="text-eyebrow uppercase text-ink-muted">Versión</dt>
+              <dd className="mt-1 font-semibold text-ink">v{active.version}</dd>
             </div>
-            <div>
-              <dt className="text-ink-muted">Confirmado por</dt>
-              <dd className="font-medium text-ink">{active.confirmed_by}</dd>
+            <div className="rounded-lg bg-surface-sunken px-3 py-2.5">
+              <dt className="text-eyebrow uppercase text-ink-muted">Confirmado por</dt>
+              <dd className="mt-1 font-semibold text-ink">{active.confirmed_by}</dd>
             </div>
           </dl>
 
-          <div className="mt-4 rounded-md border border-line/70 bg-paper px-3 py-2">
-            <p className="text-xs font-medium text-ink-muted">Cómo lo aplica el agente</p>
-            <p className="mt-1 text-sm text-ink">{describeAgreement(active.terms)}</p>
+          <div className="mt-4 flex gap-3 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3">
+            <Bot className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
+            <div>
+              <p className="text-xs font-semibold text-brand-800">Cómo lo aplica el agente</p>
+              <p className="mt-1 text-sm text-ink">{describeAgreement(active.terms)}</p>
+            </div>
           </div>
 
           <button
             type="button"
             onClick={handleDeactivate}
             disabled={deactivating}
-            className="mt-4 rounded-md border border-danger/40 px-3 py-1.5 text-sm font-medium text-danger hover:bg-danger/10 focus-ring disabled:opacity-50"
+            className={buttonClass("secondary", "md", "mt-4 border-stop-200 text-stop-700 hover:border-stop-500 hover:bg-stop-50")}
           >
+            <PowerOff className="h-4 w-4" aria-hidden="true" />
             {deactivating ? "Desactivando…" : "Desactivar acuerdo"}
           </button>
         </Section>
@@ -158,23 +187,31 @@ export default function AcuerdoDetailScreen({ vendorKeyParam }: { vendorKeyParam
         <AlertPanel tone="neutral">Este proveedor no tiene una versión vigente.</AlertPanel>
       )}
 
-      <Section title="Historial de versiones">
-        <ul className="space-y-2">
+      <Section title="Historial de versiones" icon={History}>
+        <ol className="relative space-y-3 border-l-2 border-brand-100 pl-5">
           {history.versions
             .slice()
             .reverse()
             .map((version) => (
               <li
                 key={version.version}
-                className="flex flex-wrap items-baseline justify-between gap-2 rounded-md border border-line/70 px-3 py-2 text-sm"
+                className="relative flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2.5 text-sm"
               >
-                <span className="font-mono text-ink">v{version.version}</span>
-                <span className="text-ink-muted">{STATUS_LABELS[version.status] ?? version.status}</span>
+                <span
+                  className={`absolute -left-7 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full ring-4 ring-surface ${
+                    version.status === "active" ? "bg-pay-500" : "bg-brand-300"
+                  }`}
+                  aria-hidden="true"
+                />
+                <span className="font-mono font-semibold text-ink">v{version.version}</span>
+                <Badge tone={STATUS_TONES[version.status] ?? "neutral"} size="sm">
+                  {STATUS_LABELS[version.status] ?? version.status}
+                </Badge>
                 <span className="text-ink-muted">{version.confirmed_by}</span>
                 <span className="text-ink-muted">{version.confirmed_at}</span>
               </li>
             ))}
-        </ul>
+        </ol>
       </Section>
     </div>
   );

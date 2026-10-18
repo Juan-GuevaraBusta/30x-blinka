@@ -3,7 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { Building2, Check, LogIn, Plus, Sparkles } from "lucide-react";
+
 import { AlertPanel } from "@/components/ui/AlertPanel";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Input, Select } from "@/components/ui/Field";
+import { cn } from "@/lib/cn";
 import { setMe, type Me, type MeCompany } from "@/lib/me";
 import {
   SUPPORTED_CURRENCIES,
@@ -102,34 +108,56 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <div className="mx-auto max-w-md">
-      <h1 className="text-2xl font-semibold text-ink">Tu empresa</h1>
-      <p className="mt-2 text-sm text-ink-muted">
-        Únete a la empresa de tu equipo o crea una nueva. Las reglas, proveedores, acuerdos y
-        aprobaciones son de la empresa.
-      </p>
+    <div className="mx-auto max-w-lg animate-fade-up py-4">
+      <div className="mb-6 flex items-center gap-2 text-eyebrow uppercase text-brand-700">
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 font-mono text-2xs text-white" aria-hidden="true">
+          1
+        </span>
+        <span>Paso 1 de 1 · Configuración inicial</span>
+      </div>
+      <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-lg">
+        <div className="relative overflow-hidden bg-night px-6 py-7 text-white">
+          <div className="bg-grid-night absolute inset-0 opacity-40" aria-hidden="true" />
+          <div className="relative flex items-start gap-4">
+            <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-signal text-night shadow-md" aria-hidden="true">
+              <Building2 className="h-6 w-6" />
+            </span>
+            <div>
+              <h1 className="text-h1 text-white">Tu empresa</h1>
+              <p className="mt-2 text-sm text-brand-100">
+                Únete a la empresa de tu equipo o crea una nueva. Las reglas, proveedores, acuerdos y
+                aprobaciones son de la empresa.
+              </p>
+            </div>
+          </div>
+        </div>
 
-      <div className="mt-6 flex gap-2" role="tablist" aria-label="Cómo empezar">
+        <div className="p-6">
+      <div className="flex gap-1 rounded-xl border border-line bg-surface-sunken p-1" role="tablist" aria-label="Cómo empezar">
         <button
           type="button"
           role="tab"
           aria-selected={mode === "join"}
-          className={`rounded-lg px-3 py-2 text-sm font-medium focus-ring ${
-            mode === "join" ? "bg-accent/10 text-ink" : "text-ink-muted"
-          }`}
+          className={cn(
+            "inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-150 focus-ring",
+            mode === "join" ? "bg-surface text-brand-700 shadow-sm" : "text-ink-muted hover:text-ink",
+          )}
           onClick={() => setMode("join")}
         >
+          <LogIn className="h-4 w-4" aria-hidden="true" />
           Unirme a una empresa
         </button>
         <button
           type="button"
           role="tab"
           aria-selected={mode === "create"}
-          className={`rounded-lg px-3 py-2 text-sm font-medium focus-ring ${
-            mode === "create" ? "bg-accent/10 text-ink" : "text-ink-muted"
-          }`}
+          className={cn(
+            "inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-150 focus-ring",
+            mode === "create" ? "bg-surface text-brand-700 shadow-sm" : "text-ink-muted hover:text-ink",
+          )}
           onClick={() => setMode("create")}
         >
+          <Plus className="h-4 w-4" aria-hidden="true" />
           Crear una empresa
         </button>
       </div>
@@ -137,81 +165,114 @@ export default function OnboardingScreen() {
       {mode === "join" ? (
         <form className="mt-6 space-y-4" onSubmit={onJoin}>
           {companies === null ? (
-            <p className="text-sm text-ink-muted" role="status">
-              Cargando empresas…
-            </p>
+            <div className="space-y-2" role="status">
+              <p className="text-sm text-ink-muted">Cargando empresas…</p>
+              <div className="skeleton h-14" aria-hidden="true" />
+              <div className="skeleton h-14" aria-hidden="true" />
+            </div>
           ) : companies.length === 0 ? (
-            <p className="text-sm text-ink-muted">Todavía no hay empresas. Crea la primera.</p>
+            <p className="rounded-lg border border-dashed border-line-strong bg-surface-sunken px-4 py-6 text-center text-sm text-ink-muted">
+              Todavía no hay empresas. Crea la primera.
+            </p>
           ) : (
             <fieldset className="space-y-2">
-              <legend className="text-sm font-medium text-ink">Empresas</legend>
-              {companies.map((company) => (
-                <label key={company.id} className="flex items-center gap-2 text-sm text-ink">
-                  <input
-                    type="radio"
-                    name="company"
-                    value={company.id}
-                    checked={selected === company.id}
-                    onChange={() => setSelected(company.id)}
-                  />
-                  <span>
-                    {company.name} · {company.base_currency}
-                    {company.is_demo ? " · demo" : ""}
-                  </span>
-                </label>
-              ))}
+              <legend className="mb-2 text-sm font-semibold text-ink">Empresas</legend>
+              {companies.map((company) => {
+                const checked = selected === company.id;
+                return (
+                  <label
+                    key={company.id}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm text-ink transition-all duration-150 focus-within:ring-4 focus-within:ring-brand-500/20",
+                      checked ? "border-brand-500 bg-brand-50 shadow-sm" : "border-line hover:border-brand-300 hover:bg-brand-50/50",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="company"
+                      value={company.id}
+                      checked={checked}
+                      onChange={() => setSelected(company.id)}
+                      className="sr-only"
+                    />
+                    <span
+                      className={cn(
+                        "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-display text-sm font-bold",
+                        checked ? "bg-brand-600 text-white" : "bg-surface-sunken text-ink-muted",
+                      )}
+                      aria-hidden="true"
+                    >
+                      {checked ? <Check className="h-4 w-4" /> : company.name.slice(0, 1).toUpperCase()}
+                    </span>
+                    <span className="flex flex-1 flex-wrap items-center gap-2">
+                      <span className="font-semibold">{company.name}</span>
+                      <span className="text-ink-muted">· {company.base_currency}</span>
+                      {company.is_demo ? (
+                        <Badge tone="signal" size="sm">
+                          demo
+                        </Badge>
+                      ) : null}
+                    </span>
+                  </label>
+                );
+              })}
             </fieldset>
           )}
-          <button
+          <Button
             type="submit"
+            size="lg"
             disabled={busy || !companies || companies.length === 0}
-            className="w-full rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white focus-ring disabled:opacity-60"
+            className="w-full"
+            icon={<LogIn className="h-4 w-4" aria-hidden="true" />}
           >
             {busy ? "Un momento…" : "Unirme"}
-          </button>
+          </Button>
         </form>
       ) : (
         <form className="mt-6 space-y-4" onSubmit={onCreate}>
-          <label className="block text-sm font-medium text-ink">
-            Nombre de la empresa
-            <input
+          <label className="block space-y-1.5 text-sm font-semibold text-ink">
+            <span>Nombre de la empresa</span>
+            <Input
               type="text"
               required
               maxLength={120}
-              className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-ink focus-ring"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </label>
-          <label className="block text-sm font-medium text-ink">
-            Moneda base (para convertir montos)
-            <select
-              className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-ink focus-ring"
-              value={baseCurrency}
-              onChange={(e) => setBaseCurrency(e.target.value)}
-            >
+          <label className="block space-y-1.5 text-sm font-semibold text-ink">
+            <span>Moneda base (para convertir montos)</span>
+            <Select value={baseCurrency} onChange={(e) => setBaseCurrency(e.target.value)}>
               {SUPPORTED_CURRENCIES.map((code) => (
                 <option key={code} value={code}>
                   {code}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
-          <label className="flex items-center gap-2 text-sm text-ink">
-            <input type="checkbox" checked={isDemo} onChange={(e) => setIsDemo(e.target.checked)} />
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-line bg-surface-sunken px-4 py-3 text-sm text-ink transition-colors hover:border-brand-300">
+            <input
+              type="checkbox"
+              checked={isDemo}
+              onChange={(e) => setIsDemo(e.target.checked)}
+              className="h-4 w-4 accent-brand-600 focus-ring"
+            />
+            <Sparkles className="h-4 w-4 text-brand-600" aria-hidden="true" />
             Empresa demo (datos de prueba)
           </label>
-          <p className="text-xs text-ink-muted">
+          <p className="rounded-lg border border-info-200 bg-info-50 px-3 py-2 text-xs text-info-800">
             Quedarás como administrador y aprobador. Hasta que configures las reglas, cada
             factura queda en revisión humana.
           </p>
-          <button
+          <Button
             type="submit"
+            size="lg"
             disabled={busy}
-            className="w-full rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white focus-ring disabled:opacity-60"
+            className="w-full"
+            icon={<Plus className="h-4 w-4" aria-hidden="true" />}
           >
             {busy ? "Un momento…" : "Crear empresa"}
-          </button>
+          </Button>
         </form>
       )}
 
@@ -220,6 +281,8 @@ export default function OnboardingScreen() {
           <AlertPanel>{error}</AlertPanel>
         </div>
       ) : null}
+        </div>
+      </div>
     </div>
   );
 }

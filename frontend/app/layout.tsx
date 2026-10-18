@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Inter } from "next/font/google";
+import { Bricolage_Grotesque, Geist_Mono, Inter } from "next/font/google";
 
 import "./globals.css";
 
@@ -11,13 +11,18 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-display",
+  subsets: ["latin"],
+});
+
 const geistMono = Geist_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Blinka — Agente de pagos",
+  title: "Agente de pagos · Reto Blinka 30x",
   description: "Puesto de control de reglas de pago (datos sintéticos).",
 };
 
@@ -28,11 +33,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={`${inter.variable} ${geistMono.variable} font-sans antialiased`}>
-        <div className="flex min-h-screen bg-paper">
+      <body className={`${inter.variable} ${bricolage.variable} ${geistMono.variable} font-sans antialiased`}>
+        <div className="flex min-h-screen flex-col md:flex-row">
           <GlobalNav />
           <div className="flex min-w-0 flex-1 flex-col">
-            <main className="mx-auto w-full max-w-content flex-1 px-4 py-8 sm:px-8 sm:py-10">
+            <main className="mx-auto w-full max-w-content flex-1 px-4 py-8 sm:px-8 sm:py-10 lg:px-10">
               <AuthGate>{children}</AuthGate>
             </main>
           </div>

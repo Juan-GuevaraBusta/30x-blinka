@@ -2,9 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { Ban, Building2, Gauge, Plus, Save, ShieldCheck, Trash2, UserCheck, Users, Wallet } from "lucide-react";
+
 import { Section } from "@/components/ui/Section";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { AlertPanel } from "@/components/ui/AlertPanel";
+import { Badge } from "@/components/ui/Badge";
+import { buttonClass } from "@/components/ui/Button";
 import type { RulesConfig } from "@/lib/rules-types";
 import { cloneRulesConfig, validateDraft } from "@/lib/rules-form";
 import { apiFetch } from "@/lib/session";
@@ -34,7 +38,7 @@ async function putRules(document: RulesConfig): Promise<RulesConfig> {
 
 function FieldLabel({ children, htmlFor }: { children: string; htmlFor?: string }) {
   return (
-    <label htmlFor={htmlFor} className="mb-1 block text-sm font-medium text-ink-muted">
+    <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-semibold text-ink">
       {children}
     </label>
   );
@@ -149,9 +153,11 @@ export default function ReglasScreen() {
 
   if (loading) {
     return (
-      <p className="text-ink-muted" role="status">
-        Cargando reglas vigentes…
-      </p>
+      <div className="space-y-3" role="status">
+        <p className="text-sm text-ink-muted">Cargando reglas vigentes…</p>
+        <div className="skeleton h-32" aria-hidden="true" />
+        <div className="skeleton h-32" aria-hidden="true" />
+      </div>
     );
   }
 
@@ -165,6 +171,7 @@ export default function ReglasScreen() {
         <PageHeader
           bordered={false}
           title="Reglas vigentes"
+          icon={ShieldCheck}
           description={
             <p>
               Edite el paquete completo y guarde. Un campo inválido no se envía al servidor.
@@ -175,10 +182,10 @@ export default function ReglasScreen() {
 
       {(fieldErrors.length > 0 || saveMessage) && (
         <div
-          className={`rounded-md px-4 py-3 text-sm ${
+          className={`animate-fade-up rounded-lg border px-4 py-3 text-sm ${
             fieldErrors.length > 0
-              ? "border border-danger/40 bg-danger/10 text-danger"
-              : "border border-success/40 bg-success/10 text-success"
+              ? "border-stop-200 bg-stop-50 text-stop-800"
+              : "border-pay-200 bg-pay-50 text-pay-800"
           }`}
           role="alert"
         >
@@ -201,7 +208,7 @@ export default function ReglasScreen() {
           void handleSave();
         }}
       >
-        <Section title="Empresa" description="Identidad y moneda base del libro.">
+        <Section icon={Building2} title="Empresa" description="Identidad y moneda base del libro.">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <FieldLabel htmlFor="company-name">Nombre</FieldLabel>
@@ -229,7 +236,7 @@ export default function ReglasScreen() {
           </div>
         </Section>
 
-        <Section title="Límites de pago">
+        <Section icon={Gauge} title="Límites de pago">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <FieldLabel htmlFor="per-payment">Máximo por pago</FieldLabel>
@@ -269,7 +276,7 @@ export default function ReglasScreen() {
           </div>
         </Section>
 
-        <Section title="Aprobación humana">
+        <Section icon={ShieldCheck} title="Aprobación humana">
           <div className="max-w-sm">
             <FieldLabel htmlFor="human-threshold">Umbral (moneda base)</FieldLabel>
             <NumberInput
@@ -285,7 +292,7 @@ export default function ReglasScreen() {
           </div>
         </Section>
 
-        <Section title="Beneficiarios permitidos">
+        <Section icon={Users} title="Beneficiarios permitidos">
           <ul className="space-y-2">
             {draft.allowed_beneficiaries.map((name, index) => (
               <li key={`ben-${index}`} className="flex gap-2">
@@ -302,7 +309,7 @@ export default function ReglasScreen() {
                 />
                 <button
                   type="button"
-                  className="shrink-0 rounded-md border border-line px-3 text-sm text-ink-muted hover:bg-canvas focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  className={buttonClass("secondary", "md", "shrink-0 text-stop-700 hover:border-stop-200 hover:bg-stop-50")}
                   onClick={() =>
                     updateDraft((d) => ({
                       ...d,
@@ -310,6 +317,7 @@ export default function ReglasScreen() {
                     }))
                   }
                 >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                   Quitar
                 </button>
               </li>
@@ -317,7 +325,7 @@ export default function ReglasScreen() {
           </ul>
           <button
             type="button"
-            className="text-sm font-medium text-accent hover:underline focus:outline-none focus:ring-2 focus:ring-accent/40"
+            className={buttonClass("ghost", "sm", "text-brand-700")}
             onClick={() =>
               updateDraft((d) => ({
                 ...d,
@@ -325,11 +333,12 @@ export default function ReglasScreen() {
               }))
             }
           >
+            <Plus className="h-4 w-4" aria-hidden="true" />
             Añadir beneficiario
           </button>
         </Section>
 
-        <Section title="Presupuestos por área">
+        <Section icon={Wallet} title="Presupuestos por área">
           <ul className="space-y-2">
             {Object.entries(draft.department_budgets).map(([area, amount]) => (
               <li key={area} className="grid gap-2 sm:grid-cols-[1fr_140px_auto]">
@@ -360,7 +369,7 @@ export default function ReglasScreen() {
                 />
                 <button
                   type="button"
-                  className="rounded-md border border-line px-3 text-sm text-ink-muted hover:bg-canvas"
+                  className={buttonClass("secondary", "md", "shrink-0 text-stop-700 hover:border-stop-200 hover:bg-stop-50")}
                   onClick={() =>
                     updateDraft((d) => {
                       const next = { ...d.department_budgets };
@@ -369,6 +378,7 @@ export default function ReglasScreen() {
                     })
                   }
                 >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                   Quitar
                 </button>
               </li>
@@ -376,7 +386,7 @@ export default function ReglasScreen() {
           </ul>
           <button
             type="button"
-            className="text-sm font-medium text-accent hover:underline"
+            className={buttonClass("ghost", "sm", "text-brand-700")}
             onClick={() =>
               updateDraft((d) => ({
                 ...d,
@@ -384,11 +394,12 @@ export default function ReglasScreen() {
               }))
             }
           >
+            <Plus className="h-4 w-4" aria-hidden="true" />
             Añadir área
           </button>
         </Section>
 
-        <Section title="Aprobadores">
+        <Section icon={UserCheck} title="Aprobadores">
           <ul className="space-y-2">
             {Object.entries(draft.approvers).map(([role, email]) => (
               <li key={role} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
@@ -418,7 +429,7 @@ export default function ReglasScreen() {
                 {role !== "default" ? (
                   <button
                     type="button"
-                    className="rounded-md border border-line px-3 text-sm text-ink-muted hover:bg-canvas"
+                    className={buttonClass("secondary", "md", "shrink-0 text-stop-700 hover:border-stop-200 hover:bg-stop-50")}
                     onClick={() =>
                       updateDraft((d) => {
                         const next = { ...d.approvers };
@@ -427,17 +438,20 @@ export default function ReglasScreen() {
                       })
                     }
                   >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
                     Quitar
                   </button>
                 ) : (
-                  <span className="self-center text-xs text-ink-muted">Obligatorio</span>
+                  <Badge tone="brand" size="sm" className="self-center justify-self-start">
+                    Obligatorio
+                  </Badge>
                 )}
               </li>
             ))}
           </ul>
           <button
             type="button"
-            className="text-sm font-medium text-accent hover:underline"
+            className={buttonClass("ghost", "sm", "text-brand-700")}
             onClick={() =>
               updateDraft((d) => ({
                 ...d,
@@ -445,13 +459,17 @@ export default function ReglasScreen() {
               }))
             }
           >
+            <Plus className="h-4 w-4" aria-hidden="true" />
             Añadir aprobador
           </button>
         </Section>
 
-        <Section title="Bloqueos manuales">
+        <Section icon={Ban} title="Bloqueos manuales">
           {draft.manual_blocks.length === 0 ? (
-            <p className="text-sm text-ink-muted">Sin bloqueos activos.</p>
+            <p className="inline-flex items-center gap-2 rounded-lg bg-pay-50 px-3 py-2 text-sm font-medium text-pay-800">
+              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+              Sin bloqueos activos.
+            </p>
           ) : null}
           <ul className="space-y-2">
             {draft.manual_blocks.map((block, index) => (
@@ -469,7 +487,7 @@ export default function ReglasScreen() {
                 />
                 <button
                   type="button"
-                  className="rounded-md border border-line px-3 text-sm text-ink-muted hover:bg-canvas"
+                  className={buttonClass("secondary", "md", "shrink-0 text-stop-700 hover:border-stop-200 hover:bg-stop-50")}
                   onClick={() =>
                     updateDraft((d) => ({
                       ...d,
@@ -477,6 +495,7 @@ export default function ReglasScreen() {
                     }))
                   }
                 >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                   Quitar
                 </button>
               </li>
@@ -484,21 +503,19 @@ export default function ReglasScreen() {
           </ul>
           <button
             type="button"
-            className="text-sm font-medium text-accent hover:underline"
+            className={buttonClass("ghost", "sm", "text-brand-700")}
             onClick={() =>
               updateDraft((d) => ({ ...d, manual_blocks: [...d.manual_blocks, ""] }))
             }
           >
+            <Plus className="h-4 w-4" aria-hidden="true" />
             Añadir bloqueo
           </button>
         </Section>
 
-        <div className="sticky bottom-0 border-t border-line bg-canvas/95 py-4 backdrop-blur">
-          <button
-            type="submit"
-            disabled={saving}
-            className="btn-primary px-6 py-2.5"
-          >
+        <div className="sticky bottom-0 -mx-1 flex items-center justify-end rounded-xl border border-line bg-surface/90 px-4 py-3 shadow-lg backdrop-blur">
+          <button type="submit" disabled={saving} className={buttonClass("primary", "lg")}>
+            <Save className="h-4 w-4" aria-hidden="true" />
             {saving ? "Guardando…" : "Guardar reglas vigentes"}
           </button>
         </div>

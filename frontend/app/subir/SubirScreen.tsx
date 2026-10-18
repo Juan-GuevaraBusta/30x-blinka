@@ -1,10 +1,15 @@
 "use client";
 
+import { ArrowRight, FileText, FileUp, Send, UploadCloud } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import { AlertPanel } from "@/components/ui/AlertPanel";
+import { DecisionBadge, DECISION_META } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Field, Input, Select } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { cn } from "@/lib/cn";
 import type { Decision } from "@/lib/decision-types";
 import {
   INVOICE_CHANNELS,
@@ -25,11 +30,11 @@ const CHANNEL_LABELS: Record<(typeof INVOICE_CHANNELS)[number], string> = {
   chat: "Chat",
 };
 
-function decisionTone(decision: Decision): string {
-  if (decision === "PAGAR") return "text-success";
-  if (decision === "FRENAR") return "text-danger";
-  return "text-accent";
-}
+const RESULT_TONE: Record<Decision, string> = {
+  PAGAR: "border-pay-200 bg-pay-50",
+  FRENAR: "border-stop-200 bg-stop-50",
+  ESCALAR: "border-escalate-200 bg-escalate-50",
+};
 
 export default function SubirScreen() {
   const [file, setFile] = useState<File | null>(null);
@@ -39,6 +44,7 @@ export default function SubirScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [lastAccepted, setLastAccepted] = useState<UploadSuccessPayload | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   const onSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
@@ -93,10 +99,11 @@ export default function SubirScreen() {
     <div className="space-y-8">
       <PageHeader
         title="Subir factura"
+        icon={FileUp}
         description={
           <>
             <p>
-              <Link href="/reglas" className="text-accent hover:underline focus-ring">
+              <Link href="/reglas" className="font-semibold text-brand-700 hover:underline focus-ring">
                 Reglas vigentes
               </Link>
               {" · "}
@@ -110,109 +117,134 @@ export default function SubirScreen() {
 
       <form className="panel space-y-6 p-5 sm:p-6" onSubmit={onSubmit} noValidate>
         <div>
-          <label htmlFor="upload-file" className="mb-1 block text-sm font-medium text-ink-muted">
+          <label htmlFor="upload-file" className="mb-1.5 block text-sm font-semibold text-ink">
             Archivo de factura
           </label>
-          <input
-            id="upload-file"
-            name="file"
-            type="file"
-            accept=".pdf,.txt,application/pdf,text/plain"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="input-field file:mr-3 file:rounded-lg file:border-0 file:bg-accent/15 file:px-3 file:py-1 file:text-sm file:text-ink"
-          />
+          <div
+            className={cn(
+              "group relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition-all duration-200",
+              dragging
+                ? "border-brand-500 bg-brand-50 shadow-glow"
+                : file
+                  ? "border-pay-500 bg-pay-50"
+                  : "border-line-strong bg-surface-sunken hover:border-brand-400 hover:bg-brand-50/60",
+            )}
+            onDragEnter={() => setDragging(true)}
+            onDragLeave={() => setDragging(false)}
+            onDrop={() => setDragging(false)}
+          >
+            <span
+              className={cn(
+                "mb-3 inline-flex h-14 w-14 items-center justify-center rounded-2xl shadow-md transition-transform duration-200 group-hover:-translate-y-1",
+                file ? "bg-pay-600 text-white" : "bg-night text-signal",
+              )}
+              aria-hidden="true"
+            >
+              {file ? <FileText className="h-7 w-7" /> : <UploadCloud className="h-7 w-7" />}
+            </span>
+            {file ? (
+              <p className="text-sm font-semibold text-pay-800">{file.name}</p>
+            ) : (
+              <p className="text-sm font-semibold text-ink">
+                Arrastre la factura aquí o <span className="text-brand-700 underline">elija un archivo</span>
+              </p>
+            )}
+            <p className="mt-1 text-xs text-ink-muted">PDF o texto plano</p>
+            <input
+              id="upload-file"
+              name="file"
+              type="file"
+              accept=".pdf,.txt,application/pdf,text/plain"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0 focus-ring"
+            />
+          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="invoice-id" className="mb-1 block text-sm font-medium text-ink-muted">
-              Identificador de factura
-            </label>
-            <input
+          <Field label="Identificador de factura" htmlFor="invoice-id">
+            <Input
               id="invoice-id"
               name="invoice_id"
               type="text"
               value={invoiceId}
               onChange={(e) => setInvoiceId(e.target.value)}
               autoComplete="off"
-              className="input-field"
             />
-          </div>
-          <div>
-            <label htmlFor="channel" className="mb-1 block text-sm font-medium text-ink-muted">
-              Canal
-            </label>
-            <select
-              id="channel"
-              name="channel"
-              value={channel}
-              onChange={(e) => setChannel(e.target.value)}
-              className="input-field"
-            >
+          </Field>
+          <Field label="Canal" htmlFor="channel">
+            <Select id="channel" name="channel" value={channel} onChange={(e) => setChannel(e.target.value)}>
               {INVOICE_CHANNELS.map((ch) => (
                 <option key={ch} value={ch}>
                   {CHANNEL_LABELS[ch]}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
 
-        <div>
-          <label htmlFor="received-at" className="mb-1 block text-sm font-medium text-ink-muted">
-            Fecha de recepción (ISO-8601 con zona)
-          </label>
-          <input
+        <Field label="Fecha de recepción (ISO-8601 con zona)" htmlFor="received-at">
+          <Input
             id="received-at"
             name="received_at"
             type="text"
             value={receivedAt}
             onChange={(e) => setReceivedAt(e.target.value)}
             placeholder="2025-12-22T10:00:00Z"
-            className="input-field font-mono"
+            className="font-mono"
           />
-        </div>
+        </Field>
 
-        <button type="submit" disabled={submitting} className="btn-primary">
+        <Button type="submit" disabled={submitting} size="lg" icon={<Send className="h-4 w-4" aria-hidden="true" />}>
           {submitting ? "Enviando al registro…" : "Enviar factura al registro"}
-        </button>
+        </Button>
       </form>
 
       {submitError ? <AlertPanel>{submitError}</AlertPanel> : null}
 
       {lastAccepted ? (
-        <section className="panel space-y-4 p-5 sm:p-6" aria-labelledby="last-accepted-heading">
-          <h2 id="last-accepted-heading" className="text-lg font-semibold text-ink">
-            Último envío aceptado
-          </h2>
+        <section
+          className={cn("animate-fade-up space-y-4 rounded-xl border p-5 shadow-md sm:p-6", RESULT_TONE[lastAccepted.decision] ?? "border-line bg-surface")}
+          aria-labelledby="last-accepted-heading"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="last-accepted-heading" className="text-h2 text-ink">
+              Último envío aceptado
+            </h2>
+            <DecisionBadge decision={lastAccepted.decision} size="lg" />
+          </div>
           <p className="text-sm text-ink-muted">{I8_NOTE}</p>
-          <dl className="space-y-3">
+          <dl className="space-y-3 rounded-lg border border-line bg-surface p-4">
             <div>
-              <dt className="text-sm text-ink-muted">Decisión</dt>
-              <dd className={`text-2xl font-semibold ${decisionTone(lastAccepted.decision)}`}>
+              <dt className="text-eyebrow uppercase text-ink-muted">Decisión</dt>
+              <dd className="mt-1 text-2xl font-semibold text-ink">
                 {lastAccepted.decision}
+                {DECISION_META[lastAccepted.decision] ? (
+                  <span className="ml-2 text-sm font-medium text-ink-muted">{DECISION_META[lastAccepted.decision].verb}</span>
+                ) : null}
               </dd>
             </div>
             <div>
-              <dt className="text-sm text-ink-muted">Resumen</dt>
-              <dd className="max-w-prose text-base leading-relaxed text-ink">{lastAccepted.summary}</dd>
+              <dt className="text-eyebrow uppercase text-ink-muted">Resumen</dt>
+              <dd className="mt-1 max-w-prose text-base leading-relaxed text-ink">{lastAccepted.summary}</dd>
             </div>
             <div>
-              <dt className="text-sm text-ink-muted">Identificador del registro</dt>
-              <dd className="font-mono text-sm text-ink">{lastAccepted.id}</dd>
+              <dt className="text-eyebrow uppercase text-ink-muted">Identificador del registro</dt>
+              <dd className="mt-1 font-mono text-sm text-ink">{lastAccepted.id}</dd>
             </div>
           </dl>
           <p className="text-sm">
             <Link
               href={`/decisiones/${encodeURIComponent(lastAccepted.id)}`}
-              className="text-accent underline-offset-2 hover:underline focus-ring"
+              className="inline-flex items-center gap-1.5 font-semibold text-brand-700 underline-offset-2 hover:underline focus-ring"
             >
               Ver ficha de detalle (puede no existir si el registro aún no está en el almacén)
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </p>
           <details className="text-sm text-ink-muted">
-            <summary className="cursor-pointer text-ink">Cuerpo completo del registro</summary>
-            <pre className="mt-2 max-h-64 overflow-auto rounded-lg border border-line bg-paper p-3 font-mono text-xs text-ink">
+            <summary className="cursor-pointer font-medium text-ink">Cuerpo completo del registro</summary>
+            <pre className="mt-2 max-h-64 overflow-auto rounded-lg border border-night-line bg-night p-3 font-mono text-xs text-brand-100">
               {JSON.stringify(lastAccepted.fullRecord, null, 2)}
             </pre>
           </details>

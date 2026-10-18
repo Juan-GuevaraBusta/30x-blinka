@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { ArrowDown, ArrowUp, GitBranch, Info, Lock, Plus, Route, Save, Trash2 } from "lucide-react";
+
 import { AlertPanel } from "@/components/ui/AlertPanel";
+import { Badge } from "@/components/ui/Badge";
+import { buttonClass } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import type { ApprovalRoute, RouteApprovalMode } from "@/lib/approval-policy-types";
 import { catchAllRoute } from "@/lib/approval-policy-types";
@@ -51,7 +56,7 @@ async function fetchRulesDocument(): Promise<RulesDocument> {
 
 function FieldLabel({ children, htmlFor }: { children: string; htmlFor: string }) {
   return (
-    <label htmlFor={htmlFor} className="mb-1 block text-xs font-medium text-ink-muted">
+    <label htmlFor={htmlFor} className="mb-1 block text-xs font-semibold text-ink-muted">
       {children}
     </label>
   );
@@ -236,9 +241,10 @@ export default function PoliticaScreen() {
 
   if (loading) {
     return (
-      <p className="text-sm text-ink-muted" role="status">
-        Cargando política de aprobación…
-      </p>
+      <div className="space-y-3" role="status">
+        <p className="text-sm text-ink-muted">Cargando política de aprobación…</p>
+        <div className="skeleton h-40" aria-hidden="true" />
+      </div>
     );
   }
 
@@ -252,25 +258,34 @@ export default function PoliticaScreen() {
     <div className="space-y-6">
       <PageHeader
         title="Política de aprobación"
+        icon={GitBranch}
         description={<p>Defina qué rutas exigen más firmas antes de pagar una factura escalada.</p>}
       />
 
-      <p className="text-sm text-ink-muted">{FIXED_NOTE}</p>
+      <p className="flex items-start gap-2 rounded-lg border border-info-200 bg-info-50 px-4 py-3 text-sm text-info-800">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-info-600" aria-hidden="true" />
+        <span>{FIXED_NOTE}</span>
+      </p>
       {!hasCustomRoutes ? (
-        <div className="rounded-md border border-line/80 bg-surface/90 px-4 py-4">
-          <p className="text-sm text-ink-muted">{EMPTY_POLICY_NOTE}</p>
-          <button type="button" onClick={handleAdd} className="btn-primary mt-3">
-            Crear la primera ruta
-          </button>
-        </div>
+        <EmptyState
+          icon={Route}
+          title="Crear la primera ruta"
+          description={EMPTY_POLICY_NOTE}
+          action={
+            <button type="button" onClick={handleAdd} className={buttonClass("primary")}>
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Crear la primera ruta
+            </button>
+          }
+        />
       ) : null}
 
       {validationErrors.length > 0 || saveMessage || saveErrorDetail ? (
         <div
-          className={`rounded-md px-4 py-3 text-sm ${
+          className={`animate-fade-up rounded-lg border px-4 py-3 text-sm ${
             validationErrors.length > 0 || saveErrorDetail
-              ? "border border-danger/40 bg-danger/10 text-danger"
-              : "border border-success/40 bg-success/10 text-success"
+              ? "border-stop-200 bg-stop-50 text-stop-800"
+              : "border-pay-200 bg-pay-50 text-pay-800"
           }`}
           role="alert"
         >
@@ -286,15 +301,15 @@ export default function PoliticaScreen() {
         </div>
       ) : null}
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-xl border border-line bg-surface shadow-sm">
         <table className="w-full min-w-[720px] border-collapse text-sm">
-          <thead>
+          <thead className="bg-surface-sunken text-eyebrow uppercase">
             <tr className="border-b border-line text-left text-ink-muted">
-              <th className="px-2 py-2 font-medium">Nombre</th>
-              <th className="px-2 py-2 font-medium">Cuándo aplica</th>
-              <th className="px-2 py-2 font-medium">Quién aprueba</th>
-              <th className="px-2 py-2 font-medium">Aprobaciones</th>
-              <th className="px-2 py-2 font-medium">Acciones</th>
+              <th scope="col" className="px-3 py-3 font-semibold">Nombre</th>
+              <th scope="col" className="px-3 py-3 font-semibold">Cuándo aplica</th>
+              <th scope="col" className="px-3 py-3 font-semibold">Quién aprueba</th>
+              <th scope="col" className="px-3 py-3 font-semibold">Aprobaciones</th>
+              <th scope="col" className="px-3 py-3 font-semibold">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -303,19 +318,28 @@ export default function PoliticaScreen() {
 
               if (isCatchAll) {
                 return (
-                  <tr key={route.id} className="border-b border-line/60 align-top">
-                    <td className="px-2 py-3 font-medium text-ink">Todo lo demás</td>
-                    <td className="px-2 py-3 text-ink-muted">{matchSummaryLabel(route)}</td>
-                    <td className="px-2 py-3 text-ink-muted">No aplica</td>
-                    <td className="px-2 py-3 text-ink-muted">{requireSummaryLabel(route.require)}</td>
-                    <td className="px-2 py-3 text-ink-muted">Fija al final</td>
+                  <tr key={route.id} className="border-b border-line align-top transition-colors last:border-b-0 hover:bg-brand-50/50">
+                    <td className="px-3 py-3 font-medium text-ink">
+                      <span className="inline-flex items-center gap-2">
+                        <Lock className="h-4 w-4 text-ink-subtle" aria-hidden="true" />
+                        Todo lo demás
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-ink-muted">{matchSummaryLabel(route)}</td>
+                    <td className="px-3 py-3 text-ink-muted">No aplica</td>
+                    <td className="px-3 py-3 text-ink-muted">{requireSummaryLabel(route.require)}</td>
+                    <td className="px-3 py-3 text-ink-muted">
+                      <Badge tone="neutral" size="sm">
+                        Fija al final
+                      </Badge>
+                    </td>
                   </tr>
                 );
               }
 
               return (
-                <tr key={`${route.id}-${index}`} className="border-b border-line/60 align-top">
-                  <td className="px-2 py-3">
+                <tr key={`${route.id}-${index}`} className="border-b border-line align-top transition-colors last:border-b-0 hover:bg-brand-50/50">
+                  <td className="px-3 py-3">
                     <FieldLabel htmlFor={`route-name-${index}`}>Nombre</FieldLabel>
                     <input
                       id={`route-name-${index}`}
@@ -327,7 +351,7 @@ export default function PoliticaScreen() {
                       className="input-field"
                     />
                   </td>
-                  <td className="min-w-[220px] px-2 py-3">
+                  <td className="min-w-[220px] px-3 py-3">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <FieldLabel htmlFor={`route-amt-gte-${index}`}>Monto ≥</FieldLabel>
@@ -384,7 +408,7 @@ export default function PoliticaScreen() {
                     </div>
                     <p className="mt-2 text-xs text-ink-muted">{matchSummaryLabel(route)}</p>
                   </td>
-                  <td className="min-w-[180px] px-2 py-3">
+                  <td className="min-w-[180px] px-3 py-3">
                     {route.require.mode === "auto" ? (
                       <p className="text-xs text-ink-muted">No aplica (modo automático)</p>
                     ) : (
@@ -400,7 +424,7 @@ export default function PoliticaScreen() {
                       </>
                     )}
                   </td>
-                  <td className="min-w-[200px] px-2 py-3">
+                  <td className="min-w-[200px] px-3 py-3">
                     <FieldLabel htmlFor={`route-mode-${index}`}>Modo</FieldLabel>
                     <select
                       id={`route-mode-${index}`}
@@ -427,29 +451,32 @@ export default function PoliticaScreen() {
                     ) : null}
                     <p className="mt-2 text-xs text-ink-muted">{requireSummaryLabel(route.require)}</p>
                   </td>
-                  <td className="px-2 py-3">
+                  <td className="px-3 py-3">
                     <div className="flex flex-col gap-2">
                       <button
                         type="button"
                         disabled={index === 0}
                         onClick={() => handleMoveUp(index)}
-                        className="btn-secondary px-2 py-1 text-xs"
+                        className={buttonClass("secondary", "sm")}
                       >
+                        <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
                         Subir
                       </button>
                       <button
                         type="button"
                         disabled={index === routes.length - 2}
                         onClick={() => handleMoveDown(index)}
-                        className="btn-secondary px-2 py-1 text-xs"
+                        className={buttonClass("secondary", "sm")}
                       >
+                        <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
                         Bajar
                       </button>
                       <button
                         type="button"
                         onClick={() => handleRemove(index)}
-                        className="btn-secondary px-2 py-1 text-xs"
+                        className={buttonClass("secondary", "sm", "text-stop-700 hover:border-stop-200 hover:bg-stop-50")}
                       >
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                         Borrar
                       </button>
                     </div>
@@ -461,11 +488,13 @@ export default function PoliticaScreen() {
         </table>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <button type="button" onClick={handleAdd} className="btn-secondary">
+      <div className="flex flex-wrap justify-end gap-3 rounded-xl border border-line bg-surface/90 px-4 py-3 shadow-sm">
+        <button type="button" onClick={handleAdd} className={buttonClass("secondary")}>
+          <Plus className="h-4 w-4" aria-hidden="true" />
           Agregar ruta
         </button>
-        <button type="button" disabled={saving} onClick={() => void handleSave()} className="btn-primary">
+        <button type="button" disabled={saving} onClick={() => void handleSave()} className={buttonClass("primary")}>
+          <Save className="h-4 w-4" aria-hidden="true" />
           {saving ? "Guardando…" : "Guardar política"}
         </button>
       </div>

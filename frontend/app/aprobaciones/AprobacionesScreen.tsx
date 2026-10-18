@@ -1,10 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { CheckCircle2, Inbox, ShieldCheck, Users, XCircle } from "lucide-react";
+
 import { AlertPanel } from "@/components/ui/AlertPanel";
+import { Badge, DecisionBadge } from "@/components/ui/Badge";
+import { Button, ButtonLink } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Field, Input, Textarea } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ProgressBar } from "@/components/ui/ProgressBar";
+import { StatCard } from "@/components/ui/StatCard";
+import { cn } from "@/lib/cn";
 import type { DecisionRecord, HumanEvent } from "@/lib/decision-types";
 import { formatNullable } from "@/lib/decision-present";
 import {
@@ -72,7 +80,7 @@ function FieldRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid gap-1 sm:grid-cols-[minmax(0,10rem)_1fr] sm:gap-3">
       <dt className="text-sm font-medium text-ink-muted">{label}</dt>
-      <dd className="text-sm text-ink break-words">{value}</dd>
+      <dd className="break-words text-sm font-medium text-ink">{value}</dd>
     </div>
   );
 }
@@ -83,9 +91,24 @@ function HumanEventsList({ events }: { events: HumanEvent[] }) {
       {events.map((event, index) => (
         <li
           key={`${event.at}-${event.author}-${index}`}
-          className="rounded-md bg-canvas/60 px-3 py-2 text-sm text-ink ring-1 ring-line/50"
+          className={cn(
+            "rounded-lg border px-3 py-2 text-sm text-ink",
+            event.action === "aprobada_humano" ? "border-pay-200 bg-pay-50" : "border-stop-200 bg-stop-50",
+          )}
         >
-          <p className="font-medium">{actionLabel(event.action)}</p>
+          <p
+            className={cn(
+              "inline-flex items-center gap-1.5 font-semibold",
+              event.action === "aprobada_humano" ? "text-pay-800" : "text-stop-800",
+            )}
+          >
+            {event.action === "aprobada_humano" ? (
+              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <XCircle className="h-4 w-4" aria-hidden="true" />
+            )}
+            {actionLabel(event.action)}
+          </p>
           <p className="mt-1 text-ink-muted">
             {event.author} · {formatEventAt(event.at)}
           </p>
@@ -130,9 +153,18 @@ function ApprovalStatusLine({ decisionId }: { decisionId: string }) {
     return null;
   }
   return (
-    <p className="mt-1 text-sm font-medium text-ink">
-      {approvalCountLabel(status)} · {routeDisplayLabel(status.route_id)}
-    </p>
+    <div className="mt-3 rounded-lg border border-brand-100 bg-brand-50/60 p-3">
+      <p className="text-sm font-semibold text-ink">
+        {approvalCountLabel(status)} · <span className="font-medium text-ink-muted">{routeDisplayLabel(status.route_id)}</span>
+      </p>
+      <ProgressBar
+        className="mt-2"
+        value={Math.min(status.collected, status.required)}
+        max={status.required}
+        label={approvalCountLabel(status)}
+        tone={status.collected >= status.required ? "pay" : "brand"}
+      />
+    </div>
   );
 }
 
@@ -154,16 +186,22 @@ function DecisionCard({
   const beneficiary = formatNullable(record.extracted?.beneficiary);
 
   return (
-    <article className="panel p-5">
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-lg font-semibold text-ink">{record.invoice_id}</h2>
-        <span className="text-sm font-semibold text-accent">ESCALAR · severidad {record.severity}</span>
+    <article className="panel relative overflow-hidden p-5 sm:p-6 animate-fade-up">
+      <span className="absolute inset-y-0 left-0 w-1 bg-escalate-500" aria-hidden="true" />
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-mono text-h2 text-ink">{record.invoice_id}</h2>
+        <span className="inline-flex items-center gap-2">
+          <DecisionBadge decision="ESCALAR" />
+          <Badge tone="neutral" size="sm">
+            ESCALAR · severidad {record.severity}
+          </Badge>
+        </span>
       </header>
-      <p className="mt-2 text-sm text-ink-muted">ID {record.id}</p>
+      <p className="mt-1 font-mono text-xs text-ink-subtle">ID {record.id}</p>
       <ApprovalStatusLine decisionId={record.id} />
-      <p className="mt-3 text-base text-ink leading-relaxed">{record.summary}</p>
+      <p className="mt-4 text-base leading-relaxed text-ink">{record.summary}</p>
 
-      <dl className="mt-4 space-y-2">
+      <dl className="mt-4 space-y-2 rounded-lg bg-surface-sunken p-3">
         <FieldRow label="Beneficiario" value={beneficiary} />
         <FieldRow label="Monto" value={formatAmount(record)} />
         <FieldRow label="Siguiente paso" value={formatNullable(record.next_step)} />
@@ -178,11 +216,8 @@ function DecisionCard({
           className="mt-5 space-y-4 border-t border-line/70 pt-5"
           onSubmit={(e) => e.preventDefault()}
         >
-          <div>
-            <label htmlFor={`author-${record.id}`} className="mb-1 block text-sm font-medium text-ink-muted">
-              Autor
-            </label>
-            <input
+          <Field label="Autor" htmlFor={`author-${record.id}`}>
+            <Input
               id={`author-${record.id}`}
               type="email"
               autoComplete="email"
@@ -191,14 +226,10 @@ function DecisionCard({
               onChange={(e) =>
                 onDraftChange({ author: e.target.value, fieldError: null, actionError: null })
               }
-              className="input-field"
             />
-          </div>
-          <div>
-            <label htmlFor={`reason-${record.id}`} className="mb-1 block text-sm font-medium text-ink-muted">
-              Motivo
-            </label>
-            <textarea
+          </Field>
+          <Field label="Motivo" htmlFor={`reason-${record.id}`}>
+            <Textarea
               id={`reason-${record.id}`}
               rows={3}
               value={draft.reason}
@@ -211,35 +242,34 @@ function DecisionCard({
                   e.preventDefault();
                 }
               }}
-              className="input-field"
               placeholder="Escriba el motivo de la aprobación o del rechazo"
             />
-          </div>
+          </Field>
 
           {draft.fieldError ? (
-            <p className="text-sm text-red-800" role="alert">{draft.fieldError}</p>
+            <p className="text-sm font-medium text-stop-700" role="alert">{draft.fieldError}</p>
           ) : null}
           {draft.actionError ? (
-            <p className="text-sm text-red-800" role="alert">{draft.actionError}</p>
+            <p className="text-sm font-medium text-stop-700" role="alert">{draft.actionError}</p>
           ) : null}
 
           <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
+            <Button
+              variant="success"
               disabled={draft.submitting !== null}
               onClick={onApprove}
-              className="btn-primary"
+              icon={<CheckCircle2 className="h-4 w-4" aria-hidden="true" />}
             >
               {draft.submitting === "approve" ? "Registrando…" : "Aprobar"}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="danger"
               disabled={draft.submitting !== null}
               onClick={onReject}
-              className="btn-secondary"
+              icon={<XCircle className="h-4 w-4" aria-hidden="true" />}
             >
               {draft.submitting === "reject" ? "Registrando…" : "Rechazar"}
-            </button>
+            </Button>
           </div>
         </form>
       ) : null}
@@ -362,6 +392,7 @@ export default function AprobacionesScreen() {
     <div className="space-y-8">
       <PageHeader
         title="Aprobaciones"
+        icon={ShieldCheck}
         description={
           <>
             <p>
@@ -374,23 +405,36 @@ export default function AprobacionesScreen() {
       />
 
       {loading ? (
-        <p className="text-sm text-ink-muted">Cargando cola…</p>
+        <div className="space-y-3" role="status">
+          <p className="text-sm text-ink-muted">Cargando cola…</p>
+          <div className="skeleton h-48 w-full" aria-hidden="true" />
+        </div>
+      ) : null}
+
+      {!loading && !loadError && (pending.length > 0 || withEvents.length > 0) ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <StatCard label="Pendientes de evento humano" value={pending.length} icon={Users} tone="escalate" />
+          <StatCard label="Con evento humano registrado" value={withEvents.length} icon={CheckCircle2} tone="pay" />
+        </div>
       ) : null}
 
       {loadError ? <AlertPanel>{loadError}</AlertPanel> : null}
 
       {queueEmpty ? (
-        <p className="rounded-md border border-line/80 bg-surface/90 px-4 py-6 text-sm text-ink-muted">
-          No hay decisiones ESCALAR en cola en este momento.{" "}
-          <Link href="/bandeja" className="text-accent hover:underline focus-ring">
-            Revisa la bandeja de entrada
-          </Link>
-        </p>
+        <EmptyState
+          icon={CheckCircle2}
+          title="No hay decisiones ESCALAR en cola en este momento."
+          action={
+            <ButtonLink href="/bandeja" variant="secondary" icon={<Inbox className="h-4 w-4" aria-hidden="true" />}>
+              Revisa la bandeja de entrada
+            </ButtonLink>
+          }
+        />
       ) : null}
 
       {pending.length > 0 ? (
         <section className="space-y-4">
-          <h2 className="text-base font-semibold text-ink">Pendientes de evento humano</h2>
+          <h2 className="text-h2 text-ink">Pendientes de evento humano</h2>
           <div className="space-y-6">
             {pending.map((record) => (
               <DecisionCard
@@ -409,7 +453,7 @@ export default function AprobacionesScreen() {
 
       {withEvents.length > 0 ? (
         <section className="space-y-4">
-          <h2 className="text-base font-semibold text-ink">Con evento humano registrado</h2>
+          <h2 className="text-h2 text-ink">Con evento humano registrado</h2>
           <p className="text-sm text-ink-muted">
             La decisión del agente sigue siendo ESCALAR; solo se añadió el evento.
           </p>

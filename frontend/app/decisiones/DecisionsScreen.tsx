@@ -3,8 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { ChevronRight, FileSearch, ListChecks, Upload } from "lucide-react";
+
 import { AlertPanel } from "@/components/ui/AlertPanel";
+import { Badge, DECISION_META } from "@/components/ui/Badge";
+import { ButtonLink } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Table, TableWrap, Td, Th, THead, Tr } from "@/components/ui/Table";
+import { cn } from "@/lib/cn";
 import type { Decision, DecisionRecord, Extraction } from "@/lib/decision-types";
 import { apiFetch } from "@/lib/session";
 import {
@@ -18,13 +25,35 @@ import {
   formatListAmount,
   formatListBeneficiary,
   rowStatusLabel,
-  statusToneClass,
 } from "@/lib/decisions-list";
 
 import ChainIntegrityBadge from "./ChainIntegrityBadge";
 
 const MONEY_NOTE =
   "Consultar esta lista no mueve dinero; solo refleja decisiones ya registradas.";
+
+type FilterTone = "pay" | "stop" | "escalate";
+
+const FILTER_TONES: Record<FilterTone, { active: string; icon: string; iconActive: string; bar: string }> = {
+  pay: {
+    active: "border-pay-200 bg-pay-50 text-pay-800 shadow-sm",
+    icon: "bg-pay-50 text-pay-700",
+    iconActive: "bg-pay-600 text-white",
+    bar: "bg-pay-500",
+  },
+  stop: {
+    active: "border-stop-200 bg-stop-50 text-stop-800 shadow-sm",
+    icon: "bg-stop-50 text-stop-700",
+    iconActive: "bg-stop-600 text-white",
+    bar: "bg-stop-500",
+  },
+  escalate: {
+    active: "border-escalate-200 bg-escalate-50 text-escalate-800 shadow-sm",
+    icon: "bg-escalate-50 text-escalate-700",
+    iconActive: "bg-escalate-600 text-white",
+    bar: "bg-escalate-500",
+  },
+};
 
 type DecisionRow = {
   id: string;
@@ -158,29 +187,47 @@ export default function DecisionsScreen({
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Decisiones registradas" description={<p>{MONEY_NOTE}</p>}>
+      <PageHeader
+        title="Decisiones registradas"
+        icon={ListChecks}
+        description={<p>{MONEY_NOTE}</p>}
+      >
         <ChainIntegrityBadge />
       </PageHeader>
 
       <fieldset>
-        <legend className="mb-3 text-sm font-medium text-ink">Filtrar por estado</legend>
-        <div className="flex flex-wrap gap-2">
+        <legend className="mb-3 text-eyebrow uppercase text-ink-muted">Filtrar por estado</legend>
+        <div className="grid gap-3 sm:grid-cols-3">
           {DECISION_LIST_FILTERS.map((key) => {
             const active = filter === key;
+            const meta = DECISION_META[filterToApiDecision(key)];
+            const Icon = meta.icon;
+            const tone = FILTER_TONES[meta.tone as FilterTone];
             return (
               <button
                 key={key}
                 type="button"
                 aria-pressed={active}
                 onClick={() => setFilter(key)}
-                className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors focus-ring ${
-                  active
-                    ? "border-accent bg-accent/10 text-ink"
-                    : "border-line bg-surface text-ink-muted hover:text-ink"
-                }`}
+                className={cn(
+                  "group relative flex items-center gap-3 overflow-hidden rounded-xl border bg-surface px-4 py-3 text-left text-sm font-semibold shadow-xs transition-all duration-200 focus-ring",
+                  active ? tone.active : "border-line text-ink-muted hover:-translate-y-0.5 hover:shadow-sm",
+                )}
               >
-                {FILTER_CONTROL_LABELS[key]}
-                {counts[key] !== undefined ? ` (${counts[key]})` : ""}
+                <span
+                  className={cn(
+                    "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors",
+                    active ? tone.iconActive : tone.icon,
+                  )}
+                  aria-hidden="true"
+                >
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  {FILTER_CONTROL_LABELS[key]}
+                  {counts[key] !== undefined ? ` (${counts[key]})` : ""}
+                </span>
+                {active ? <span className={cn("absolute inset-x-0 bottom-0 h-1", tone.bar)} aria-hidden="true" /> : null}
               </button>
             );
           })}
@@ -188,93 +235,103 @@ export default function DecisionsScreen({
       </fieldset>
 
       {loading ? (
-        <p className="text-ink-muted" role="status">
-          Cargando decisiones…
-        </p>
+        <div className="space-y-2" role="status" aria-live="polite">
+          <span className="sr-only">Cargando decisiones…</span>
+          <p className="text-sm text-ink-muted" aria-hidden="true">
+            Cargando decisiones…
+          </p>
+          {[0, 1, 2].map((n) => (
+            <div key={n} className="skeleton h-14 w-full" aria-hidden="true" />
+          ))}
+        </div>
       ) : error ? (
         <AlertPanel>{error}</AlertPanel>
       ) : rows.length === 0 ? (
-        <p className="text-ink-muted" role="status">
-          {emptyStateMessage(filter)}{" "}
-          <Link href="/subir" className="text-accent hover:underline focus-ring">
-            Sube tu primera factura
-          </Link>
-        </p>
+        <EmptyState
+          icon={FileSearch}
+          title={emptyStateMessage(filter)}
+          action={
+            <ButtonLink href="/subir" icon={<Upload className="h-4 w-4" aria-hidden="true" />}>
+              Sube tu primera factura
+            </ButtonLink>
+          }
+        />
       ) : (
         <>
           <div className="space-y-3 sm:hidden">
-            {rows.map((row) => (
-              <Link
-                key={row.id}
-                href={`/decisiones/${encodeURIComponent(row.id)}`}
-                className="block panel p-4 transition-colors hover:border-accent/30 focus-ring"
-              >
-                <article>
-                  <p className="font-mono text-sm text-ink">{row.invoice_id}</p>
-                  <p className="mt-1 text-sm text-ink">
-                    {formatListBeneficiary(row.extracted)} · {formatListAmount(row.extracted)}
-                  </p>
-                  <p className={`mt-1 text-sm font-medium ${statusToneClass(row.decision)}`}>
-                    {rowStatusLabel(row.decision)}
-                  </p>
-                  <p className="mt-2 line-clamp-2 text-sm text-ink-muted" title={decisionMotivo(row.summary)}>
-                    {decisionMotivo(row.summary)}
-                  </p>
-                </article>
-              </Link>
-            ))}
+            {rows.map((row) => {
+              const meta = DECISION_META[row.decision];
+              const Icon = meta.icon;
+              return (
+                <Link
+                  key={row.id}
+                  href={`/decisiones/${encodeURIComponent(row.id)}`}
+                  className="block panel p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md focus-ring animate-fade-up"
+                >
+                  <article>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-mono text-sm font-semibold text-ink">{row.invoice_id}</p>
+                      <Badge tone={meta.tone} size="sm" icon={<Icon className="h-3.5 w-3.5" aria-hidden="true" />}>
+                        {rowStatusLabel(row.decision)}
+                      </Badge>
+                    </div>
+                    <p className="mt-2 text-sm text-ink">
+                      {formatListBeneficiary(row.extracted)} ·{" "}
+                      <span className="font-mono font-semibold">{formatListAmount(row.extracted)}</span>
+                    </p>
+                    <p className="mt-2 line-clamp-2 text-sm text-ink-muted" title={decisionMotivo(row.summary)}>
+                      {decisionMotivo(row.summary)}
+                    </p>
+                  </article>
+                </Link>
+              );
+            })}
           </div>
 
-          <div className="hidden overflow-x-auto sm:block">
-            <table className="w-full border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-line text-ink-muted">
-                  <th scope="col" className="py-3 pr-4 font-medium">
-                    Factura
-                  </th>
-                  <th scope="col" className="py-3 pr-4 font-medium">
-                    Beneficiario
-                  </th>
-                  <th scope="col" className="py-3 pr-4 font-medium">
-                    Monto
-                  </th>
-                  <th scope="col" className="py-3 pr-4 font-medium">
-                    Estado
-                  </th>
-                  <th scope="col" className="py-3 font-medium">
-                    Motivo
-                  </th>
+          <TableWrap className="hidden animate-fade-up sm:block">
+            <Table>
+              <THead>
+                <tr>
+                  <Th>Factura</Th>
+                  <Th>Beneficiario</Th>
+                  <Th className="text-right">Monto</Th>
+                  <Th>Estado</Th>
+                  <Th>Motivo</Th>
                 </tr>
-              </thead>
+              </THead>
               <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id} className="border-b border-line/80">
-                    <td className="py-3 pr-4 font-mono text-ink">
-                      <Link
-                        href={`/decisiones/${encodeURIComponent(row.id)}`}
-                        className="hover:text-accent focus-ring"
-                      >
-                        {row.invoice_id}
-                      </Link>
-                    </td>
-                    <td className="py-3 pr-4 text-ink">{formatListBeneficiary(row.extracted)}</td>
-                    <td className="py-3 pr-4 font-mono text-ink">
-                      {formatListAmount(row.extracted)}
-                    </td>
-                    <td className={`py-3 pr-4 font-medium ${statusToneClass(row.decision)}`}>
-                      {rowStatusLabel(row.decision)}
-                    </td>
-                    <td
-                      className="max-w-xs truncate py-3 text-ink-muted"
-                      title={decisionMotivo(row.summary)}
-                    >
-                      {decisionMotivo(row.summary)}
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((row) => {
+                  const meta = DECISION_META[row.decision];
+                  const Icon = meta.icon;
+                  return (
+                    <Tr key={row.id}>
+                      <Td className="font-mono font-semibold">
+                        <Link
+                          href={`/decisiones/${encodeURIComponent(row.id)}`}
+                          className="inline-flex items-center gap-1 rounded text-brand-700 hover:text-brand-800 hover:underline focus-ring"
+                        >
+                          {row.invoice_id}
+                          <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                        </Link>
+                      </Td>
+                      <Td>{formatListBeneficiary(row.extracted)}</Td>
+                      <Td className="text-right font-mono font-semibold tabular-nums">
+                        {formatListAmount(row.extracted)}
+                      </Td>
+                      <Td>
+                        <Badge tone={meta.tone} size="sm" icon={<Icon className="h-3.5 w-3.5" aria-hidden="true" />}>
+                          {rowStatusLabel(row.decision)}
+                        </Badge>
+                      </Td>
+                      <Td className="max-w-xs truncate text-ink-muted" title={decisionMotivo(row.summary)}>
+                        {decisionMotivo(row.summary)}
+                      </Td>
+                    </Tr>
+                  );
+                })}
               </tbody>
-            </table>
-          </div>
+            </Table>
+          </TableWrap>
         </>
       )}
     </div>

@@ -3,7 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { AlertCircle, CheckCircle2, FilePlus2, Quote, ScanText, Sparkles } from "lucide-react";
+
 import { AlertPanel } from "@/components/ui/AlertPanel";
+import { buttonClass } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Section } from "@/components/ui/Section";
 import {
@@ -26,7 +29,7 @@ const KIND_OPTIONS: { value: AgreementKind; label: string }[] = [
 
 function FieldLabel({ children, htmlFor }: { children: string; htmlFor: string }) {
   return (
-    <label htmlFor={htmlFor} className="mb-1 block text-xs font-medium text-ink-muted">
+    <label htmlFor={htmlFor} className="mb-1.5 block text-xs font-semibold text-ink">
       {children}
     </label>
   );
@@ -36,16 +39,26 @@ function CiteHint({ field, draft }: { field: string; draft: AgreementDraftRespon
   if (!draft) return null;
   const span = draft.spans[field];
   if (span) {
-    return <p className="mt-1 text-xs text-accent">Cita: «{span}»</p>;
+    return (
+      <p className="mt-1.5 flex items-start gap-1.5 rounded-md bg-brand-50 px-2 py-1 text-xs text-brand-800">
+        <Quote className="mt-0.5 h-3 w-3 shrink-0 text-brand-500" aria-hidden="true" />
+        <span>Cita: «{span}»</span>
+      </p>
+    );
   }
   if (draft.missing.includes(field)) {
-    return <p className="mt-1 text-xs text-ink-muted">Sin cita: complételo usted.</p>;
+    return (
+      <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-escalate-800">
+        <AlertCircle className="h-3 w-3 shrink-0 text-escalate-600" aria-hidden="true" />
+        Sin cita: complételo usted.
+      </p>
+    );
   }
   return null;
 }
 
 const inputClass =
-  "block w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink focus-ring";
+  "input-field block";
 
 export default function NuevoAcuerdoScreen({ initialVendorName }: { initialVendorName?: string } = {}) {
   const router = useRouter();
@@ -128,12 +141,13 @@ export default function NuevoAcuerdoScreen({ initialVendorName }: { initialVendo
     <div className="space-y-6">
       <PageHeader
         title="Nuevo acuerdo"
+        icon={FilePlus2}
         description={<p>La IA solo propone. Nada se aplica hasta que usted confirme.</p>}
       />
 
       {error ? <AlertPanel>{error}</AlertPanel> : null}
 
-      <Section title="1. Texto del acuerdo" description="Pegue el texto o suba un archivo .txt/.pdf.">
+      <Section icon={ScanText} title="1. Texto del acuerdo" description="Pegue el texto o suba un archivo .txt/.pdf.">
         <textarea
           className={`${inputClass} h-32`}
           placeholder="Pegue aquí el texto del acuerdo…"
@@ -145,19 +159,20 @@ export default function NuevoAcuerdoScreen({ initialVendorName }: { initialVendo
           type="file"
           accept=".txt,.pdf"
           onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-          className="block text-sm text-ink-muted"
+          className="block w-full rounded-lg border border-dashed border-brand-300 bg-brand-50/60 p-3 text-sm text-ink-muted transition-colors file:mr-3 file:rounded-md file:border-0 file:bg-brand-600 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white hover:border-brand-500 hover:bg-brand-50 focus-ring"
         />
         <button
           type="button"
           onClick={handleDraft}
           disabled={loadingDraft || (!text.trim() && !file)}
-          className="rounded-md border border-line bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 focus-ring disabled:opacity-50"
+          className={buttonClass("primary")}
         >
+          <Sparkles className="h-4 w-4" aria-hidden="true" />
           {loadingDraft ? "Generando borrador…" : "Generar borrador"}
         </button>
       </Section>
 
-      <Section title="2. Revisar y confirmar" description="Cada campo muestra su cita del documento, si la IA la encontró.">
+      <Section icon={CheckCircle2} title="2. Revisar y confirmar" description="Cada campo muestra su cita del documento, si la IA la encontró.">
         <div>
           <FieldLabel htmlFor="kind">Tipo de acuerdo</FieldLabel>
           <select
@@ -429,15 +444,19 @@ export default function NuevoAcuerdoScreen({ initialVendorName }: { initialVendo
         </div>
 
         {missing.length > 0 ? (
-          <p className="text-xs text-ink-muted">Faltan campos: {missing.join(", ")}</p>
+          <p className="flex items-center gap-1.5 rounded-lg border border-escalate-200 bg-escalate-50 px-3 py-2 text-xs font-medium text-escalate-800">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0 text-escalate-600" aria-hidden="true" />
+            Faltan campos: {missing.join(", ")}
+          </p>
         ) : null}
 
         <button
           type="button"
           onClick={handleConfirm}
           disabled={!canConfirm}
-          className="rounded-md border border-line bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 focus-ring disabled:opacity-50"
+          className={buttonClass("success", "lg")}
         >
+          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
           {confirming ? "Confirmando…" : "Confirmar acuerdo"}
         </button>
       </Section>

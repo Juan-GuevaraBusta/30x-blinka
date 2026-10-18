@@ -2,8 +2,13 @@
 
 import { useEffect, useState } from "react";
 
+import { BarChart3, Gauge, ShieldCheck, ShieldX } from "lucide-react";
+
 import { AlertPanel } from "@/components/ui/AlertPanel";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ProgressBar } from "@/components/ui/ProgressBar";
+import { StatCard } from "@/components/ui/StatCard";
 import {
   formatMetricNumber,
   presentMetricsFromResponse,
@@ -50,9 +55,16 @@ export default function MetricasScreen() {
 
   if (loading) {
     return (
-      <p className="text-ink-muted" role="status">
-        Cargando métricas de evaluación…
-      </p>
+      <div className="space-y-4" role="status">
+        <span className="sr-only">Cargando métricas de evaluación…</span>
+        <p className="text-sm text-ink-muted" aria-hidden="true">
+          Cargando métricas de evaluación…
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2" aria-hidden="true">
+          <div className="skeleton h-36" />
+          <div className="skeleton h-36" />
+        </div>
+      </div>
     );
   }
 
@@ -67,33 +79,53 @@ export default function MetricasScreen() {
   if (view.kind === "empty") {
     return (
       <div className="space-y-8">
-        <PageHeader title="Métricas de evaluación" description={<p>{METRICS_INTRO}</p>} />
-        <p className="max-w-prose text-base leading-relaxed text-ink">{view.message}</p>
+        <PageHeader title="Métricas de evaluación" icon={BarChart3} description={<p>{METRICS_INTRO}</p>} />
+        <EmptyState icon={BarChart3} title="Sin reporte de métricas" description={view.message} />
       </div>
     );
   }
 
+  const safe = view.unsafe_pay === 0;
   return (
     <div className="space-y-8">
-      <PageHeader title="Métricas de evaluación" description={<p>{METRICS_INTRO}</p>} />
+      <PageHeader title="Métricas de evaluación" icon={BarChart3} description={<p>{METRICS_INTRO}</p>} />
 
-      <div className="panel space-y-3 px-6 py-8">
-        <p
-          className="font-mono text-5xl font-medium leading-none text-ink sm:text-6xl"
-          aria-label={`Pagos indebidos: ${formatMetricNumber(view.unsafe_pay)}`}
-        >
-          <span className="sr-only">Pagos indebidos: </span>
-          {formatMetricNumber(view.unsafe_pay)}
-        </p>
-        <p className="text-sm text-ink-muted">
-          Autonomía: {formatMetricNumber(view.autonomy_pct)} %
-        </p>
-        {view.blocked ? (
-          <p className="max-w-prose text-sm leading-relaxed text-danger" role="status">
-            {view.blockMessage}
-          </p>
-        ) : null}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <StatCard
+          label="Pagos indebidos"
+          icon={safe ? ShieldCheck : ShieldX}
+          tone={safe ? "pay" : "stop"}
+          className="animate-fade-up"
+          value={
+            <p
+              className="text-5xl leading-none sm:text-6xl"
+              aria-label={`Pagos indebidos: ${formatMetricNumber(view.unsafe_pay)}`}
+            >
+              <span className="sr-only">Pagos indebidos: </span>
+              {formatMetricNumber(view.unsafe_pay)}
+            </p>
+          }
+          hint={safe ? "Ningún pago fuera de reglas en el último reporte" : "Pagos fuera de reglas en el último reporte"}
+        />
+        <StatCard
+          label="Autonomía"
+          icon={Gauge}
+          tone="info"
+          className="animate-fade-up"
+          value={<span>{formatMetricNumber(view.autonomy_pct)} %</span>}
+          hint={
+            <div className="space-y-2">
+              <ProgressBar value={view.autonomy_pct} max={100} label="Autonomía" tone="info" className="mt-2" />
+              <p className="text-sm text-ink-muted">Autonomía: {formatMetricNumber(view.autonomy_pct)} %</p>
+            </div>
+          }
+        />
       </div>
+      {view.blocked ? (
+        <div className="max-w-prose rounded-lg border border-stop-200 bg-stop-50 px-4 py-3 text-sm leading-relaxed text-stop-800" role="status">
+          {view.blockMessage}
+        </div>
+      ) : null}
     </div>
   );
 }

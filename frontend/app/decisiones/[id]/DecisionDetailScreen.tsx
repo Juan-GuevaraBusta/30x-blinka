@@ -3,10 +3,18 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { ArrowLeft, Fingerprint, Gauge, ScrollText, UserPlus, Users, Workflow } from "lucide-react";
+
 import { AgentOperationTrail } from "@/components/decision/AgentOperationTrail";
 import { AlertPanel } from "@/components/ui/AlertPanel";
+import { DECISION_META } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Field, Input, Textarea } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Section } from "@/components/ui/Section";
+import { cn } from "@/lib/cn";
 import type { DecisionRecord } from "@/lib/decision-types";
 import { isValidDecisionId, severityLabel } from "@/lib/decision-present";
 import type { ApprovalStatusBody } from "@/lib/approval-status-present";
@@ -116,17 +124,38 @@ async function loadDecision(id: string): Promise<LoadState> {
   }
 }
 
-function decisionTone(decision: DecisionRecord["decision"]): string {
-  if (decision === "PAGAR") return "text-success";
-  if (decision === "FRENAR") return "text-danger";
-  return "text-accent";
+const HERO_TONES = {
+  pay: "border-pay-200 bg-gradient-to-br from-pay-50 to-surface",
+  stop: "border-stop-200 bg-gradient-to-br from-stop-50 to-surface",
+  escalate: "border-escalate-200 bg-gradient-to-br from-escalate-50 to-surface",
+} as const;
+
+const HERO_TEXT = { pay: "text-pay-800", stop: "text-stop-800", escalate: "text-escalate-800" } as const;
+const HERO_ICON = { pay: "bg-pay-600", stop: "bg-stop-600", escalate: "bg-escalate-500" } as const;
+
+function HeroIcon({ decision }: { decision: DecisionRecord["decision"] }) {
+  const meta = DECISION_META[decision];
+  const Icon = meta.icon;
+  return (
+    <span
+      className={cn(
+        "inline-flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-md",
+        HERO_ICON[meta.tone as keyof typeof HERO_ICON],
+      )}
+      aria-hidden="true"
+    >
+      <Icon className="h-6 w-6" />
+    </span>
+  );
 }
+
+const SEVERITY_BAR = ["bg-pay-500", "bg-escalate-500", "bg-stop-500"] as const;
 
 function FieldRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid gap-1 sm:grid-cols-[minmax(0,11rem)_1fr] sm:gap-4">
       <dt className="text-sm font-medium text-ink-muted">{label}</dt>
-      <dd className="text-sm text-ink break-words">{value}</dd>
+      <dd className="break-words font-mono text-sm text-ink">{value}</dd>
     </div>
   );
 }
@@ -184,43 +213,35 @@ function AddBeneficiaryPanel({ decisionId }: { decisionId: string }) {
 
   if (success) {
     return (
-      <p className="text-sm text-success" role="status">
+      <AlertPanel tone="success">
         Proveedor agregado a la lista permitida. Esta ficha de decisión no cambia.
-      </p>
+      </AlertPanel>
     );
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-ink-muted">{ADD_VENDOR_WARNING}</p>
-      <label className="block text-sm">
-        <span className="font-medium text-ink">Autor</span>
-        <input
-          className="mt-1 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus-ring"
+      <AlertPanel tone="warning">{ADD_VENDOR_WARNING}</AlertPanel>
+      <Field label="Autor" htmlFor="add-vendor-author">
+        <Input
+          id="add-vendor-author"
           value={author}
           onChange={(e) => setAuthor(e.target.value)}
           autoComplete="off"
         />
-      </label>
-      <label className="block text-sm">
-        <span className="font-medium text-ink">Motivo (obligatorio)</span>
-        <textarea
-          className="mt-1 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus-ring"
-          rows={3}
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-        />
-      </label>
-      {fieldError ? <p className="text-sm text-danger">{fieldError}</p> : null}
-      {actionError ? <p className="text-sm text-danger">{actionError}</p> : null}
-      <button
-        type="button"
-        className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-surface hover:opacity-90 focus-ring disabled:opacity-50"
+      </Field>
+      <Field label="Motivo (obligatorio)" htmlFor="add-vendor-reason">
+        <Textarea id="add-vendor-reason" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} />
+      </Field>
+      {fieldError ? <p className="text-sm font-medium text-stop-700">{fieldError}</p> : null}
+      {actionError ? <p className="text-sm font-medium text-stop-700">{actionError}</p> : null}
+      <Button
         disabled={submitting}
         onClick={() => void onSubmit()}
+        icon={<UserPlus className="h-4 w-4" aria-hidden="true" />}
       >
         {submitting ? "Guardando…" : "Agregar a proveedores permitidos"}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -242,10 +263,14 @@ function RecordBody({
     <div className="space-y-8">
       <PageHeader
         title={`Decisión ${record.id}`}
+        icon={ScrollText}
         description={
           <>
             <p>
-              <Link href="/reglas" className="text-accent hover:underline focus-ring">
+              <Link
+                href="/reglas"
+                className="font-semibold text-brand-700 hover:underline focus-ring"
+              >
                 Reglas vigentes
               </Link>
               {" · "}
@@ -253,44 +278,81 @@ function RecordBody({
             </p>
           </>
         }
+        actions={
+          <Link
+            href="/decisiones"
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-ink-muted transition-colors hover:bg-brand-50 hover:text-brand-700 focus-ring"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Decisiones
+          </Link>
+        }
       />
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="panel px-4 py-4">
-          <p className="text-xs text-ink-muted">Decisión registrada</p>
-          <p className={`mt-1 text-2xl font-semibold ${decisionTone(record.decision)}`}>
-            {record.decision}
-          </p>
-          <p className="mt-2 text-xs leading-relaxed text-ink-muted">{I8_DISCLAIMER}</p>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div
+          className={cn(
+            "relative overflow-hidden rounded-xl border p-5 shadow-sm lg:col-span-2 animate-fade-up",
+            HERO_TONES[DECISION_META[record.decision].tone as keyof typeof HERO_TONES],
+          )}
+        >
+          <p className="text-eyebrow uppercase text-ink-muted">Decisión registrada</p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <HeroIcon decision={record.decision} />
+            <span className={cn("font-display text-display", HERO_TEXT[DECISION_META[record.decision].tone as keyof typeof HERO_TEXT])}>
+              {record.decision}
+            </span>
+          </div>
+          <p className="mt-3 max-w-prose text-sm leading-relaxed text-ink">{record.summary}</p>
+          <p className="mt-3 text-xs leading-relaxed text-ink-muted">{I8_DISCLAIMER}</p>
         </div>
-        <div className="rounded-xl bg-ink px-4 py-4 text-surface">
-          <p className="text-xs text-surface/70">Severidad (entero guardado)</p>
-          <p className="mt-1 font-mono text-2xl tracking-tight">
+        <Card tone="night" className="bg-grid-night animate-fade-up">
+          <p className="flex items-center gap-2 text-xs text-white/70">
+            <Gauge className="h-4 w-4 text-signal" aria-hidden="true" />
+            Severidad (entero guardado)
+          </p>
+          <p className="mt-3 font-mono text-2xl tracking-tight text-white">
             {record.severity} · {severityLabel(record.severity)}
           </p>
-        </div>
+          <div className="mt-4 flex gap-1.5" aria-hidden="true">
+            {SEVERITY_BAR.map((bar, i) => (
+              <span
+                key={bar}
+                className={cn("h-1.5 flex-1 rounded-full", i <= record.severity ? bar : "bg-night-line")}
+              />
+            ))}
+          </div>
+        </Card>
       </div>
 
       {showAddVendor ? (
-        <Section title="Alta de proveedor">
+        <Section title="Alta de proveedor" icon={UserPlus}>
           <AddBeneficiaryPanel decisionId={record.id} />
         </Section>
       ) : null}
 
       {approval ? (
-        <Section title="Aprobaciones">
-          <p className="text-sm font-medium text-ink">{approvalCountLabel(approval)}</p>
+        <Section title="Aprobaciones" icon={Users}>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-ink">{approvalCountLabel(approval)}</p>
+            <ProgressBar
+              value={Math.min(approval.collected, approval.required)}
+              max={approval.required}
+              label={approvalCountLabel(approval)}
+              tone={approval.collected >= approval.required ? "pay" : "brand"}
+            />
+          </div>
           <p className="text-sm text-ink-muted">{routeDisplayLabel(approval.route_id)}</p>
           <p className="text-sm text-ink-muted">{approversSummary(approval)}</p>
           {pendingSentence ? <p className="text-sm text-ink-muted">{pendingSentence}</p> : null}
         </Section>
       ) : null}
 
-      <Section title="Historial de operaciones del agente">
+      <Section title="Historial de operaciones del agente" icon={Workflow}>
         <AgentOperationTrail record={record} />
       </Section>
 
-      <Section title="Identidad del registro">
+      <Section title="Identidad del registro" icon={Fingerprint}>
         <dl className="space-y-3">
           <FieldRow label="Identificador" value={record.id} />
           <FieldRow label="Factura" value={record.invoice_id} />
@@ -302,7 +364,7 @@ function RecordBody({
           />
         </dl>
         <div className="mt-4 border-t border-line pt-4">
-          <p className="text-sm font-medium text-ink">Versiones con las que se decidió</p>
+          <p className="text-sm font-semibold text-ink">Versiones con las que se decidió</p>
           <dl className="mt-2 space-y-2">
             <FieldRow label="Reglas" value={record.versions.rules_version} />
             <FieldRow label="Extractor" value={record.versions.model_extractor} />
@@ -332,9 +394,14 @@ export default function DecisionDetailScreen({ decisionId }: { decisionId: strin
 
   if (state.status === "loading") {
     return (
-      <p className="text-ink-muted" role="status">
-        Cargando decisión…
-      </p>
+      <div className="space-y-4" role="status">
+        <p className="text-sm text-ink-muted">Cargando decisión…</p>
+        <div className="skeleton h-10 w-2/3" aria-hidden="true" />
+        <div className="grid gap-4 lg:grid-cols-3" aria-hidden="true">
+          <div className="skeleton h-40 lg:col-span-2" />
+          <div className="skeleton h-40" />
+        </div>
+      </div>
     );
   }
 
