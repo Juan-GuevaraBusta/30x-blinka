@@ -430,6 +430,72 @@
         }
       }
     },
+    "/decisions/{id}/add-beneficiary": {
+      "post": {
+        "summary": "Add Beneficiary",
+        "description": "T7.4 (D059): audited allowlist append from an R01 FRENAR record (I2).",
+        "operationId": "add_beneficiary_decisions__id__add_beneficiary_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "X-Admin-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Admin-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RulesConfig"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/decisions/{id}/approval": {
       "get": {
         "summary": "Get Approval",
@@ -749,7 +815,9 @@
               "R15",
               "R16",
               "R17",
-              "R18"
+              "R18",
+              "R19",
+              "R20"
             ],
             "title": "Rule"
           },
@@ -807,6 +875,34 @@
           "detail"
         ],
         "title": "CheckResult"
+      },
+      "CommissionFormula": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "commission",
+            "title": "Kind"
+          },
+          "pct": {
+            "type": "number",
+            "maximum": 100.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Pct"
+          },
+          "base_label": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Base Label"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "pct",
+          "base_label"
+        ],
+        "title": "CommissionFormula"
       },
       "CompanyRef": {
         "properties": {
@@ -1551,6 +1647,24 @@
             ],
             "title": "R17",
             "default": "FRENAR"
+          },
+          "R19": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R19",
+            "default": "FRENAR"
+          },
+          "R20": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R20",
+            "default": "ESCALAR"
           }
         },
         "additionalProperties": false,
@@ -1697,6 +1811,81 @@
           "amount"
         ],
         "title": "PeriodLimit"
+      },
+      "PricingTerms": {
+        "properties": {
+          "beneficiary": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Beneficiary"
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Currency"
+          },
+          "contract_clause": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Contract Clause"
+          },
+          "formula": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/UnitRateFormula"
+              },
+              {
+                "$ref": "#/components/schemas/TieredFormula"
+              },
+              {
+                "$ref": "#/components/schemas/CommissionFormula"
+              }
+            ],
+            "title": "Formula",
+            "discriminator": {
+              "propertyName": "kind",
+              "mapping": {
+                "commission": "#/components/schemas/CommissionFormula",
+                "tiered": "#/components/schemas/TieredFormula",
+                "unit_rate": "#/components/schemas/UnitRateFormula"
+              }
+            }
+          },
+          "tolerance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PricingTolerance"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "beneficiary",
+          "currency",
+          "contract_clause",
+          "formula"
+        ],
+        "title": "PricingTerms",
+        "description": "Declared variable-pricing formula for one vendor (T7.3 §2, D059)."
+      },
+      "PricingTolerance": {
+        "properties": {
+          "abs": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Abs",
+            "default": 0.0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PricingTolerance",
+        "description": "Absolute slack on variable-pricing recomputation (T7.3 §2)."
       },
       "RouteMatch": {
         "properties": {
@@ -1870,6 +2059,30 @@
             },
             "type": "array",
             "title": "Payment Series"
+          },
+          "variable_pricing": {
+            "items": {
+              "$ref": "#/components/schemas/PricingTerms"
+            },
+            "type": "array",
+            "title": "Variable Pricing"
+          },
+          "vendor_onboarding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VendorOnboarding"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "vendor_additions": {
+            "items": {
+              "$ref": "#/components/schemas/VendorAddition"
+            },
+            "type": "array",
+            "title": "Vendor Additions"
           }
         },
         "additionalProperties": false,
@@ -1921,6 +2134,63 @@
         "title": "SeriesItem",
         "description": "One explicit installment/milestone (T7.2 §2)."
       },
+      "TieredFormula": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "tiered",
+            "title": "Kind"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Unit"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/TieredTier"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Tiers"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "unit",
+          "tiers"
+        ],
+        "title": "TieredFormula"
+      },
+      "TieredTier": {
+        "properties": {
+          "up_to": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Up To"
+          },
+          "rate": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Rate"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rate"
+        ],
+        "title": "TieredTier"
+      },
       "TraceRef": {
         "properties": {
           "langsmith_run_id": {
@@ -1949,6 +2219,45 @@
         "additionalProperties": false,
         "type": "object",
         "title": "TraceRef"
+      },
+      "UnitRateFormula": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "unit_rate",
+            "title": "Kind"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Unit"
+          },
+          "rate": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Rate"
+          },
+          "cap": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cap"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "unit",
+          "rate"
+        ],
+        "title": "UnitRateFormula"
       },
       "ValidationError": {
         "properties": {
@@ -1989,6 +2298,63 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VendorAddition": {
+        "properties": {
+          "beneficiary": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Beneficiary"
+          },
+          "added_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Added At"
+          },
+          "added_by": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Added By"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "source_decision_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Source Decision Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "beneficiary",
+          "added_at",
+          "added_by",
+          "reason",
+          "source_decision_id"
+        ],
+        "title": "VendorAddition"
+      },
+      "VendorOnboarding": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "first_invoice_requires_approval": {
+            "type": "boolean",
+            "title": "First Invoice Requires Approval",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "VendorOnboarding",
+        "description": "Optional audited vendor allowlist from R01 failures (T7.4 §2, D059)."
       },
       "VerifierIssue": {
         "properties": {

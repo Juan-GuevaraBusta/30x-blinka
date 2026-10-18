@@ -12,7 +12,7 @@ from datetime import date
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.domain import InvoiceType
 
@@ -71,6 +71,7 @@ class OnFail(BaseModel):
     R16: FailAction = "FRENAR"
     R17: FailAction = "FRENAR"
     R19: FailAction = "FRENAR"
+    R20: FailAction = "ESCALAR"
     # R18 is informational only and never fails (docs/T7_2_SPEC.md §3); no on_fail key.
 
 
@@ -270,6 +271,25 @@ class CommissionFormula(BaseModel):
 PricingFormula = UnitRateFormula | TieredFormula | CommissionFormula
 
 
+class VendorOnboarding(BaseModel):
+    """Optional audited vendor allowlist from R01 failures (T7.4 §2, D059)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = False
+    first_invoice_requires_approval: bool = True
+
+
+class VendorAddition(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    beneficiary: str = Field(min_length=1)
+    added_at: AwareDatetime
+    added_by: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    source_decision_id: str = Field(min_length=1)
+
+
 class PricingTerms(BaseModel):
     """Declared variable-pricing formula for one vendor (T7.3 §2, D059)."""
 
@@ -310,6 +330,8 @@ class RulesConfig(BaseModel):
     approval_policy: ApprovalPolicy | None = None
     payment_series: list[PaymentSeries] = Field(default_factory=list)
     variable_pricing: list[PricingTerms] = Field(default_factory=list)
+    vendor_onboarding: VendorOnboarding | None = None
+    vendor_additions: list[VendorAddition] = Field(default_factory=list)
 
     @field_validator("allowed_beneficiaries")
     @classmethod

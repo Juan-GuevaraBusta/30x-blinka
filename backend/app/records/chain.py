@@ -34,6 +34,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from app.models.domain import DecisionRecord, HumanEvent
@@ -106,6 +107,32 @@ def compute_decision_entry_hash(record: DecisionRecord, prev_hash: str) -> str:
 def compute_human_event_entry_hash(event: HumanEvent, prev_hash: str) -> str:
     """Hash for a new `human_event` chain entry."""
     return compute_entry_hash(human_event_entry_payload(event), prev_hash)
+
+
+@dataclass(frozen=True)
+class AllowlistChangePayload:
+    """Immutable payload for T7.4 `allowlist_change` chain entries (D059)."""
+
+    beneficiary: str
+    author: str
+    reason: str
+    at: datetime
+    source_decision_id: str
+
+
+def allowlist_change_entry_payload(change: AllowlistChangePayload) -> dict[str, Any]:
+    """Full payload hashed for an `allowlist_change` entry (append-only)."""
+    return {
+        "beneficiary": change.beneficiary,
+        "author": change.author,
+        "reason": change.reason,
+        "at": change.at.isoformat().replace("+00:00", "Z"),
+        "source_decision_id": change.source_decision_id,
+    }
+
+
+def compute_allowlist_change_entry_hash(change: AllowlistChangePayload, prev_hash: str) -> str:
+    return compute_entry_hash(allowlist_change_entry_payload(change), prev_hash)
 
 
 def verify_chain(entries: list[tuple[str, Any, str, str]]) -> ChainVerification:

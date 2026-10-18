@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 
 from pydantic import ValidationError
 from sqlalchemy import func, select
@@ -10,14 +11,21 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.store import DuplicateDecisionError
+from app.api.store import (
+    AlreadyAllowedError,
+    DuplicateDecisionError,
+    R01NotFailedError,
+    VendorOnboardingDisabledError,
+)
 from app.models.domain import DecisionRecord, HumanEvent
-from app.models.rules_config import RulesConfig
+from app.models.rules_config import RulesConfig, VendorAddition
 from app.persistence.errors import RulesMissing
 from app.persistence.tables import ChainEntryRow, DecisionRecordRow, RulesDocument
 from app.records.chain import (
     GENESIS_PREV_HASH,
+    AllowlistChangePayload,
     ChainVerification,
+    allowlist_change_entry_payload,
     canonical_json,
     compute_decision_entry_hash,
     compute_entry_hash,
@@ -25,6 +33,7 @@ from app.records.chain import (
     human_event_entry_payload,
 )
 from app.records.chain import verify_chain as _verify_chain_entries
+from app.rules.normalize import normalize_beneficiary
 
 
 class SqlStore:
@@ -160,6 +169,70 @@ class SqlStore:
             )
             session.commit()
             return updated
+
+    def add_beneficiary_from_decision(
+        self,
+        decision_id: str,
+        *,
+        author: str,
+        reason: str,
+        at: datetime,
+    ) -> RulesConfig:
+        with Session(self._engine) as session:
+            rules_row = session.get(RulesDocument, 1)
+            if rules_row is None:
+                raise RulesMissing()
+            rules = RulesConfig.model_validate_json(rules_row.payload)
+            onboarding = rules.vendor_onboarding
+            if onboarding is None or not onboarding.enabled:
+                raise VendorOnboardingDisabledError()
+            row = session.get(DecisionRecordRow, decision_id)
+            if row is None:
+                raise KeyError(decision_id)
+            record = DecisionRecord.model_validate_json(row.payload)
+            if not any(c.rule == "R01" and c.result == "FALLA" for c in record.checks):
+                raise R01NotFailedError()
+            beneficiary = (record.extracted.beneficiary or "").strip()
+            if not beneficiary:
+                raise ValueError("missing_beneficiary")
+            allowed = {normalize_beneficiary(name) for name in rules.allowed_beneficiaries}
+            if normalize_beneficiary(beneficiary) in allowed:
+                raise AlreadyAllowedError()
+            addition = VendorAddition(
+                beneficiary=beneficiary,
+                added_at=at,
+                added_by=author,
+                reason=reason,
+                source_decision_id=decision_id,
+            )
+            updated_rules = rules.model_copy(
+                update={
+                    "allowed_beneficiaries": [*rules.allowed_beneficiaries, beneficiary],
+                    "vendor_additions": [*rules.vendor_additions, addition],
+                }
+            )
+            rules_row.payload = updated_rules.model_dump_json()
+            change = AllowlistChangePayload(
+                beneficiary=beneficiary,
+                author=author,
+                reason=reason,
+                at=at,
+                source_decision_id=decision_id,
+            )
+            prev_hash = self._chain_tip(session)
+            payload = allowlist_change_entry_payload(change)
+            record_hash = compute_entry_hash(payload, prev_hash)
+            session.add(
+                ChainEntryRow(
+                    kind="allowlist_change",
+                    ref_id=decision_id,
+                    payload=canonical_json(payload),
+                    prev_hash=prev_hash,
+                    record_hash=record_hash,
+                )
+            )
+            session.commit()
+            return updated_rules
 
     @staticmethod
     def _chain_tip(session: Session) -> str:

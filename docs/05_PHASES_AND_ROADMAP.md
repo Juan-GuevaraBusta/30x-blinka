@@ -108,7 +108,7 @@ Usuario: el equipo de finanzas de una empresa cliente de Blinka que paga a sus p
 - [ ] **T7.1** Política de aprobación configurable: rutas por monto, proveedor, categoría y departamento; N de M aprobadores; regla R14. *(Rules Engine + API)*
 - [ ] **T7.2** Pagos en serie por proveedor: ventana, periodo duplicado, tope total, periodo saltado; reglas R15–R18. *(Rules Engine)*
 - [ ] **T7.3** Pagos variables: fórmula pactada, extracción con cita literal y recálculo determinista; regla R19. *(Rules Engine + Agent Graph)*
-- [ ] **T7.4** Alta auditada de proveedor desde una factura frenada por R01; regla R20. *(API + Frontend)*
+- [x] **T7.4** Alta auditada de proveedor desde una factura frenada por R01; regla R20. *(API + Frontend)*
 - [ ] **T7.5** Pantallas de finanzas: editor de política, vista de proveedor con calendario, «x de N aprobaciones». *(Frontend)*
 
 **G7:** `unsafe_pay = 0` en dev, holdout y f7; motor dev 34/34. Specs: `docs/T7_1_SPEC.md` a `docs/T7_6_SPEC.md`.

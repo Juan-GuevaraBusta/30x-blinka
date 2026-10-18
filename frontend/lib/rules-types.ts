@@ -39,6 +39,11 @@ export type JevKey = "J1" | "J2" | "J3" | "J4" | "J6" | "J7";
 
 export type JevThresholds = Record<JevKey, number>;
 
+export interface VendorOnboarding {
+  enabled: boolean;
+  first_invoice_requires_approval?: boolean;
+}
+
 export interface RulesConfig {
   company: CompanyRef;
   limits: Limits;
@@ -49,6 +54,8 @@ export interface RulesConfig {
   manual_blocks: string[];
   on_fail: OnFail;
   jev_thresholds: JevThresholds;
+  vendor_onboarding?: VendorOnboarding | null;
+  vendor_additions?: unknown[];
 }
 
 export const RULE_IDS: RuleId[] = [

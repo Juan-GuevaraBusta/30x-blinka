@@ -28,6 +28,7 @@ from app.rules.variable_pricing import (
     invoice_amount_in_terms,
     validate_metered_for_terms,
 )
+from app.rules.vendor_onboarding import find_vendor_addition, has_vendor_human_approval_after
 
 RULE_NAMES: dict[str, str] = {
     "R01": "Beneficiario permitido",
@@ -49,6 +50,7 @@ RULE_NAMES: dict[str, str] = {
     "R17": "Total de la serie",
     "R18": "Periodo esperado sin factura",
     "R19": "Cuadra con la fórmula pactada",
+    "R20": "Primer pago de proveedor nuevo",
 }
 
 # T7.2 follow-up (R3-float-equality-installment) — tolerance in base-currency
@@ -501,6 +503,26 @@ def check_r19(ctx: RuleContext, terms) -> CheckResult:
         return _ok("R19", detail)
 
     return _ok("R19", f"{calc} La factura cobra {terms.currency} {billed:g}.")
+
+
+def check_r20(ctx: RuleContext) -> CheckResult:
+    """T7.4 (D059) — First payment for an audited allowlist addition needs human OK."""
+    addition = find_vendor_addition(ctx.rules, ctx.extraction.beneficiary)
+    if addition is None:
+        return _ok("R20", "Proveedor no agregado por onboarding auditado.")
+    onboarding = ctx.rules.vendor_onboarding
+    if onboarding is not None and not onboarding.first_invoice_requires_approval:
+        return _ok("R20", "Onboarding sin aprobación obligatoria del primer pago.")
+    if has_vendor_human_approval_after(ctx.ledger, addition.beneficiary, addition.added_at):
+        return _ok(
+            "R20",
+            f"El proveedor {addition.beneficiary} ya tiene aprobación humana posterior al alta.",
+        )
+    return _fail(
+        ctx,
+        "R20",
+        f"Primer pago de {addition.beneficiary}: falta aprobación humana tras el alta auditado.",
+    )
 
 
 CHECKS = (

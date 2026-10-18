@@ -16,6 +16,11 @@ import {
   pendingChecksSentence,
   routeDisplayLabel,
 } from "@/lib/approval-status-present";
+import {
+  DEFAULT_APPROVAL_AUTHOR,
+  validateHumanDecisionInput,
+} from "@/lib/approvals";
+import type { RulesConfig } from "@/lib/rules-types";
 import { apiFetch } from "@/lib/session";
 
 const I8_DISCLAIMER =
@@ -33,7 +38,15 @@ type LoadState =
   | { status: "not_found" }
   | { status: "rate_limited" }
   | { status: "error"; message: string }
-  | { status: "ready"; record: DecisionRecord; approval: ApprovalStatusBody | null };
+  | {
+      status: "ready";
+      record: DecisionRecord;
+      approval: ApprovalStatusBody | null;
+      rules: RulesConfig | null;
+    };
+
+const ADD_VENDOR_WARNING =
+  "Esta factura no se pagará. La próxima factura de este proveedor quedará pendiente de aprobación.";
 
 /** Best-effort «x de N aprobaciones» status; a failure just omits the panel (T7.5 §2). */
 async function loadApprovalStatus(id: string): Promise<ApprovalStatusBody | null> {
@@ -46,6 +59,20 @@ async function loadApprovalStatus(id: string): Promise<ApprovalStatusBody | null
   } catch {
     return null;
   }
+}
+
+async function loadRules(): Promise<RulesConfig | null> {
+  try {
+    const res = await apiFetch("/api/rules", { cache: "no-store" });
+    if (!res.ok) return null;
+    return (await res.json()) as RulesConfig;
+  } catch {
+    return null;
+  }
+}
+
+function hasR01Failure(record: DecisionRecord): boolean {
+  return record.checks.some((check) => check.rule === "R01" && check.result === "FALLA");
 }
 
 async function loadDecision(id: string): Promise<LoadState> {
@@ -79,8 +106,8 @@ async function loadDecision(id: string): Promise<LoadState> {
       };
     }
     const record = (await res.json()) as DecisionRecord;
-    const approval = await loadApprovalStatus(id);
-    return { status: "ready", record, approval };
+    const [approval, rules] = await Promise.all([loadApprovalStatus(id), loadRules()]);
+    return { status: "ready", record, approval, rules };
   } catch {
     return {
       status: "error",
@@ -104,14 +131,112 @@ function FieldRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function AddBeneficiaryPanel({ decisionId }: { decisionId: string }) {
+  const [author, setAuthor] = useState(DEFAULT_APPROVAL_AUTHOR);
+  const [reason, setReason] = useState("");
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function onSubmit() {
+    const validated = validateHumanDecisionInput(author, reason);
+    if (!validated.ok) {
+      setFieldError(validated.message);
+      return;
+    }
+    setFieldError(null);
+    setActionError(null);
+    setSubmitting(true);
+    try {
+      const res = await apiFetch(
+        `/api/decisions/${encodeURIComponent(decisionId)}/add-beneficiary`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(validated.body),
+        },
+      );
+      if (!res.ok) {
+        let detail = `No se pudo agregar el proveedor (HTTP ${res.status}).`;
+        try {
+          const body = (await res.json()) as { detail?: string };
+          if (body.detail === "vendor_onboarding_disabled") {
+            detail = "El alta auditada de proveedores no está habilitada en reglas.";
+          } else if (body.detail === "r01_not_failed") {
+            detail = "Solo aplica cuando R01 está en fallo.";
+          } else if (body.detail === "already_allowed") {
+            detail = "Ese beneficiario ya está en la lista permitida.";
+          }
+        } catch {
+          /* keep generic */
+        }
+        setActionError(detail);
+        return;
+      }
+      setSuccess(true);
+    } catch {
+      setActionError("No se pudo contactar con el servidor.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (success) {
+    return (
+      <p className="text-sm text-success" role="status">
+        Proveedor agregado a la lista permitida. Esta ficha de decisión no cambia.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-ink-muted">{ADD_VENDOR_WARNING}</p>
+      <label className="block text-sm">
+        <span className="font-medium text-ink">Autor</span>
+        <input
+          className="mt-1 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus-ring"
+          value={author}
+          onChange={(e) => setAuthor(e.target.value)}
+          autoComplete="off"
+        />
+      </label>
+      <label className="block text-sm">
+        <span className="font-medium text-ink">Motivo (obligatorio)</span>
+        <textarea
+          className="mt-1 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus-ring"
+          rows={3}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+      </label>
+      {fieldError ? <p className="text-sm text-danger">{fieldError}</p> : null}
+      {actionError ? <p className="text-sm text-danger">{actionError}</p> : null}
+      <button
+        type="button"
+        className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-surface hover:opacity-90 focus-ring disabled:opacity-50"
+        disabled={submitting}
+        onClick={() => void onSubmit()}
+      >
+        {submitting ? "Guardando…" : "Agregar a proveedores permitidos"}
+      </button>
+    </div>
+  );
+}
+
 function RecordBody({
   record,
   approval,
+  rules,
 }: {
   record: DecisionRecord;
   approval: ApprovalStatusBody | null;
+  rules: RulesConfig | null;
 }) {
   const pendingSentence = approval ? pendingChecksSentence(approval, record.checks) : null;
+  const showAddVendor =
+    rules?.vendor_onboarding?.enabled === true && hasR01Failure(record);
 
   return (
     <div className="space-y-8">
@@ -145,6 +270,12 @@ function RecordBody({
           </p>
         </div>
       </div>
+
+      {showAddVendor ? (
+        <Section title="Alta de proveedor">
+          <AddBeneficiaryPanel decisionId={record.id} />
+        </Section>
+      ) : null}
 
       {approval ? (
         <Section title="Aprobaciones">
@@ -219,5 +350,7 @@ export default function DecisionDetailScreen({ decisionId }: { decisionId: strin
     return <AlertPanel>{state.message}</AlertPanel>;
   }
 
-  return <RecordBody record={state.record} approval={state.approval} />;
+  return (
+    <RecordBody record={state.record} approval={state.approval} rules={state.rules} />
+  );
 }

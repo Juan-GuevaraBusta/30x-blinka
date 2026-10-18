@@ -17,6 +17,9 @@ mean anything, and decide() already escalates on R15 alone (fail-closed, I3).
 T7.3 (D059): R19 is appended only when `variable_pricing` lists terms for
 this invoice's beneficiary. Without a match, R19 is never emitted (criterion
 2 of docs/T7_3_SPEC.md).
+
+T7.4 (D059): R20 is appended only when `vendor_additions` is non-empty.
+Without additions, R20 is never emitted (criterion 6 of docs/T7_4_SPEC.md).
 """
 
 from __future__ import annotations
@@ -31,6 +34,7 @@ from app.rules.checks import (
     check_r17,
     check_r18,
     check_r19,
+    check_r20,
 )
 from app.rules.context import RuleContext
 from app.rules.payment_series import find_matching_series
@@ -54,4 +58,6 @@ def run_deterministic_checks(ctx: RuleContext) -> list[CheckResult]:
     pricing = find_pricing_terms(ctx.rules, ctx.extraction.beneficiary)
     if pricing is not None:
         results.append(check_r19(ctx, pricing))
+    if ctx.rules.vendor_additions:
+        results.append(check_r20(ctx))
     return results

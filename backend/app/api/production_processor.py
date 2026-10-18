@@ -20,7 +20,7 @@ from app.graph.folder_batch import RULES_VERSION, repo_root_from_module
 from app.graph.tracing import TraceSession
 from app.jev.decision_client import build_decision_client
 from app.llm import HttpTransport, get_llm
-from app.models.domain import DecisionRecord
+from app.models.domain import DecisionRecord, HumanEvent
 from app.models.rules_config import RulesConfig
 from app.persistence.sql_store import SqlStore
 from app.rules.context import LedgerEntry
@@ -31,6 +31,29 @@ Processor = Callable[[InvoiceUpload, str], DecisionRecord]
 DepsFactory = Callable[[Settings, RulesConfig, tuple[LedgerEntry, ...]], GraphDeps]
 
 _PROCESS_CHECKPOINTER = MemorySaver()
+
+
+def _approval_ledger_line(record: DecisionRecord, event: HumanEvent) -> LedgerEntry | None:
+    if event.action != "aprobada_humano":
+        return None
+    ext = record.extracted
+    beneficiary = (ext.beneficiary or "").strip()
+    if not beneficiary:
+        return None
+    at = event.at
+    received_at = (
+        at.isoformat().replace("+00:00", "Z") if isinstance(at, datetime) else str(at)
+    )
+    return LedgerEntry(
+        beneficiary=beneficiary,
+        amount_base=float(ext.amount_base or 0.0),
+        currency=ext.currency or "USD",
+        invoice_number=ext.invoice_number or "",
+        received_at=received_at,
+        decision="aprobada_humano",
+        department=ext.department,
+        due_date=ext.due_date.isoformat() if ext.due_date else None,
+    )
 
 
 def _record_settlement(record: DecisionRecord) -> LedgerEntry | None:
@@ -55,12 +78,17 @@ def _record_settlement(record: DecisionRecord) -> LedgerEntry | None:
 
 
 def settled_ledger_from_store(store: SqlStore) -> Ledger:
-    """Prior PAGAR lines already persisted (same spirit as folder_batch)."""
+    """Prior PAGAR lines and human approvals already persisted (T7.4 R20)."""
     settled = Ledger.empty()
     for record in store.decisions.values():
         settlement = _record_settlement(record)
         if settlement is not None:
             settled = settled.record_settlement(settlement, invoice_id=record.invoice_id)
+        for index, event in enumerate(record.human_events):
+            approval = _approval_ledger_line(record, event)
+            if approval is not None:
+                tie = f"{record.invoice_id}:aprobada:{index}"
+                settled = settled.record_settlement(approval, invoice_id=tie)
     return settled
 
 

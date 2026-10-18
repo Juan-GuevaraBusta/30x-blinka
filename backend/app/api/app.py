@@ -24,7 +24,13 @@ from app.api.schemas import (
     MetricsBody,
     MetricsReading,
 )
-from app.api.store import DuplicateDecisionError, MemoryStore
+from app.api.store import (
+    AlreadyAllowedError,
+    DuplicateDecisionError,
+    MemoryStore,
+    R01NotFailedError,
+    VendorOnboardingDisabledError,
+)
 from app.api.user_scope import require_user_id
 from app.models.domain import DecisionRecord, HumanAction, HumanEvent
 from app.models.rules_config import RulesConfig
@@ -187,6 +193,30 @@ def create_app(
     ) -> DecisionRecord:
         _require_known_approver(body.author, allowed_approvers)
         return _add_human_event(store, clock, id, body, "rechazada_humano", allowed_groups)
+
+    @app.post("/decisions/{id}/add-beneficiary")
+    def add_beneficiary(
+        id: str,
+        body: HumanDecisionBody,
+        _admin: None = Depends(_check_admin_key),
+    ) -> RulesConfig:
+        """T7.4 (D059): audited allowlist append from an R01 FRENAR record (I2)."""
+        _require_known_approver(body.author, allowed_approvers)
+        try:
+            return store.add_beneficiary_from_decision(
+                id,
+                author=body.author,
+                reason=body.reason,
+                at=clock(),
+            )
+        except VendorOnboardingDisabledError:
+            raise HTTPException(status_code=403, detail="vendor_onboarding_disabled") from None
+        except KeyError:
+            raise HTTPException(status_code=404, detail="not_found") from None
+        except R01NotFailedError:
+            raise HTTPException(status_code=409, detail="r01_not_failed") from None
+        except AlreadyAllowedError:
+            raise HTTPException(status_code=409, detail="already_allowed") from None
 
     @app.get("/decisions/{id}/approval")
     def get_approval(id: str) -> ApprovalStatusBody:

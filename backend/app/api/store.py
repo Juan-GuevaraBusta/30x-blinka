@@ -3,25 +3,41 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from app.models.domain import DecisionRecord, HumanEvent
-from app.models.rules_config import RulesConfig
+from app.models.rules_config import RulesConfig, VendorAddition
 from app.records.chain import (
     GENESIS_PREV_HASH,
+    AllowlistChangePayload,
     ChainVerification,
+    allowlist_change_entry_payload,
     compute_decision_entry_hash,
     compute_entry_hash,
     decision_entry_payload,
     human_event_entry_payload,
 )
 from app.records.chain import verify_chain as _verify_chain_entries
+from app.rules.normalize import normalize_beneficiary
 
 
 class DuplicateDecisionError(Exception):
     def __init__(self, invoice_id: str) -> None:
         super().__init__(invoice_id)
         self.invoice_id = invoice_id
+
+
+class VendorOnboardingDisabledError(Exception):
+    """T7.4: `vendor_onboarding` missing or not enabled."""
+
+
+class R01NotFailedError(Exception):
+    """T7.4: source decision does not carry R01 in FALLA."""
+
+
+class AlreadyAllowedError(Exception):
+    """T7.4: beneficiary already on the allowlist."""
 
 
 @dataclass(frozen=True)
@@ -125,6 +141,64 @@ class MemoryStore:
             )
         )
         return updated
+
+    def add_beneficiary_from_decision(
+        self,
+        decision_id: str,
+        *,
+        author: str,
+        reason: str,
+        at: datetime,
+    ) -> RulesConfig:
+        """T7.4 (D059): append allowlist + `allowlist_change`; decision row unchanged."""
+        onboarding = self.rules.vendor_onboarding
+        if onboarding is None or not onboarding.enabled:
+            raise VendorOnboardingDisabledError()
+        record = self.decisions.get(decision_id)
+        if record is None:
+            raise KeyError(decision_id)
+        if not any(c.rule == "R01" and c.result == "FALLA" for c in record.checks):
+            raise R01NotFailedError()
+        beneficiary = (record.extracted.beneficiary or "").strip()
+        if not beneficiary:
+            raise ValueError("missing_beneficiary")
+        allowed = {normalize_beneficiary(name) for name in self.rules.allowed_beneficiaries}
+        if normalize_beneficiary(beneficiary) in allowed:
+            raise AlreadyAllowedError()
+        addition = VendorAddition(
+            beneficiary=beneficiary,
+            added_at=at,
+            added_by=author,
+            reason=reason,
+            source_decision_id=decision_id,
+        )
+        updated_rules = self.rules.model_copy(
+            update={
+                "allowed_beneficiaries": [*self.rules.allowed_beneficiaries, beneficiary],
+                "vendor_additions": [*self.rules.vendor_additions, addition],
+            }
+        )
+        self.rules = updated_rules
+        change = AllowlistChangePayload(
+            beneficiary=beneficiary,
+            author=author,
+            reason=reason,
+            at=at,
+            source_decision_id=decision_id,
+        )
+        prev_hash = self._chain_tip()
+        payload = allowlist_change_entry_payload(change)
+        record_hash = compute_entry_hash(payload, prev_hash)
+        self._chain.append(
+            _ChainEntry(
+                kind="allowlist_change",
+                ref_id=decision_id,
+                payload=payload,
+                prev_hash=prev_hash,
+                record_hash=record_hash,
+            )
+        )
+        return updated_rules
 
     def verify_chain(self) -> ChainVerification:
         """GET /decisions/verify-chain (T5.10, D055) for this in-memory backend.
