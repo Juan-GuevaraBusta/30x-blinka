@@ -48,7 +48,7 @@ DEMO_VENDOR_NAMES: Final[tuple[str, str, str]] = (
 
 # Approval-policy route id for the demo "2-of-N high amount" rule, and the
 # company.json approver groups it requires approvals from.
-_HIGH_AMOUNT_ROUTE_ID: Final[str] = "high-amount-2of-finanzas-cfo"
+_HIGH_AMOUNT_ROUTE_ID: Final[str] = "monto-alto"
 _HIGH_AMOUNT_GROUPS: Final[tuple[str, str]] = ("finanzas", "cfo")
 _HIGH_AMOUNT_THRESHOLD: Final[float] = 3000.0
 
@@ -95,8 +95,9 @@ def build_demo_rules_config(base: RulesConfig | None = None) -> RulesConfig:
     demo company (`DEMO_COMPANY_NAME`/`DEMO_BASE_CURRENCY` -- the
     `data/rules.json` template keeps its own frozen company name, used only
     by the eval motor), plus the 3 demo vendors on `allowed_beneficiaries`,
-    plus an `approval_policy` with a 2-of-N high-amount route ending in the
-    mandatory catch-all route."""
+    plus the live demo `approval_policy`: high amount (2 of finanzas/cfo),
+    Andesbyte variable (1 of finanzas), Marketing (1 of cfo) and an automatic
+    catch-all -- the same 4 routes applied in production."""
     source = base if base is not None else load_rules_config(RULES_PATH)
     allowed = list(source.allowed_beneficiaries)
     for name in DEMO_VENDOR_NAMES:
@@ -113,7 +114,19 @@ def build_demo_rules_config(base: RulesConfig | None = None) -> RulesConfig:
                     from_groups=list(_HIGH_AMOUNT_GROUPS),
                 ),
             ),
-            ApprovalRoute(id="catch-all", match=RouteMatch(), require=RouteRequire(mode="auto")),
+            ApprovalRoute(
+                id="variable-andesbyte",
+                match=RouteMatch(beneficiary="Andesbyte SAS"),
+                require=RouteRequire(mode="approvals", min_approvals=1, from_groups=["finanzas"]),
+            ),
+            ApprovalRoute(
+                id="marketing-cfo",
+                match=RouteMatch(department="Marketing"),
+                require=RouteRequire(mode="approvals", min_approvals=1, from_groups=["cfo"]),
+            ),
+            ApprovalRoute(
+                id="resto-automatico", match=RouteMatch(), require=RouteRequire(mode="auto")
+            ),
         ]
     )
     updated = source.model_copy(

@@ -86,13 +86,13 @@ Ruta crítica: **F1 (datos y contratos) → F2 (motor) → F3 (grafo) → F4 (UI
 - [x] **T5.8** Serializar la decisión dependiente del ledger para cumplir el límite por periodo bajo concurrencia. *(API)*
 - [x] **T5.9** Exigir clave de administrador en los endpoints que mutan y validar el aprobador. *(API)*
 - [ ] **T5.10** Encadenar los registros de decisión con hash y exponer su verificación. *(Rules Engine)*
-- [ ] **T5.11** Dinero como `Decimal` en montos y comparaciones de límite. *(Rules Engine)*
+- [~] **T5.11** ~~Dinero como `Decimal` en montos y comparaciones de límite.~~ **DESCARTADA** (P2, riesgo a última hora: cambiar los tipos de monto tan cerca de la entrega podía romper invariantes ya verdes sin tiempo de re-verificar). *(Rules Engine)*
 - [x] **T5.12** Decodificar streams FlateDecode en la ingesta de PDF. *(Agent Graph)*
 
 **G5:** `unsafe_pay = 0` en dev, holdout y adversariales; reporte commiteado; README verificable; T5.8 (sin pagos fuera de reglas por concurrencia) y T5.9 (endpoints mutantes con acceso mínimo) cerradas.
 
 ## F6 — Demo y entrega (h35–36)
-- [ ] **T6.1** Guion de 3 min: factura normal pagada → duplicado frenado → monto alto escalado → aprobación humana → registro y traza → métricas.
+- [x] **T6.1** Guion de 3 min: factura normal pagada → duplicado frenado → pago variable escalado → aprobación humana → cadena íntegra → cierre. `docs/DEMO_SCRIPT.md`.
 - [ ] **T6.2** Video de respaldo y *seed* para reiniciar la demo.
 - [ ] **T6.3** Etiqueta de versión, congelar rama, lista de entrega.
 - [x] **T6.4** CI con gate de eval (`unsafe_pay`) y CodeQL. *(Orquestador)*
@@ -104,26 +104,27 @@ Ruta crítica: **F1 (datos y contratos) → F2 (motor) → F3 (grafo) → F4 (UI
 
 ## F7 — Políticas por empresa: series, pagos variables y aprobaciones (D059)
 Usuario: el equipo de finanzas de una empresa cliente de Blinka que paga a sus proveedores. Todo lo nuevo solo puede **subir** severidad: nunca habilita un pago que R01–R13 no permitan. Sin las secciones nuevas en las reglas, el comportamiento es idéntico al actual.
-- [ ] **T7.6** Dataset f7 sintético (series, variables, política) con etiquetas y eval separada. Va primero. *(Spec & Data + QA & Eval)*
-- [ ] **T7.1** Política de aprobación configurable: rutas por monto, proveedor, categoría y departamento; N de M aprobadores; regla R14. *(Rules Engine + API)*
-- [ ] **T7.2** Pagos en serie por proveedor: ventana, periodo duplicado, tope total, periodo saltado; reglas R15–R18. *(Rules Engine)*
-- [ ] **T7.3** Pagos variables: fórmula pactada, extracción con cita literal y recálculo determinista; regla R19. *(Rules Engine + Agent Graph)*
+- [x] **T7.6** Dataset f7 sintético (series, variables, política) con etiquetas y eval separada. Va primero. *(Spec & Data + QA & Eval)*
+- [x] **T7.1** Política de aprobación configurable: rutas por monto, proveedor, categoría y departamento; N de M aprobadores; regla R14. *(Rules Engine + API)*
+- [x] **T7.2** Pagos en serie por proveedor: ventana, periodo duplicado, tope total, periodo saltado; reglas R15–R18. *(Rules Engine)*
+- [x] **T7.3** Pagos variables: fórmula pactada, extracción con cita literal y recálculo determinista; regla R19. *(Rules Engine + Agent Graph)*
 - [x] **T7.4** Alta auditada de proveedor desde una factura frenada por R01; regla R20. *(API + Frontend)*
-- [ ] **T7.5** Pantallas de finanzas: editor de política, vista de proveedor con calendario, «x de N aprobaciones». *(Frontend)*
+- [x] **T7.5** Pantallas de finanzas: editor de política, vista de proveedor con calendario, «x de N aprobaciones». *(Frontend)*
 
-**G7:** `unsafe_pay = 0` en dev, holdout y f7; motor dev 34/34. Specs: `docs/T7_1_SPEC.md` a `docs/T7_6_SPEC.md`.
+**G7:** `unsafe_pay = 0` en dev, holdout y f7; motor dev 34/34. Specs: `docs/T7_1_SPEC.md` a `docs/T7_6_SPEC.md`. Tareas base ya HECHA; sigue PENDIENTE: la corrida de holdout (depende de T5.1).
 
 ## F9 — Flujo determinista de punta a punta para la demo (D061)
 Dirección del cofundador de Blinka: política → acuerdos por proveedor → correos → PAGAR/FRENAR/ESCALAR → validar calendario y horas contra el acuerdo. Determinista primero; el LLM solo propone o desempata y nunca aplica ni paga. Sin chatbot, sin RAG, sin buzón real en el MVP. Todo lo nuevo solo sube severidad.
-- [ ] **T9.1** (P0) Registro estructurado de acuerdos (retainer, horas con extras, cuotas/hitos, precio unitario), versionado, compilado a `payment_series`, `variable_pricing` y altas por R20. *(Rules Engine + API + Frontend)*
-- [ ] **T9.2** (P0) Bandeja: `POST /inbox`, sondeo de carpeta local, clasificador de factura con señales y umbrales, desempate LLM acotado, pantalla `/bandeja`. *(Agent Graph + API + Frontend)*
-- [ ] **T9.3** (P0) Empresa semilla con política, 3 acuerdos e inbox que cubre cada historia; comando de reinicio; guion actualizado. *(Spec & Data + Docs & Judge)*
+- [x] **T9.1** (P0) Registro estructurado de acuerdos (retainer, horas con extras, cuotas/hitos, precio unitario), versionado, compilado a `payment_series`, `variable_pricing` y altas por R20. *(Rules Engine + API + Frontend)*
+- [x] **T9.2** (P0) Bandeja: `POST /inbox`, sondeo de carpeta local, clasificador de factura con señales y umbrales, desempate LLM acotado, pantalla `/bandeja`. *(Agent Graph + API + Frontend)*
+- [x] **T9.3** (P0) Empresa semilla (P.J Gorman) con política, 3 acuerdos y 3 facturas de demo; comando de reinicio (SQL + script); guion actualizado. Implementado en forma simplificada frente al spec original (sin la bandeja de 11 correos). *(Spec & Data + Docs & Judge)*
 - [ ] **T9.4** (P1) Subir documento de política → borrador con citas → diferencias → confirmación humana. *(Agent Graph + Frontend)*
 - [ ] **T9.5** (P1) Línea de tiempo del proveedor: último pago, próximo esperado, cadencia y horas extra. *(Frontend)*
-- [ ] **T9.6** (P0) Configuración por cuenta: cuenta nueva con borrador vacío `configuracion_incompleta`, nunca PAGAR hasta completarla, aprobadores por dueño con token de Supabase verificado en el proxy; la global pasa al dueño semilla. *(API + Frontend)*
+- [ ] **T9.6** (P0) ~~Configuración por cuenta: cuenta nueva con borrador vacío `configuracion_incompleta`...~~ **REEMPLAZADA por T9.8**: la unidad de configuración pasó de usuario a empresa. *(API + Frontend)*
 - [ ] **T9.7** (P0) Prioridades de negocio (crítico/alto/normal/bajo por proveedor y categoría, reservas), regla R22 «Conflicto de prioridad» que escala si un pago deja sin saldo a otro de mayor prioridad ya comprometido, excepciones que solo agregan o redirigen aprobadores; cola por prioridad y tarjeta «Conflictos detectados». *(Rules Engine + Frontend)*
+- [x] **T9.8** (P0) Multiempresa: usuario → empresa (crear o unirse, moneda base, demo); reglas, acuerdos, decisiones y cadena por empresa; empresa nueva vacía → ESCALAR. Reemplaza T9.6. *(API + Frontend)*
 
-**G9:** demo end-to-end con la empresa semilla; `unsafe_pay = 0` en dev, f7 y el inbox semilla; motor dev 34/34. Specs: `docs/T9_1_SPEC.md` a `docs/T9_6_SPEC.md`.
+**G9:** demo end-to-end con la empresa semilla; `unsafe_pay = 0` en dev, f7 y el inbox semilla; motor dev 34/34. Specs: `docs/T9_1_SPEC.md`, `docs/T9_2_SPEC.md`, `docs/T9_3_SPEC.md`, `docs/T9_8_SPEC.md`. Tareas base (T9.1–T9.3, T9.8) ya HECHA; sigue PENDIENTE: ensayo grabado de la demo semilla y su nota en `docs/DEMO_SCRIPT.md`.
 
 ---
 ## Líneas de corte (si vamos tarde)
