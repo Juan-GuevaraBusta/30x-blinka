@@ -19,7 +19,9 @@ class LedgerEntry(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     beneficiary: str
-    amount_base: float
+    # T5.13 (D063): None = amount could not be converted to base currency. Never 0.0
+    # as a silent default; sums over a None line are INDETERMINADO (fail closed).
+    amount_base: float | None
     currency: str
     invoice_number: str
     received_at: str  # ISO-8601

@@ -23,8 +23,9 @@ from app.models.domain import DecisionRecord
 from app.models.rules_config import load_rules_config
 from app.motor.golden_runner import enrich_ledger_seed
 from app.rules.context import LedgerEntry
-from app.rules.fx import load_fx_table
+from app.rules.fx import FxTable, load_fx_table
 from app.rules.ledger import Ledger, ledger_view_for_invoice, sort_key
+from app.rules.settlement import settlement_amount_base
 
 RULES_VERSION = "v1"
 Phase = Literal["dev", "eval", "demo"]
@@ -115,13 +116,15 @@ def _catalog_row_for_ledger(entry: dict) -> dict:
     return row
 
 
-def _record_settlement(record: DecisionRecord, received_at: str) -> LedgerEntry | None:
+def _record_settlement(
+    record: DecisionRecord, received_at: str, fx: FxTable
+) -> LedgerEntry | None:
     if record.decision != "PAGAR":
         return None
     ext = record.extracted
     return LedgerEntry(
         beneficiary=ext.beneficiary or "",
-        amount_base=float(ext.amount_base or 0.0),
+        amount_base=settlement_amount_base(ext, fx),
         currency=ext.currency or "USD",
         invoice_number=ext.invoice_number or "",
         received_at=received_at,
@@ -157,6 +160,8 @@ def run_invoice_folder(
     rows = select_catalog_rows(catalog, invoices_dir, root)
     settled = Ledger.empty()
     records: list[DecisionRecord] = []
+    fx_path = root / "data" / "fx.json"
+    settlement_fx = load_fx_table(fx_path) if fx_path.is_file() else load_fx_table()
 
     for entry in rows:
         ledger_row = _catalog_row_for_ledger(entry)
@@ -179,7 +184,7 @@ def run_invoice_folder(
             phase=phase,
         )
         records.append(record)
-        settlement = _record_settlement(record, entry["received_at"])
+        settlement = _record_settlement(record, entry["received_at"], settlement_fx)
         if settlement is not None:
             settled = settled.record_settlement(settlement, invoice_id=invoice_id)
 

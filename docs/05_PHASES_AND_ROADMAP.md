@@ -121,6 +121,7 @@ Dirección del cofundador de Blinka: política → acuerdos por proveedor → co
 - [ ] **T9.4** (P1) Subir documento de política → borrador con citas → diferencias → confirmación humana. *(Agent Graph + Frontend)*
 - [ ] **T9.5** (P1) Línea de tiempo del proveedor: último pago, próximo esperado, cadencia y horas extra. *(Frontend)*
 - [ ] **T9.6** (P0) Configuración por cuenta: cuenta nueva con borrador vacío `configuracion_incompleta`, nunca PAGAR hasta completarla, aprobadores por dueño con token de Supabase verificado en el proxy; la global pasa al dueño semilla. *(API + Frontend)*
+- [ ] **T9.7** (P0) Prioridades de negocio (crítico/alto/normal/bajo por proveedor y categoría, reservas), regla R22 «Conflicto de prioridad» que escala si un pago deja sin saldo a otro de mayor prioridad ya comprometido, excepciones que solo agregan o redirigen aprobadores; cola por prioridad y tarjeta «Conflictos detectados». *(Rules Engine + Frontend)*
 
 **G9:** demo end-to-end con la empresa semilla; `unsafe_pay = 0` en dev, f7 y el inbox semilla; motor dev 34/34. Specs: `docs/T9_1_SPEC.md` a `docs/T9_6_SPEC.md`.
 

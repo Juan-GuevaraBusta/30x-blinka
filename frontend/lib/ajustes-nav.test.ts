@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import { isActiveSettingsLink, SETTINGS_NAV_LINKS } from "./ajustes-nav";
 
 describe("SETTINGS_NAV_LINKS", () => {
-  it("has the three sections in order", () => {
+  it("has the four sections in order", () => {
     expect(SETTINGS_NAV_LINKS.map((link) => link.href)).toEqual([
       "/reglas",
       "/ajustes/politica",
       "/ajustes/proveedores",
+      "/ajustes/acuerdos",
     ]);
   });
 });

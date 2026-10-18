@@ -20,6 +20,10 @@ this invoice's beneficiary. Without a match, R19 is never emitted (criterion
 
 T7.4 (D059): R20 is appended only when `vendor_additions` is non-empty.
 Without additions, R20 is never emitted (criterion 6 of docs/T7_4_SPEC.md).
+
+T5.13 (D063): R21 (splitting) is a safety rule that needs no rules.json section.
+It is appended last, only when the beneficiary has counted ledger lines inside
+the window (otherwise it cannot fail and is not emitted).
 """
 
 from __future__ import annotations
@@ -35,6 +39,7 @@ from app.rules.checks import (
     check_r18,
     check_r19,
     check_r20,
+    check_r21,
 )
 from app.rules.context import RuleContext
 from app.rules.payment_series import find_matching_series
@@ -60,4 +65,7 @@ def run_deterministic_checks(ctx: RuleContext) -> list[CheckResult]:
         results.append(check_r19(ctx, pricing))
     if ctx.rules.vendor_additions:
         results.append(check_r20(ctx))
+    splitting = check_r21(ctx)
+    if splitting is not None:
+        results.append(splitting)
     return results

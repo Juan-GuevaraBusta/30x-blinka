@@ -72,6 +72,8 @@ class OnFail(BaseModel):
     R17: FailAction = "FRENAR"
     R19: FailAction = "FRENAR"
     R20: FailAction = "ESCALAR"
+    # T5.13 (D063): splitting/aggregation safety rule, on by default.
+    R21: FailAction = "ESCALAR"
     # R18 is informational only and never fails (docs/T7_2_SPEC.md §3); no on_fail key.
 
 
@@ -258,6 +260,12 @@ class TieredFormula(BaseModel):
     kind: Literal["tiered"]
     unit: str = Field(min_length=1)
     tiers: list[TieredTier] = Field(min_length=1)
+    # T9.1 (D061): additive, optional cap mirroring UnitRateFormula.cap -- needed to
+    # compile an hourly agreement's overtime tier into a total-period ceiling. Absent
+    # (None) on every pre-existing `tiered` formula, so parsing is unchanged (R06/R19
+    # untouched; `_apply_cap` in `app.rules.variable_pricing` already handles it via
+    # `getattr(formula, "cap", None)`).
+    cap: float | None = Field(default=None, gt=0)
 
 
 class CommissionFormula(BaseModel):
@@ -332,6 +340,9 @@ class RulesConfig(BaseModel):
     variable_pricing: list[PricingTerms] = Field(default_factory=list)
     vendor_onboarding: VendorOnboarding | None = None
     vendor_additions: list[VendorAddition] = Field(default_factory=list)
+    # T5.13 (D063): R21 look-back window (days) for same-beneficiary splitting.
+    # Additive with a safe default: rules packages without the key keep R21 on.
+    splitting_window_days: int = Field(default=30, gt=0)
 
     @field_validator("allowed_beneficiaries")
     @classmethod

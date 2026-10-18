@@ -32,6 +32,32 @@ class DecisionRecordRow(Base):
     payload: Mapped[str] = mapped_column(Text, nullable=False)
 
 
+class VendorAgreementVersionRow(Base):
+    """T9.1 (D061): append-only, solo-anexar version history per `vendor_key`.
+
+    A confirm (`PUT /agreements/{vendor_key}`) always INSERTs a new row with
+    the next `version` and marks the previous `active` row (if any)
+    `superseded` -- never UPDATEs `terms_json`/`spans_json`/`source_sha256`
+    of an existing version (same invariant as `ChainEntryRow`: nothing stored
+    here is ever rewritten once confirmed).
+    """
+
+    __tablename__ = "vendor_agreement_version"
+    __table_args__ = (
+        UniqueConstraint("vendor_key", "version", name="uq_agreement_vendor_version"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    vendor_key: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    terms_json: Mapped[str] = mapped_column(Text, nullable=False)
+    source_sha256: Mapped[str | None] = mapped_column(String, nullable=True)
+    spans_json: Mapped[str] = mapped_column(Text, nullable=False)
+    confirmed_by: Mapped[str] = mapped_column(String, nullable=False)
+    confirmed_at: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False)
+
+
 class ChainEntryRow(Base):
     """T5.10 (D055): the append-only hash chain, kept in its own table
     instead of columns on `DecisionRecordRow`, precisely so nothing about a

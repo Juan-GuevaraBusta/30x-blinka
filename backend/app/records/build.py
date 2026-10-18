@@ -15,7 +15,11 @@ from app.rules.ledger_queries import (
     duplicate_match,
     period_paid_total,
 )
-from app.rules.normalize import normalize_beneficiary, normalize_currency
+from app.rules.normalize import (
+    normalize_beneficiary,
+    normalize_currency,
+    normalize_invoice_number,
+)
 from app.rules.payment_series import (
     find_matching_series,
     first_period_conflict,
@@ -42,6 +46,9 @@ _RULE_NAMES: dict[str, str] = {
     "R16": "Periodo ya pagado",
     "R17": "Total de la serie",
     "R18": "Periodo esperado sin factura",
+    "R19": "Cuadra con la fórmula pactada",
+    "R20": "Primer pago de proveedor nuevo",
+    "R21": "Fraccionamiento",
 }
 
 
@@ -88,13 +95,13 @@ def _amount_base(ctx: RecordContext) -> float | None:
 
 def _exact_duplicate_registration_date(ctx: RecordContext) -> date | None:
     norm = normalize_beneficiary(ctx.extraction.beneficiary)
-    number = ctx.extraction.invoice_number
+    number = normalize_invoice_number(ctx.extraction.invoice_number)
     if norm is None or number is None:
         return None
     for entry in ctx.ledger:
         if (
             normalize_beneficiary(entry.beneficiary) == norm
-            and entry.invoice_number == number
+            and normalize_invoice_number(entry.invoice_number) == number
         ):
             try:
                 stamp = datetime.fromisoformat(entry.received_at.replace("Z", "+00:00"))
@@ -144,6 +151,9 @@ def _summary_line_for_check(check: CheckResult, ctx: RecordContext) -> str:
         ben = ctx.extraction.beneficiary or "s/b"
         return tpl.TEMPLATE_R01_FAIL.format(beneficiario=ben)
 
+    if rule == "R02" and amount is not None and amount <= 0:
+        return tpl.TEMPLATE_R02_NONPOSITIVE_FAIL.format(monto_base=monto)
+
     if rule == "R02" and amount is not None:
         return tpl.TEMPLATE_R02_FAIL.format(
             monto_base=monto,
@@ -154,7 +164,7 @@ def _summary_line_for_check(check: CheckResult, ctx: RecordContext) -> str:
         total = period_paid_total(
             ctx.ledger, ctx.received_at.year, ctx.received_at.month
         )
-        acum = total + amount
+        acum = (total or 0.0) + amount
         return tpl.TEMPLATE_R03_FAIL.format(
             acum=_fmt_usd(acum),
             limite=_fmt_usd(float(ctx.rules.limits.per_period.amount)),
@@ -200,7 +210,7 @@ def _summary_line_for_check(check: CheckResult, ctx: RecordContext) -> str:
             if depto != "s/d"
             else 0.0
         )
-        saldo = (budget - spent) if budget is not None else 0.0
+        saldo = (budget - spent) if budget is not None and spent is not None else 0.0
         return tpl.TEMPLATE_R07_FAIL.format(
             depto=depto,
             saldo=_fmt_usd(saldo),
@@ -258,10 +268,21 @@ def _summary_line_for_check(check: CheckResult, ctx: RecordContext) -> str:
                 resolution.series,
                 exclude_invoice_number=ctx.extraction.invoice_number,
             )
-            acumulado = _fmt_usd(paid_total)
+            acumulado = _fmt_usd(paid_total) if paid_total is not None else "s/m"
             if resolution.series.total_cap is not None:
                 tope = _fmt_usd(float(resolution.series.total_cap))
         return tpl.TEMPLATE_R17_FAIL.format(serie=serie_id, acumulado=acumulado, tope=tope)
+
+    if rule == "R11":
+        # T5.13 (D063): R11 only FALLA for an implausible due date (missing = INDETERMINADO).
+        return tpl.TEMPLATE_R11_RANGE_FAIL.format(fecha=_fmt_date(ctx.extraction.due_date))
+
+    if rule == "R21":
+        return tpl.TEMPLATE_R21_FAIL.format(
+            beneficiario=ctx.extraction.beneficiary or "s/b",
+            dias=ctx.rules.splitting_window_days,
+            umbral=_fmt_usd(float(ctx.rules.human_approval_threshold)),
+        )
 
     fallbacks = {
         "R08": tpl.TEMPLATE_R08_FAIL,

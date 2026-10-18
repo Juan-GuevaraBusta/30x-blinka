@@ -10,6 +10,7 @@ from tests.api.support import REPO_ROOT, build_client
 
 _CONTRACT_PATHS = (
     "/rules",
+    "/rules/effective",
     "/decisions",
     "/decisions/{id}",
     "/invoices",
@@ -17,6 +18,10 @@ _CONTRACT_PATHS = (
     "/decisions/{id}/reject",
     "/decisions/{id}/approval",
     "/decisions/{id}/add-beneficiary",
+    "/agreements/draft",
+    "/agreements",
+    "/agreements/{vendor_key}",
+    "/agreements/{vendor_key}/deactivate",
     "/metrics",
     "/health",
     "/openapi.json",
@@ -69,6 +74,12 @@ def test_openapi_lists_contract_paths(client: TestClient) -> None:
         assert path in paths
     assert "get" in paths["/rules"]
     assert "put" in paths["/rules"]
+    assert "get" in paths["/rules/effective"]
+    assert "post" in paths["/agreements/draft"]
+    assert "get" in paths["/agreements"]
+    assert "get" in paths["/agreements/{vendor_key}"]
+    assert "put" in paths["/agreements/{vendor_key}"]
+    assert "post" in paths["/agreements/{vendor_key}/deactivate"]
     assert "get" in paths["/decisions"]
     assert "get" in paths["/decisions/{id}"]
     assert "post" in paths["/invoices"]

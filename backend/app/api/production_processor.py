@@ -24,8 +24,9 @@ from app.models.domain import DecisionRecord, HumanEvent
 from app.models.rules_config import RulesConfig
 from app.persistence.sql_store import SqlStore
 from app.rules.context import LedgerEntry
-from app.rules.fx import load_fx_table
-from app.rules.ledger import Ledger, ledger_view_for_invoice
+from app.rules.fx import FxTable, load_fx_table
+from app.rules.ledger import Ledger
+from app.rules.settlement import settlement_amount_base
 
 Processor = Callable[[InvoiceUpload, str], DecisionRecord]
 DepsFactory = Callable[[Settings, RulesConfig, tuple[LedgerEntry, ...]], GraphDeps]
@@ -33,7 +34,9 @@ DepsFactory = Callable[[Settings, RulesConfig, tuple[LedgerEntry, ...]], GraphDe
 _PROCESS_CHECKPOINTER = MemorySaver()
 
 
-def _approval_ledger_line(record: DecisionRecord, event: HumanEvent) -> LedgerEntry | None:
+def _approval_ledger_line(
+    record: DecisionRecord, event: HumanEvent, fx: FxTable
+) -> LedgerEntry | None:
     if event.action != "aprobada_humano":
         return None
     ext = record.extracted
@@ -46,7 +49,7 @@ def _approval_ledger_line(record: DecisionRecord, event: HumanEvent) -> LedgerEn
     )
     return LedgerEntry(
         beneficiary=beneficiary,
-        amount_base=float(ext.amount_base or 0.0),
+        amount_base=settlement_amount_base(ext, fx),
         currency=ext.currency or "USD",
         invoice_number=ext.invoice_number or "",
         received_at=received_at,
@@ -56,7 +59,7 @@ def _approval_ledger_line(record: DecisionRecord, event: HumanEvent) -> LedgerEn
     )
 
 
-def _record_settlement(record: DecisionRecord) -> LedgerEntry | None:
+def _record_settlement(record: DecisionRecord, fx: FxTable) -> LedgerEntry | None:
     if record.decision != "PAGAR":
         return None
     ext = record.extracted
@@ -67,7 +70,7 @@ def _record_settlement(record: DecisionRecord) -> LedgerEntry | None:
         received_at = str(received)
     return LedgerEntry(
         beneficiary=ext.beneficiary or "",
-        amount_base=float(ext.amount_base or 0.0),
+        amount_base=settlement_amount_base(ext, fx),
         currency=ext.currency or "USD",
         invoice_number=ext.invoice_number or "",
         received_at=received_at,
@@ -77,15 +80,20 @@ def _record_settlement(record: DecisionRecord) -> LedgerEntry | None:
     )
 
 
-def settled_ledger_from_store(store: SqlStore) -> Ledger:
-    """Prior PAGAR lines and human approvals already persisted (T7.4 R20)."""
+def settled_ledger_from_store(store: SqlStore, fx: FxTable | None = None) -> Ledger:
+    """Prior PAGAR lines and human approvals already persisted (T7.4 R20).
+
+    T5.13 (D063): ``amount_base`` is recomputed from amount + currency with the
+    fixed FX table; an unconvertible amount is stored as ``None``, never 0.0.
+    """
+    table = fx if fx is not None else load_fx_table()
     settled = Ledger.empty()
     for record in store.decisions.values():
-        settlement = _record_settlement(record)
+        settlement = _record_settlement(record, table)
         if settlement is not None:
             settled = settled.record_settlement(settlement, invoice_id=record.invoice_id)
         for index, event in enumerate(record.human_events):
-            approval = _approval_ledger_line(record, event)
+            approval = _approval_ledger_line(record, event, table)
             if approval is not None:
                 tie = f"{record.invoice_id}:aprobada:{index}"
                 settled = settled.record_settlement(approval, invoice_id=tie)
@@ -93,10 +101,14 @@ def settled_ledger_from_store(store: SqlStore) -> Ledger:
 
 
 def ledger_view_for_upload(upload: InvoiceUpload, prior: Ledger) -> tuple[LedgerEntry, ...]:
-    received = upload.received_at
-    received_iso = received.isoformat().replace("+00:00", "Z")
-    row = {"id": upload.invoice_id, "received_at": received_iso, "ledger_seed": []}
-    return ledger_view_for_invoice(row, prior)
+    """Every persisted settlement, regardless of the client-supplied ``received_at``.
+
+    T5.13 (D063): everything in the store was already processed in real time, so
+    the whole history is "before" this upload. Filtering by the client's date let
+    a backdated resubmission hide the original payment from R05.
+    """
+    del upload  # the view no longer depends on the (untrusted) client date
+    return prior.as_tuple()
 
 
 def build_graph_deps(

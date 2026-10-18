@@ -42,6 +42,7 @@ from app.records.build import (
 from app.rules.context import ContractTerms, RuleContext
 from app.rules.decide import decide
 from app.rules.run_checks import run_deterministic_checks
+from app.rules.settlement import with_base_amount
 from app.rules.variable_pricing import find_pricing_terms
 from app.verifier.run import VerifierError, verify_decision
 
@@ -174,7 +175,11 @@ def _make_nodes(deps: GraphDeps):
 
     def extract(state: InvoiceState) -> Command[Literal["contract_lookup", "escalate_technical"]]:
         try:
-            extraction = extract_document(state["doc_text"], deps.extractor)
+            # T5.13 (D063): amount_base/fx come from the fixed FX table, once, here --
+            # never from the extractor -- and are persisted in the record's extraction.
+            extraction = with_base_amount(
+                extract_document(state["doc_text"], deps.extractor), deps.fx
+            )
             update: dict = {"extraction": extraction.model_dump(mode="json")}
             pricing = find_pricing_terms(deps.rules, extraction.beneficiary)
             if pricing is not None:

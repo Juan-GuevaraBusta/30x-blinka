@@ -125,18 +125,22 @@ def paid_total_for_series(
     series: PaymentSeries,
     *,
     exclude_invoice_number: str | None = None,
-) -> float:
+) -> float | None:
     """Sum of `amount_base` already paid toward this series (R17).
 
     Excludes `exclude_invoice_number` so re-processing the same invoice
     (already present in the ledger) never double-counts it toward the
-    series' `total_cap`.
+    series' `total_cap`. T5.13 (D063): ``None`` when a counted line has an
+    unknown base amount (fail closed, R17 INDETERMINADO).
     """
-    return sum(
-        entry.amount_base
-        for entry in paid_entries_for_series(entries, series)
-        if exclude_invoice_number is None or entry.invoice_number != exclude_invoice_number
-    )
+    total = 0.0
+    for entry in paid_entries_for_series(entries, series):
+        if exclude_invoice_number is not None and entry.invoice_number == exclude_invoice_number:
+            continue
+        if entry.amount_base is None:
+            return None
+        total += entry.amount_base
+    return total
 
 
 def first_period_conflict(

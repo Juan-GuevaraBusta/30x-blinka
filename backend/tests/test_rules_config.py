@@ -34,6 +34,7 @@ EXPECTED_ON_FAIL = {
     "R17": "FRENAR",
     "R19": "FRENAR",
     "R20": "ESCALAR",
+    "R21": "ESCALAR",  # T5.13 (D063): splitting safety rule, on by default
 }
 
 EXPECTED_JEV = {

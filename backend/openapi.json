@@ -99,6 +99,271 @@
         }
       }
     },
+    "/rules/effective": {
+      "get": {
+        "summary": "Get Effective Rules",
+        "description": "T9.1 (D061) §3: rules the motor/graph actually use, plus provenance.",
+        "operationId": "get_effective_rules_rules_effective_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EffectiveRulesBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agreements/draft": {
+      "post": {
+        "summary": "Draft Agreement Endpoint",
+        "description": "T9.1 (D061) §3: text or a `.txt`/`.pdf` file, via `ingest_bytes` (same\nnormalization as an invoice upload). The LLM only ever proposes (I7);\nnothing persisted here.",
+        "operationId": "draft_agreement_endpoint_agreements_draft_post",
+        "parameters": [
+          {
+            "name": "X-Admin-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Admin-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_draft_agreement_endpoint_agreements_draft_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgreementDraftResponseBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agreements": {
+      "get": {
+        "summary": "List Agreements",
+        "operationId": "list_agreements_agreements_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AgreementListEntryBody"
+                  },
+                  "type": "array",
+                  "title": "Response List Agreements Agreements Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agreements/{vendor_key}": {
+      "get": {
+        "summary": "Get Agreement",
+        "operationId": "get_agreement_agreements__vendor_key__get",
+        "parameters": [
+          {
+            "name": "vendor_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Vendor Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgreementHistoryBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Confirm Agreement Endpoint",
+        "description": "T9.1 (D061) §3: a human confirms (I2) -- creates the next version.",
+        "operationId": "confirm_agreement_endpoint_agreements__vendor_key__put",
+        "parameters": [
+          {
+            "name": "vendor_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Vendor Key"
+            }
+          },
+          {
+            "name": "X-Admin-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Admin-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmAgreementBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorAgreementVersion"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agreements/{vendor_key}/deactivate": {
+      "post": {
+        "summary": "Deactivate Agreement Endpoint",
+        "operationId": "deactivate_agreement_endpoint_agreements__vendor_key__deactivate_post",
+        "parameters": [
+          {
+            "name": "vendor_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Vendor Key"
+            }
+          },
+          {
+            "name": "X-Admin-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Admin-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeactivateAgreementBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorAgreementVersion"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/decisions": {
       "get": {
         "summary": "List Decisions",
@@ -577,6 +842,178 @@
   },
   "components": {
     "schemas": {
+      "AgreementDraftResponseBody": {
+        "properties": {
+          "draft": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Draft"
+          },
+          "spans": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Spans"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing"
+          },
+          "source_sha256": {
+            "type": "string",
+            "title": "Source Sha256"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "draft",
+          "spans",
+          "missing",
+          "source_sha256"
+        ],
+        "title": "AgreementDraftResponseBody",
+        "description": "POST /agreements/draft response (§3). Never persisted."
+      },
+      "AgreementHistoryBody": {
+        "properties": {
+          "vendor_key": {
+            "type": "string",
+            "title": "Vendor Key"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VendorAgreementVersion"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/VendorAgreementVersion"
+            },
+            "type": "array",
+            "title": "Versions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "vendor_key",
+          "active",
+          "versions"
+        ],
+        "title": "AgreementHistoryBody",
+        "description": "GET /agreements/{vendor_key} (§3): current + full version history."
+      },
+      "AgreementInstallmentItem": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Key"
+          },
+          "due_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Due From"
+          },
+          "due_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Due To"
+          },
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "due_from",
+          "due_to",
+          "amount"
+        ],
+        "title": "AgreementInstallmentItem"
+      },
+      "AgreementListEntryBody": {
+        "properties": {
+          "vendor_key": {
+            "type": "string",
+            "title": "Vendor Key"
+          },
+          "vendor_name": {
+            "type": "string",
+            "title": "Vendor Name"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "superseded",
+              "inactive"
+            ],
+            "title": "Status"
+          },
+          "confirmed_by": {
+            "type": "string",
+            "title": "Confirmed By"
+          },
+          "confirmed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Confirmed At"
+          },
+          "valid_from": {
+            "type": "string",
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "vendor_key",
+          "vendor_name",
+          "kind",
+          "version",
+          "status",
+          "confirmed_by",
+          "confirmed_at",
+          "valid_from",
+          "valid_to"
+        ],
+        "title": "AgreementListEntryBody",
+        "description": "One row of GET /agreements (§3): the vendor's current active version."
+      },
       "AmountRange": {
         "properties": {
           "min": {
@@ -703,6 +1140,35 @@
         "title": "ApprovalStatusBody",
         "description": "GET /decisions/{id}/approval response (T7.1, D059 §4). Read-only."
       },
+      "Body_draft_agreement_endpoint_agreements_draft_post": {
+        "properties": {
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "file": {
+            "anyOf": [
+              {
+                "type": "string",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "title": "Body_draft_agreement_endpoint_agreements_draft_post"
+      },
       "Body_post_invoice_invoices_post": {
         "properties": {
           "file": {
@@ -817,7 +1283,8 @@
               "R17",
               "R18",
               "R19",
-              "R20"
+              "R20",
+              "R21"
             ],
             "title": "Rule"
           },
@@ -924,6 +1391,92 @@
           "base_currency"
         ],
         "title": "CompanyRef"
+      },
+      "ConfirmAgreementBody": {
+        "properties": {
+          "terms": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RetainerAgreement"
+              },
+              {
+                "$ref": "#/components/schemas/HourlyAgreement"
+              },
+              {
+                "$ref": "#/components/schemas/InstallmentsAgreement"
+              },
+              {
+                "$ref": "#/components/schemas/UnitPricingAgreement"
+              }
+            ],
+            "title": "Terms",
+            "discriminator": {
+              "propertyName": "kind",
+              "mapping": {
+                "hourly": "#/components/schemas/HourlyAgreement",
+                "installments": "#/components/schemas/InstallmentsAgreement",
+                "milestones": "#/components/schemas/InstallmentsAgreement",
+                "retainer": "#/components/schemas/RetainerAgreement",
+                "unit_pricing": "#/components/schemas/UnitPricingAgreement"
+              }
+            }
+          },
+          "confirmed_by": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Confirmed By"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Version"
+          },
+          "source_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Sha256"
+          },
+          "spans": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Spans"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "terms",
+          "confirmed_by",
+          "expected_version"
+        ],
+        "title": "ConfirmAgreementBody",
+        "description": "PUT /agreements/{vendor_key} (§3)."
+      },
+      "DeactivateAgreementBody": {
+        "properties": {
+          "author": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Author"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "author"
+        ],
+        "title": "DeactivateAgreementBody",
+        "description": "POST /agreements/{vendor_key}/deactivate (§3). Admin-key gated; `author`\nis logged on the new `inactive` version and the `agreement_change` entry,\nsame audit convention as T7.4's add-beneficiary action."
       },
       "DecisionRecord": {
         "properties": {
@@ -1034,6 +1587,28 @@
           "human_events"
         ],
         "title": "DecisionRecord"
+      },
+      "EffectiveRulesBody": {
+        "properties": {
+          "rules": {
+            "$ref": "#/components/schemas/RulesConfig"
+          },
+          "provenance": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Provenance"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rules",
+          "provenance"
+        ],
+        "title": "EffectiveRulesBody",
+        "description": "GET /rules/effective (§3): compiled rules plus provenance."
       },
       "Extraction": {
         "properties": {
@@ -1208,6 +1783,127 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HourlyAgreement": {
+        "properties": {
+          "vendor_name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Vendor Name"
+          },
+          "vendor_key": {
+            "type": "string",
+            "title": "Vendor Key",
+            "default": ""
+          },
+          "department": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department"
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Currency"
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          },
+          "sender_emails": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sender Emails"
+          },
+          "source_clauses": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Source Clauses"
+          },
+          "kind": {
+            "type": "string",
+            "const": "hourly",
+            "title": "Kind",
+            "default": "hourly"
+          },
+          "unit": {
+            "type": "string",
+            "const": "hora",
+            "title": "Unit",
+            "default": "hora"
+          },
+          "rate": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Rate"
+          },
+          "included_hours": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Included Hours"
+          },
+          "overtime": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OvertimeTerms"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "period_cap": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Cap"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "vendor_name",
+          "currency",
+          "valid_from",
+          "rate"
+        ],
+        "title": "HourlyAgreement"
+      },
       "HumanDecisionBody": {
         "properties": {
           "author": {
@@ -1267,6 +1963,105 @@
           "reason"
         ],
         "title": "HumanEvent"
+      },
+      "InstallmentsAgreement": {
+        "properties": {
+          "vendor_name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Vendor Name"
+          },
+          "vendor_key": {
+            "type": "string",
+            "title": "Vendor Key",
+            "default": ""
+          },
+          "department": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department"
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Currency"
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          },
+          "sender_emails": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sender Emails"
+          },
+          "source_clauses": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Source Clauses"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "installments",
+              "milestones"
+            ],
+            "title": "Kind"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AgreementInstallmentItem"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Items"
+          },
+          "total_cap": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Cap"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "vendor_name",
+          "currency",
+          "valid_from",
+          "kind",
+          "items"
+        ],
+        "title": "InstallmentsAgreement"
       },
       "JevSignal": {
         "properties": {
@@ -1665,6 +2460,15 @@
             ],
             "title": "R20",
             "default": "ESCALAR"
+          },
+          "R21": {
+            "type": "string",
+            "enum": [
+              "FRENAR",
+              "ESCALAR"
+            ],
+            "title": "R21",
+            "default": "ESCALAR"
           }
         },
         "additionalProperties": false,
@@ -1686,6 +2490,33 @@
         ],
         "title": "OnFail",
         "description": "R01–R13 (required), plus R14 (optional, additive per T7.1/D059).\n\nValues are only FRENAR or ESCALAR. ``R14`` defaults to ``ESCALAR`` so\nevery existing rules package without the key keeps parsing unchanged."
+      },
+      "OvertimeTerms": {
+        "properties": {
+          "multiplier": {
+            "type": "number",
+            "minimum": 1.0,
+            "title": "Multiplier"
+          },
+          "max_hours": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Hours"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "multiplier"
+        ],
+        "title": "OvertimeTerms"
       },
       "PaymentSeries": {
         "properties": {
@@ -1887,6 +2718,107 @@
         "title": "PricingTolerance",
         "description": "Absolute slack on variable-pricing recomputation (T7.3 §2)."
       },
+      "RetainerAgreement": {
+        "properties": {
+          "vendor_name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Vendor Name"
+          },
+          "vendor_key": {
+            "type": "string",
+            "title": "Vendor Key",
+            "default": ""
+          },
+          "department": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department"
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Currency"
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          },
+          "sender_emails": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sender Emails"
+          },
+          "source_clauses": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Source Clauses"
+          },
+          "kind": {
+            "type": "string",
+            "const": "retainer",
+            "title": "Kind",
+            "default": "retainer"
+          },
+          "periodicity": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "biweekly",
+              "quarterly"
+            ],
+            "title": "Periodicity"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/AmountRange"
+          },
+          "total_cap": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Cap"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "vendor_name",
+          "currency",
+          "valid_from",
+          "periodicity",
+          "amount"
+        ],
+        "title": "RetainerAgreement"
+      },
       "RouteMatch": {
         "properties": {
           "amount_base_gte": {
@@ -2083,6 +3015,12 @@
             },
             "type": "array",
             "title": "Vendor Additions"
+          },
+          "splitting_window_days": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Splitting Window Days",
+            "default": 30
           }
         },
         "additionalProperties": false,
@@ -2153,6 +3091,18 @@
             "type": "array",
             "minItems": 1,
             "title": "Tiers"
+          },
+          "cap": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cap"
           }
         },
         "additionalProperties": false,
@@ -2219,6 +3169,171 @@
         "additionalProperties": false,
         "type": "object",
         "title": "TraceRef"
+      },
+      "UnitPricingAgreement": {
+        "properties": {
+          "vendor_name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Vendor Name"
+          },
+          "vendor_key": {
+            "type": "string",
+            "title": "Vendor Key",
+            "default": ""
+          },
+          "department": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department"
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Currency"
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          },
+          "sender_emails": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sender Emails"
+          },
+          "source_clauses": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Source Clauses"
+          },
+          "kind": {
+            "type": "string",
+            "const": "unit_pricing",
+            "title": "Kind",
+            "default": "unit_pricing"
+          },
+          "formula": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/UnitPricingUnitRate"
+              },
+              {
+                "$ref": "#/components/schemas/UnitPricingTiered"
+              }
+            ],
+            "title": "Formula",
+            "discriminator": {
+              "propertyName": "kind",
+              "mapping": {
+                "tiered": "#/components/schemas/UnitPricingTiered",
+                "unit_rate": "#/components/schemas/UnitPricingUnitRate"
+              }
+            }
+          },
+          "period_cap": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Cap"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "vendor_name",
+          "currency",
+          "valid_from",
+          "formula"
+        ],
+        "title": "UnitPricingAgreement"
+      },
+      "UnitPricingTiered": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "tiered",
+            "title": "Kind",
+            "default": "tiered"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Unit"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/TieredTier"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Tiers"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "unit",
+          "tiers"
+        ],
+        "title": "UnitPricingTiered",
+        "description": "Same shape as `TieredFormula` minus `cap`."
+      },
+      "UnitPricingUnitRate": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "unit_rate",
+            "title": "Kind",
+            "default": "unit_rate"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Unit"
+          },
+          "rate": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Rate"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "unit",
+          "rate"
+        ],
+        "title": "UnitPricingUnitRate",
+        "description": "Same shape as `UnitRateFormula` minus `cap` (that is `period_cap`, above it)."
       },
       "UnitRateFormula": {
         "properties": {
@@ -2337,6 +3452,95 @@
           "source_decision_id"
         ],
         "title": "VendorAddition"
+      },
+      "VendorAgreementVersion": {
+        "properties": {
+          "vendor_key": {
+            "type": "string",
+            "title": "Vendor Key"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version"
+          },
+          "terms": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RetainerAgreement"
+              },
+              {
+                "$ref": "#/components/schemas/HourlyAgreement"
+              },
+              {
+                "$ref": "#/components/schemas/InstallmentsAgreement"
+              },
+              {
+                "$ref": "#/components/schemas/UnitPricingAgreement"
+              }
+            ],
+            "title": "Terms",
+            "discriminator": {
+              "propertyName": "kind",
+              "mapping": {
+                "hourly": "#/components/schemas/HourlyAgreement",
+                "installments": "#/components/schemas/InstallmentsAgreement",
+                "milestones": "#/components/schemas/InstallmentsAgreement",
+                "retainer": "#/components/schemas/RetainerAgreement",
+                "unit_pricing": "#/components/schemas/UnitPricingAgreement"
+              }
+            }
+          },
+          "source_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Sha256"
+          },
+          "spans": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Spans"
+          },
+          "confirmed_by": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Confirmed By"
+          },
+          "confirmed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Confirmed At"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "superseded",
+              "inactive"
+            ],
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "vendor_key",
+          "version",
+          "terms",
+          "confirmed_by",
+          "confirmed_at",
+          "status"
+        ],
+        "title": "VendorAgreementVersion",
+        "description": "One solo-anexar version row (§2 `vendor_agreement_version`), as a value\nobject shared by `MemoryStore`/`SqlStore` and the `/agreements` API\nresponses. Never mutated once confirmed -- a later confirm or deactivate\nappends a new version with its own `status`, it never edits this one."
       },
       "VendorOnboarding": {
         "properties": {

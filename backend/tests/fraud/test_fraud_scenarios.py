@@ -16,10 +16,10 @@ Two layers, both offline and deterministic (no network, no LLM):
   reach PAGAR (``test_s00_*`` proves it); every non-PAGAR assertion is
   therefore meaningful.
 
-Scenarios where the current engine returns PAGAR are real SAFETY GAPS. They are
-marked ``xfail(strict=True, reason="GAP: ...")`` -- nothing in the engine was
-weakened or changed to make them pass. When a gap is fixed, its xfail turns
-into XPASS and the strict marker fails the suite, forcing the marker removal.
+The 30 scenarios that used to end in PAGAR were marked
+``xfail(strict=True, reason="GAP: ...")`` in commit 4aa1746; T5.13 (D063,
+docs/T5_13_SPEC.md) closed every gap and removed the markers, so every
+scenario here must end non-PAGAR (except the S00 sanity checks).
 """
 
 from __future__ import annotations
@@ -322,49 +322,6 @@ def _pay_first(p: Pipeline, inv: Inv, *, invoice_id: str = "F-1", at: datetime =
     assert first.decision == "PAGAR", (first.summary, _failed(first))
 
 
-GAP_AMOUNT_BASE = (
-    "GAP: production ledger lines carry amount_base=0.0 -- extract.py:116 always sets "
-    "Extraction.amount_base=None, nothing fills it, and production_processor."
-    "_record_settlement/_approval_ledger_line store float(None or 0.0); R05 probable "
-    "(ledger_queries.duplicate_match: entry.amount_base == amount) never matches"
-)
-GAP_NUMBER_NORMALIZATION = (
-    "GAP: R05 exact match compares raw invoice numbers (ledger_queries.py: "
-    "entry.invoice_number == invoice_number); no case/space/punctuation/leading-zero "
-    "normalization, and the probable-duplicate fallback is dead in production (amount_base=0)"
-)
-GAP_BACKDATING = (
-    "GAP: client-supplied received_at decides ledger visibility -- ledger_view_for_invoice "
-    "uses Ledger.entries_before(received_at) (ledger.py:73), so a resubmission dated before "
-    "the original payment/approval does not see it and R05 never fires"
-)
-GAP_SPLITTING = (
-    "GAP: no aggregation rule -- R04 is per invoice (checks.py check_r04) and R03/R07 sum "
-    "ledger amount_base, which is 0.0 in production; sub-threshold splits all reach PAGAR"
-)
-GAP_SUFFIX_CONFLATION = (
-    "GAP: normalize_party_name strips ANY trailing legal suffix (normalize.py "
-    "_SUFFIX_TOKENS), so 'Globex Inc.'/'Globex Corp'/'Globex S.A.' == allowlisted "
-    "'Globex LLC' for R01 and contract lookup; a different legal entity is paid"
-)
-GAP_RECIPIENT_SUFFIX = (
-    "GAP: R08 uses the same suffix-stripping normalize_party_name, so an invoice billed "
-    "to 'Acme Demo LLC' counts as addressed to 'Acme Demo Inc.'"
-)
-GAP_INJECTION = (
-    "GAP: R13 deterministic layer is a 4-phrase literal list (checks.py R13_PHRASES); "
-    "English/obfuscated injections pass whenever the J7 LLM signal is fooled"
-)
-GAP_DUE_DATE = (
-    "GAP: R11 only checks that due_date exists (checks.py check_r11); a due date years "
-    "in the past or decades ahead still reaches PAGAR"
-)
-GAP_MANUAL_BLOCK = (
-    "GAP: rules.manual_blocks is never read -- graph/build.py _rule_context hardcodes "
-    "manual_block=False, so R12 can never fire in the pipeline/API"
-)
-
-
 # --------------------------------------------------------------------------------------
 # S00 -- harness sanity: a clean invoice DOES reach PAGAR on both layers
 # --------------------------------------------------------------------------------------
@@ -424,7 +381,6 @@ def test_s01_pipeline_exact_resubmission(tmp_path: Path) -> None:
     _assert_stopped_by(again, "R05", "FRENAR")
 
 
-@pytest.mark.xfail(strict=True, reason=GAP_BACKDATING)
 def test_s01b_pipeline_backdated_resubmission(tmp_path: Path) -> None:
     p = Pipeline(tmp_path)
     _pay_first(p, Inv("INV-001"))
@@ -451,10 +407,6 @@ def test_s02_rules_number_variant_does_not_pay(
     assert failed["R05"][0] == "FALLA"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=GAP_NUMBER_NORMALIZATION + " (rules layer: probable/ESCALAR instead of exact/FRENAR)",
-)
 @pytest.mark.parametrize("variant", ["inv 001", "INV 001", "inv-001", "INV-0001", "INV001"])
 def test_s02_rules_number_variant_is_exact_duplicate(
     rules: RulesConfig, fx_table: FxTable, variant: str
@@ -466,7 +418,6 @@ def test_s02_rules_number_variant_is_exact_duplicate(
     assert failed["R05"] == ("FALLA", "FRENAR")
 
 
-@pytest.mark.xfail(strict=True, reason=GAP_NUMBER_NORMALIZATION)
 @pytest.mark.parametrize("variant", NUMBER_VARIANTS)
 def test_s02_pipeline_number_variant_does_not_pay(tmp_path: Path, variant: str) -> None:
     p = Pipeline(tmp_path)
@@ -488,7 +439,6 @@ def test_s03_rules_probable_duplicate(rules: RulesConfig, fx_table: FxTable) -> 
     assert failed["R05"] == ("FALLA", "ESCALAR")
 
 
-@pytest.mark.xfail(strict=True, reason=GAP_AMOUNT_BASE)
 def test_s03_pipeline_probable_duplicate(tmp_path: Path) -> None:
     p = Pipeline(tmp_path)
     _pay_first(p, Inv("INV-001"))
@@ -496,13 +446,14 @@ def test_s03_pipeline_probable_duplicate(tmp_path: Path) -> None:
     assert again.decision != "PAGAR"
 
 
-def test_s03_pipeline_ledger_amount_base_is_zero_root_cause(tmp_path: Path) -> None:
-    """Pins the root cause of GAP_AMOUNT_BASE (documents current behavior, not desired)."""
+def test_s03_pipeline_ledger_carries_real_amount_base(tmp_path: Path) -> None:
+    """T5.13: the production ledger line carries the real base amount, never 0.0."""
     p = Pipeline(tmp_path)
     _pay_first(p, Inv("INV-001"))
     lines = settled_ledger_from_store(p.store).as_tuple()
     assert len(lines) == 1
-    assert lines[0].amount_base == 0.0  # should be 800.0
+    assert lines[0].amount_base == 800.0
+    assert p.store.decisions["F-1"].extracted.amount_base == 800.0
 
 
 # --------------------------------------------------------------------------------------
@@ -564,7 +515,6 @@ def test_s06_pipeline_lookalike_rejected(tmp_path: Path, name: str) -> None:
     _assert_stopped_by(record, "R01", "FRENAR")
 
 
-@pytest.mark.xfail(strict=True, reason=GAP_SUFFIX_CONFLATION)
 @pytest.mark.parametrize("name", ["Globex Inc.", "Globex Corp", "Globex S.A.", "Globex Co"])
 def test_s06_pipeline_suffix_lookalike_rejected(tmp_path: Path, name: str) -> None:
     record = Pipeline(tmp_path).submit(
@@ -599,7 +549,6 @@ def test_s08_pipeline_wrong_recipient(tmp_path: Path, recipient: str) -> None:
     _assert_stopped_by(record, "R08")
 
 
-@pytest.mark.xfail(strict=True, reason=GAP_RECIPIENT_SUFFIX)
 def test_s08_pipeline_recipient_other_legal_entity(tmp_path: Path) -> None:
     record = Pipeline(tmp_path).submit(
         Inv("INV-R", recipient="Acme Demo LLC"), invoice_id="F-1", received_at=T0
@@ -635,7 +584,6 @@ def test_s09_rules_split_caught_only_incidentally(rules: RulesConfig, fx_table: 
     assert failed["R05"][0] == "FALLA"
 
 
-@pytest.mark.xfail(strict=True, reason=GAP_SPLITTING + "; " + GAP_AMOUNT_BASE)
 def test_s09_pipeline_split_under_threshold(tmp_path: Path) -> None:
     p = Pipeline(tmp_path, fee=SPLIT_AMOUNT)
     records = [
@@ -721,7 +669,6 @@ def test_s12_pipeline_injection_english_with_alert_jev(tmp_path: Path) -> None:
     _assert_stopped_by(record, "R13")
 
 
-@pytest.mark.xfail(strict=True, reason=GAP_INJECTION)
 @pytest.mark.parametrize(
     "note",
     [
@@ -743,7 +690,6 @@ def test_s12_pipeline_injection_variants_with_fooled_jev(tmp_path: Path, note: s
 # --------------------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason=GAP_DUE_DATE)
 @pytest.mark.parametrize("due", ["2019-01-15", "2099-12-31"])
 def test_s13_pipeline_absurd_due_date(tmp_path: Path, due: str) -> None:
     record = Pipeline(tmp_path).submit(
@@ -819,10 +765,6 @@ def test_s15_pipeline_exact_duplicate_after_approval(tmp_path: Path) -> None:
     _assert_stopped_by(again, "R05", "FRENAR")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=GAP_BACKDATING + " (approval line is dated at approval time; today only R04 saves it)",
-)
 def test_s15_pipeline_duplicate_dated_before_approval(tmp_path: Path) -> None:
     p = _approved_first(tmp_path)
     # Same received_at window as the original, before the human clicked approve.
@@ -835,14 +777,13 @@ def test_s15_pipeline_duplicate_dated_before_approval(tmp_path: Path) -> None:
     assert _failed(again).get("R05") == "FALLA"
 
 
-def test_s15_pipeline_variant_after_approval_still_escalates_on_r04(tmp_path: Path) -> None:
-    # Safe today only because 3200 >= threshold re-triggers R04, not because R05 matched.
+def test_s15_pipeline_variant_after_approval_is_exact_duplicate(tmp_path: Path) -> None:
+    # T5.13: the normalized number matches, so R05 stops it (not only R04).
     p = _approved_first(tmp_path)
     again = p.submit(
         Inv("apr 001", amount=APPROVAL_AMOUNT), invoice_id="F-2", received_at=T0 + timedelta(days=1)
     )
-    assert again.decision != "PAGAR"
-    assert _failed(again).get("R05") is None  # R05 blind to the variant (GAP_NUMBER_NORMALIZATION)
+    _assert_stopped_by(again, "R05", "FRENAR")
 
 
 # --------------------------------------------------------------------------------------
@@ -850,7 +791,6 @@ def test_s15_pipeline_variant_after_approval_still_escalates_on_r04(tmp_path: Pa
 # --------------------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason=GAP_MANUAL_BLOCK)
 def test_s16_pipeline_manual_block_list_is_enforced(tmp_path: Path) -> None:
     base = load_rules_config(REPO_ROOT / "data" / "rules.json")
     blocked = base.model_copy(update={"manual_blocks": [BENEFICIARY]})

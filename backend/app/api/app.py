@@ -6,7 +6,7 @@ import hmac
 import threading
 from collections.abc import Callable, Mapping
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, UploadFile
 from pydantic import ValidationError
@@ -15,8 +15,14 @@ from app.api.approval import build_approval_status, enforce_route_approval
 from app.api.rate_limit import FixedWindowLimiter, RateLimitMiddleware
 from app.api.schemas import (
     MAX_INVOICE_BYTES,
+    AgreementDraftResponseBody,
+    AgreementHistoryBody,
+    AgreementListEntryBody,
     ApprovalStatusBody,
     ChainVerificationBody,
+    ConfirmAgreementBody,
+    DeactivateAgreementBody,
+    EffectiveRulesBody,
     HumanDecisionBody,
     InvoiceMeta,
     InvoiceRejected,
@@ -25,6 +31,8 @@ from app.api.schemas import (
     MetricsReading,
 )
 from app.api.store import (
+    AgreementNotFoundError,
+    AgreementVersionConflictError,
     AlreadyAllowedError,
     DuplicateDecisionError,
     MemoryStore,
@@ -32,8 +40,12 @@ from app.api.store import (
     VendorOnboardingDisabledError,
 )
 from app.api.user_scope import require_user_id
+from app.extraction.agreement_draft import draft_agreement
+from app.extraction.ingest import IngestChannel, IngestError, ingest_bytes
+from app.models.agreement import VendorAgreementVersion
 from app.models.domain import DecisionRecord, HumanAction, HumanEvent
 from app.models.rules_config import RulesConfig
+from app.rules.agreements import AgreementConflictError, compile_rules
 
 Processor = Callable[[InvoiceUpload, str], DecisionRecord]
 Clock = Callable[[], datetime]
@@ -61,6 +73,7 @@ def create_app(
     admin_api_key: str | None = None,
     approver_emails: frozenset[str] | None = None,
     approver_groups: Mapping[str, frozenset[str]] | None = None,
+    agreement_llm: Any | None = None,
 ) -> FastAPI:
     """Build the app. Tests pass `store`, `processor`, `clock`, and `rate_limit`.
 
@@ -71,6 +84,11 @@ def create_app(
     passes the real set. `approver_groups` resolves R14 route eligibility for
     approve/reject and GET /decisions/{id}/approval; it defaults to empty, matching
     pre-T7.1 behavior (no record ever carries an R14 FALLA without it).
+
+    T9.1 (D061): `agreement_llm` is the LLM client `POST /agreements/draft` calls
+    (same shape as the extractor client used for `lookup_contract` -- an object
+    with `.complete_json(system, user) -> dict`). `None` (the default) means the
+    endpoint always returns the empty, fail-closed draft -- never a 500.
     """
     limiter = FixedWindowLimiter(rate_limit, clock)
     allowed_approvers = approver_emails if approver_emails is not None else frozenset()
@@ -110,6 +128,119 @@ def create_app(
         # caller gets 401/503, never 422 (R3-auth-after-body-validation). A valid
         # body that fails RulesConfig's own validators still rejects with 422.
         return store.put_rules(body)
+
+    @app.get("/rules/effective")
+    def get_effective_rules() -> EffectiveRulesBody:
+        """T9.1 (D061) §3: rules the motor/graph actually use, plus provenance."""
+        compiled = compile_rules(store.rules, store.list_active_agreements())
+        return EffectiveRulesBody(rules=compiled.rules, provenance=compiled.provenance)
+
+    @app.post("/agreements/draft")
+    async def draft_agreement_endpoint(
+        text: Annotated[str | None, Form()] = None,
+        file: Annotated[UploadFile | None, File()] = None,
+        _admin: None = Depends(_check_admin_key),
+    ) -> AgreementDraftResponseBody:
+        """T9.1 (D061) §3: text or a `.txt`/`.pdf` file, via `ingest_bytes` (same
+        normalization as an invoice upload). The LLM only ever proposes (I7);
+        nothing persisted here.
+        """
+        if file is not None:
+            content = await _read_capped(file)
+            if content is None:
+                raise HTTPException(status_code=422, detail="invalid_file_size")
+            channel: IngestChannel = (
+                "pdf_text" if (file.filename or "").lower().endswith(".pdf") else "chat"
+            )
+        elif text is not None and text.strip():
+            content = text.encode("utf-8")
+            channel = "chat"
+        else:
+            raise HTTPException(status_code=422, detail="missing_text_or_file")
+
+        try:
+            ingested = ingest_bytes(content, channel=channel)
+        except IngestError as exc:
+            raise HTTPException(status_code=422, detail=exc.code) from exc
+
+        llm = agreement_llm if agreement_llm is not None else _NULL_AGREEMENT_LLM
+        result = draft_agreement(ingested.text, llm)
+        return AgreementDraftResponseBody(
+            draft=result.draft,
+            spans=result.spans,
+            missing=result.missing,
+            source_sha256=result.source_sha256,
+        )
+
+    @app.get("/agreements")
+    def list_agreements() -> list[AgreementListEntryBody]:
+        entries: list[AgreementListEntryBody] = []
+        for vendor_key in store.list_agreement_vendor_keys():
+            active = store.get_active_agreement_version(vendor_key)
+            if active is None:
+                continue
+            terms = active.terms
+            entries.append(
+                AgreementListEntryBody(
+                    vendor_key=vendor_key,
+                    vendor_name=terms.vendor_name,
+                    kind=terms.kind,
+                    version=active.version,
+                    status=active.status,
+                    confirmed_by=active.confirmed_by,
+                    confirmed_at=active.confirmed_at,
+                    valid_from=terms.valid_from.isoformat(),
+                    valid_to=terms.valid_to.isoformat() if terms.valid_to else None,
+                )
+            )
+        return entries
+
+    @app.get("/agreements/{vendor_key}")
+    def get_agreement(vendor_key: str) -> AgreementHistoryBody:
+        versions = store.list_agreement_versions(vendor_key)
+        if not versions:
+            raise HTTPException(status_code=404, detail="not_found")
+        active = store.get_active_agreement_version(vendor_key)
+        return AgreementHistoryBody(vendor_key=vendor_key, active=active, versions=versions)
+
+    @app.put("/agreements/{vendor_key}")
+    def confirm_agreement_endpoint(
+        vendor_key: str,
+        body: ConfirmAgreementBody,
+        _admin: None = Depends(_check_admin_key),
+    ) -> VendorAgreementVersion:
+        """T9.1 (D061) §3: a human confirms (I2) -- creates the next version."""
+        _require_known_approver(body.confirmed_by, allowed_approvers)
+        if body.terms.vendor_key != vendor_key:
+            raise HTTPException(status_code=422, detail="vendor_key_mismatch")
+        try:
+            return store.confirm_agreement(
+                vendor_key,
+                terms=body.terms,
+                confirmed_by=body.confirmed_by,
+                expected_version=body.expected_version,
+                source_sha256=body.source_sha256,
+                spans=body.spans,
+                at=clock(),
+            )
+        except AgreementConflictError:
+            raise HTTPException(
+                status_code=409, detail="agreement_conflicts_with_rules"
+            ) from None
+        except AgreementVersionConflictError:
+            raise HTTPException(status_code=409, detail="version_conflict") from None
+
+    @app.post("/agreements/{vendor_key}/deactivate")
+    def deactivate_agreement_endpoint(
+        vendor_key: str,
+        body: DeactivateAgreementBody,
+        _admin: None = Depends(_check_admin_key),
+    ) -> VendorAgreementVersion:
+        _require_known_approver(body.author, allowed_approvers)
+        try:
+            return store.deactivate_agreement(vendor_key, author=body.author, at=clock())
+        except AgreementNotFoundError:
+            raise HTTPException(status_code=404, detail="not_found") from None
 
     @app.get("/decisions")
     def list_decisions(
@@ -245,6 +376,21 @@ def create_app(
         return app.openapi()
 
     return app
+
+
+class _NullAgreementLlm:
+    """T9.1 (D061): stand-in when no `agreement_llm` is configured.
+
+    `draft_agreement` is fail-closed on any `complete_json` error (I3), so
+    this always yields the empty draft -- never a 500 -- instead of the
+    endpoint needing its own separate "no LLM configured" branch.
+    """
+
+    def complete_json(self, system: str, user: str) -> dict[str, object]:
+        raise RuntimeError("agreement_llm_not_configured")
+
+
+_NULL_AGREEMENT_LLM = _NullAgreementLlm()
 
 
 def _decide_and_store_invoice(

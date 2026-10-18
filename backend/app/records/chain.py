@@ -135,6 +135,40 @@ def compute_allowlist_change_entry_hash(change: AllowlistChangePayload, prev_has
     return compute_entry_hash(allowlist_change_entry_payload(change), prev_hash)
 
 
+@dataclass(frozen=True)
+class AgreementChangePayload:
+    """Immutable payload for T9.1 `agreement_change` chain entries (D061, same
+    append-only pattern as `AllowlistChangePayload`, T7.4/D058). `terms_hash`
+    (not the full `terms_json`) keeps this entry small and stable; the version
+    row itself (`vendor_agreement_version`) holds the full confirmed terms.
+    """
+
+    vendor_key: str
+    version: int
+    status: str
+    confirmed_by: str
+    confirmed_at: datetime
+    terms_hash: str
+    source_sha256: str | None
+
+
+def agreement_change_entry_payload(change: AgreementChangePayload) -> dict[str, Any]:
+    """Full payload hashed for an `agreement_change` entry (append-only)."""
+    return {
+        "vendor_key": change.vendor_key,
+        "version": change.version,
+        "status": change.status,
+        "confirmed_by": change.confirmed_by,
+        "confirmed_at": change.confirmed_at.isoformat().replace("+00:00", "Z"),
+        "terms_hash": change.terms_hash,
+        "source_sha256": change.source_sha256,
+    }
+
+
+def compute_agreement_change_entry_hash(change: AgreementChangePayload, prev_hash: str) -> str:
+    return compute_entry_hash(agreement_change_entry_payload(change), prev_hash)
+
+
 def verify_chain(entries: list[tuple[str, Any, str, str]]) -> ChainVerification:
     """Recompute the chain over `entries` (already ordered by `seq`).
 

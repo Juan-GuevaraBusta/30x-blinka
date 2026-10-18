@@ -15,6 +15,7 @@ from app.rules.decide import decide
 from app.rules.fx import FxTable, load_fx_table
 from app.rules.ledger import Ledger, ledger_view_for_invoice, sort_key
 from app.rules.run_checks import run_deterministic_checks
+from app.rules.settlement import settlement_amount_base
 
 _DEFAULT_JEV_IDS = ("J1", "J2", "J3", "J4", "J7")
 
@@ -242,7 +243,7 @@ def run_golden_split(
             ext = ctx.extraction
             settlement = LedgerEntry(
                 beneficiary=ext.beneficiary or "",
-                amount_base=float(ext.amount_base or 0.0),
+                amount_base=settlement_amount_base(ext, fx_table),
                 currency=ext.currency or "USD",
                 invoice_number=ext.invoice_number or "",
                 received_at=entry["received_at"],

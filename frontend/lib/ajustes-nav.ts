@@ -5,6 +5,7 @@ export const SETTINGS_NAV_LINKS: SettingsNavLink[] = [
   { href: "/reglas", label: "Reglas generales" },
   { href: "/ajustes/politica", label: "Política de aprobación" },
   { href: "/ajustes/proveedores", label: "Proveedores" },
+  { href: "/ajustes/acuerdos", label: "Acuerdos" },
 ];
 
 /** True when `pathname` is on the section rooted at `href` (exact match, or a sub-route). */

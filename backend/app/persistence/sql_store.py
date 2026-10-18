@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime
 
@@ -12,19 +13,34 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.store import (
+    AgreementNotFoundError,
+    AgreementVersionConflictError,
     AlreadyAllowedError,
     DuplicateDecisionError,
     R01NotFailedError,
     VendorOnboardingDisabledError,
 )
+from app.models.agreement import (
+    VendorAgreement,
+    VendorAgreementVersion,
+    parse_vendor_agreement,
+    vendor_agreement_json,
+)
 from app.models.domain import DecisionRecord, HumanEvent
 from app.models.rules_config import RulesConfig, VendorAddition
 from app.persistence.errors import RulesMissing
-from app.persistence.tables import ChainEntryRow, DecisionRecordRow, RulesDocument
+from app.persistence.tables import (
+    ChainEntryRow,
+    DecisionRecordRow,
+    RulesDocument,
+    VendorAgreementVersionRow,
+)
 from app.records.chain import (
     GENESIS_PREV_HASH,
+    AgreementChangePayload,
     AllowlistChangePayload,
     ChainVerification,
+    agreement_change_entry_payload,
     allowlist_change_entry_payload,
     canonical_json,
     compute_decision_entry_hash,
@@ -33,6 +49,7 @@ from app.records.chain import (
     human_event_entry_payload,
 )
 from app.records.chain import verify_chain as _verify_chain_entries
+from app.rules.agreements import ActiveAgreement, vendor_key_conflicts_with_base
 from app.rules.normalize import normalize_beneficiary
 
 
@@ -293,3 +310,209 @@ class SqlStore:
                         )
                 entries.append((entry.ref_id, payload, entry.prev_hash, entry.record_hash))
         return _verify_chain_entries(entries)
+
+    # --- T9.1 (D061): vendor agreement registry ---------------------------------
+
+    @staticmethod
+    def _row_to_version(row: VendorAgreementVersionRow) -> VendorAgreementVersion:
+        return VendorAgreementVersion(
+            vendor_key=row.vendor_key,
+            version=row.version,
+            terms=parse_vendor_agreement(json.loads(row.terms_json)),
+            source_sha256=row.source_sha256,
+            spans=json.loads(row.spans_json),
+            confirmed_by=row.confirmed_by,
+            confirmed_at=row.confirmed_at,
+            status=row.status,  # type: ignore[arg-type]
+        )
+
+    def list_agreement_vendor_keys(self) -> list[str]:
+        with Session(self._engine) as session:
+            keys = session.scalars(
+                select(VendorAgreementVersionRow.vendor_key).distinct()
+            ).all()
+            return sorted(keys)
+
+    def list_agreement_versions(self, vendor_key: str) -> list[VendorAgreementVersion]:
+        with Session(self._engine) as session:
+            rows = session.scalars(
+                select(VendorAgreementVersionRow)
+                .where(VendorAgreementVersionRow.vendor_key == vendor_key)
+                .order_by(VendorAgreementVersionRow.version)
+            ).all()
+            return [self._row_to_version(row) for row in rows]
+
+    def get_active_agreement_version(self, vendor_key: str) -> VendorAgreementVersion | None:
+        with Session(self._engine) as session:
+            row = session.scalar(
+                select(VendorAgreementVersionRow)
+                .where(
+                    VendorAgreementVersionRow.vendor_key == vendor_key,
+                    VendorAgreementVersionRow.status == "active",
+                )
+                .order_by(VendorAgreementVersionRow.version.desc())
+                .limit(1)
+            )
+            return self._row_to_version(row) if row is not None else None
+
+    def list_active_agreements(self) -> list[ActiveAgreement]:
+        with Session(self._engine) as session:
+            rows = session.scalars(
+                select(VendorAgreementVersionRow).where(
+                    VendorAgreementVersionRow.status == "active"
+                )
+            ).all()
+            return [
+                ActiveAgreement(
+                    agreement=parse_vendor_agreement(json.loads(row.terms_json)),
+                    version=row.version,
+                    confirmed_by=row.confirmed_by,
+                )
+                for row in rows
+            ]
+
+    def confirm_agreement(
+        self,
+        vendor_key: str,
+        *,
+        terms: VendorAgreement,
+        confirmed_by: str,
+        expected_version: int,
+        source_sha256: str | None,
+        spans: dict[str, str],
+        at: datetime,
+    ) -> VendorAgreementVersion:
+        from app.rules.agreements import AgreementConflictError
+
+        with Session(self._engine) as session:
+            rules_row = session.get(RulesDocument, 1)
+            if rules_row is None:
+                raise RulesMissing()
+            rules = RulesConfig.model_validate_json(rules_row.payload)
+            if vendor_key_conflicts_with_base(rules, vendor_key):
+                raise AgreementConflictError(vendor_key)
+
+            # `current_version` is the latest version number ever assigned to
+            # this vendor_key (any status) -- a confirm after a `deactivate`
+            # (no `active` row left) must still require that real latest
+            # version, not reset to 0 and collide on the unique constraint.
+            latest_version = session.scalar(
+                select(func.max(VendorAgreementVersionRow.version)).where(
+                    VendorAgreementVersionRow.vendor_key == vendor_key
+                )
+            )
+            current_version = int(latest_version) if latest_version is not None else 0
+            if expected_version != current_version:
+                raise AgreementVersionConflictError(vendor_key, expected_version, current_version)
+
+            current_row = session.scalar(
+                select(VendorAgreementVersionRow).where(
+                    VendorAgreementVersionRow.vendor_key == vendor_key,
+                    VendorAgreementVersionRow.status == "active",
+                )
+            )
+            if current_row is not None:
+                current_row.status = "superseded"
+
+            confirmed_at_iso = at.isoformat().replace("+00:00", "Z")
+            terms_json = vendor_agreement_json(terms)
+            new_row = VendorAgreementVersionRow(
+                vendor_key=vendor_key,
+                version=current_version + 1,
+                terms_json=terms_json,
+                source_sha256=source_sha256,
+                spans_json=json.dumps(spans, sort_keys=True),
+                confirmed_by=confirmed_by,
+                confirmed_at=confirmed_at_iso,
+                status="active",
+            )
+            session.add(new_row)
+            self._append_agreement_change(
+                session,
+                vendor_key=vendor_key,
+                version=current_version + 1,
+                status="active",
+                confirmed_by=confirmed_by,
+                confirmed_at=at,
+                terms_json=terms_json,
+                source_sha256=source_sha256,
+            )
+            session.commit()
+            return self._row_to_version(new_row)
+
+    def deactivate_agreement(
+        self, vendor_key: str, *, author: str, at: datetime
+    ) -> VendorAgreementVersion:
+        with Session(self._engine) as session:
+            current_row = session.scalar(
+                select(VendorAgreementVersionRow)
+                .where(
+                    VendorAgreementVersionRow.vendor_key == vendor_key,
+                    VendorAgreementVersionRow.status == "active",
+                )
+                .order_by(VendorAgreementVersionRow.version.desc())
+                .limit(1)
+            )
+            if current_row is None:
+                raise AgreementNotFoundError(vendor_key)
+
+            current_row.status = "superseded"
+            confirmed_at_iso = at.isoformat().replace("+00:00", "Z")
+            new_row = VendorAgreementVersionRow(
+                vendor_key=vendor_key,
+                version=current_row.version + 1,
+                terms_json=current_row.terms_json,
+                source_sha256=current_row.source_sha256,
+                spans_json=current_row.spans_json,
+                confirmed_by=author,
+                confirmed_at=confirmed_at_iso,
+                status="inactive",
+            )
+            session.add(new_row)
+            self._append_agreement_change(
+                session,
+                vendor_key=vendor_key,
+                version=current_row.version + 1,
+                status="inactive",
+                confirmed_by=author,
+                confirmed_at=at,
+                terms_json=current_row.terms_json,
+                source_sha256=current_row.source_sha256,
+            )
+            session.commit()
+            return self._row_to_version(new_row)
+
+    def _append_agreement_change(
+        self,
+        session: Session,
+        *,
+        vendor_key: str,
+        version: int,
+        status: str,
+        confirmed_by: str,
+        confirmed_at: datetime,
+        terms_json: str,
+        source_sha256: str | None,
+    ) -> None:
+        terms_hash = hashlib.sha256(terms_json.encode("utf-8")).hexdigest()
+        change = AgreementChangePayload(
+            vendor_key=vendor_key,
+            version=version,
+            status=status,
+            confirmed_by=confirmed_by,
+            confirmed_at=confirmed_at,
+            terms_hash=terms_hash,
+            source_sha256=source_sha256,
+        )
+        prev_hash = self._chain_tip(session)
+        payload = agreement_change_entry_payload(change)
+        record_hash = compute_entry_hash(payload, prev_hash)
+        session.add(
+            ChainEntryRow(
+                kind="agreement_change",
+                ref_id=f"{vendor_key}:v{version}",
+                payload=canonical_json(payload),
+                prev_hash=prev_hash,
+                record_hash=record_hash,
+            )
+        )

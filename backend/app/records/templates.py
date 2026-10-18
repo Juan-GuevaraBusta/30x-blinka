@@ -88,3 +88,17 @@ TEMPLATE_R17_FAIL = (
     "Frenada: la serie {serie} acumulada (USD {acumulado}) más este pago supera "
     "el tope de USD {tope} (regla R17)."
 )
+
+# T5.13 (D063) — implausible due date (R11) and splitting (R21). Only ADD severity.
+TEMPLATE_R11_RANGE_FAIL = (
+    "Escalada: la fecha de vencimiento ({fecha}) está a más de un año de la fecha "
+    "de recepción (regla R11)."
+)
+TEMPLATE_R21_FAIL = (
+    "Escalada: las facturas de {beneficiario} de los últimos {dias} días, sumadas a "
+    "esta, alcanzan el umbral de aprobación humana de USD {umbral}; posible "
+    "fraccionamiento (regla R21)."
+)
+TEMPLATE_R02_NONPOSITIVE_FAIL = (
+    "Escalada: el monto USD {monto_base} no es positivo; no se puede pagar (regla R02)."
+)
