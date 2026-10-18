@@ -17,6 +17,8 @@ Todo es manual, mensual y depende de que una persona esté disponible.
 ## A quién afecta
 Empresas constituidas en EE. UU. que operan en varios países, con equipo, proveedores y contratistas en Latinoamérica y otras regiones. Hacen decenas de pagos al mes.
 
+**Usuario del producto (D059):** el equipo de finanzas de una empresa cliente de Blinka que paga a sus propios proveedores a través de Blinka. Blinka no tiene este problema; lo tienen sus clientes. Cada empresa define su política de aprobación, y la complejidad crece con pagos variables (tarifa × cantidad, tramos, comisiones, topes), pagos en serie (retainers, cuotas, hitos) y proveedores nuevos (fuente: mensaje de Blinka, Sebastián Linares).
+
 ## Por qué importa
 Más empresas arman agentes propios y quieren que también paguen. Lo que falta es **confianza**: que pague solo lo que debe, explique cada decisión y nunca se pase de los límites.
 
