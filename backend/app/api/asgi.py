@@ -107,25 +107,23 @@ def rate_limit_from_mapping(mapping: Mapping[str, str]) -> int:
 def load_approver_emails(
     data_root: Path, *, rules: RulesConfig | None = None
 ) -> frozenset[str]:
-    """Canonical allowlist for approve/reject `author` (T5.9 follow-up, D055).
+    """Canonical allowlist for approve/reject `author` (T5.9, D055; R1 follow-up).
 
-    Two JSON documents carry an `approvers` mapping: `data/rules.json` (mirrored
-    into the runtime `RulesConfig.approvers` field, which PUT /rules can change
-    at any time) and `data/company.json` (a static company directory, read once
-    at boot). Both currently hold identical values, so there is no live
-    disagreement today, but a future PUT /rules could diverge them -- having two
-    independent readers (one in `asgi.py`, one duplicated in tests) is what the
-    T5.9 review flagged. This is now the single reader: it prefers the rules
-    *currently in force* (`rules.approvers`, i.e. what an admin can actually
-    change via PUT /rules) whenever that mapping is non-empty, and falls back to
-    `data/company.json` only when no rules are available yet (very first boot,
-    before `seed_rules` ran) or the in-force document's `approvers` is empty.
+    Source of truth is `data/company.json`'s `approvers` mapping, read once at
+    boot, independent of later PUT /rules edits -- this is now the single
+    reader (`asgi.py` and tests no longer duplicate it), but it must stay
+    independent of `rules.approvers`. `RulesConfig.approvers` is mutable at
+    runtime via PUT /rules, and the public demo proxy injects the admin key
+    for any visitor, so if that mapping were ever allowed to extend this
+    allowlist, any visitor could add themselves as an approver and, after a
+    restart, pass `_require_known_approver`. The `rules` parameter is kept for
+    call-site compatibility but intentionally ignored here -- it must never
+    widen or otherwise change who may approve/reject.
     Any failure reading/parsing `company.json` -- missing file or malformed JSON
     -- fails closed to an empty set rather than raising, so a broken company
     directory can never widen who may approve/reject.
     """
-    if rules is not None and rules.approvers:
-        return frozenset(rules.approvers.values())
+    del rules
     company_path = data_root / "data" / "company.json"
     try:
         raw = company_path.read_text(encoding="utf-8")

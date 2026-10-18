@@ -125,18 +125,28 @@ def test_import_app_api_does_not_open_engine(monkeypatch: pytest.MonkeyPatch) ->
 # --- R2: one canonical approver loader (follow-up to T5.9) -------------------------
 
 
-def test_load_approver_emails_prefers_rules_in_force_when_non_empty(tmp_path) -> None:
-    """Rules currently in force are what PUT /rules can change; company.json is the
-    boot-time fallback only, so a diverging in-force rules document wins."""
+def test_load_approver_emails_rules_do_not_extend_allowlist(tmp_path) -> None:
+    """R1 regression: `rules.approvers` is mutable via PUT /rules, and the public
+    demo proxy injects the admin key for any visitor, so an admin-key holder (or
+    the proxy on their behalf) adding an extra approver there must NOT be able
+    to extend who may approve/reject after a restart. company.json alone decides
+    the allowlist, independent of whatever PUT /rules currently holds."""
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "company.json").write_text(
+        json.dumps({"approvers": {"default": "static@demo.test"}}), encoding="utf-8"
+    )
     rules = load_rules_config(RULES_PATH)
-    rules = rules.model_copy(update={"approvers": {"default": "inforce@demo.test"}})
+    rules = rules.model_copy(
+        update={"approvers": {"default": "static@demo.test", "intruder": "attacker@evil.test"}}
+    )
 
     result = load_approver_emails(tmp_path, rules=rules)
 
-    assert result == frozenset({"inforce@demo.test"})
+    assert result == frozenset({"static@demo.test"})
+    assert "attacker@evil.test" not in result
 
 
-def test_load_approver_emails_falls_back_to_company_json_when_no_rules() -> None:
+def test_load_approver_emails_reads_company_json_when_no_rules() -> None:
     data_root = RULES_PATH.resolve().parent.parent
 
     result = load_approver_emails(data_root, rules=None)
@@ -160,7 +170,7 @@ def test_load_approver_emails_malformed_company_file_fails_closed_empty(tmp_path
     assert result == frozenset()
 
 
-def test_load_approver_emails_empty_rules_approvers_falls_back_to_company_json() -> None:
+def test_load_approver_emails_ignores_empty_rules_approvers_too() -> None:
     rules = load_rules_config(RULES_PATH)
     rules = rules.model_copy(update={"approvers": {}})
     data_root = RULES_PATH.resolve().parent.parent

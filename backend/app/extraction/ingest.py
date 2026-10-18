@@ -29,13 +29,21 @@ _SUFFIX_CHANNEL: dict[str, IngestChannel] = {
 }
 
 # Literal-string-then-operator: (text) Tj | (text) ' | (text) "
-_TJ_PATTERN = re.compile(r"\((?:\\.|[^\\)])*\)\s*(?:Tj|'|\")")
+# NOTE: the literal body itself is no longer matched with an unbounded
+# `(?:\\.|[^\\)])*` regex quantifier -- see `_find_unescaped_paren_close` and
+# `_MAX_LITERAL_LEN` below (R-perf: quadratic on input packed with "(").
+_TJ_OPERATOR = re.compile(r"\s*(?:Tj|'|\")")
 _TJ_ARRAY_PATTERN = re.compile(r"\[((?:[^\[\]])*)\]\s*TJ")
-_TJ_ARRAY_LITERAL = re.compile(r"\((?:\\.|[^\\)])*\)")
 _HEX_STRING_OP = re.compile(r"<([0-9A-Fa-f\s]*)>\s*(?:Tj|'|\")")
 _FILTER_PATTERN = re.compile(r"/Filter\s*(\[[^\]]*\]|/[A-Za-z0-9]+)")
 _FILTER_NAME = re.compile(r"/([A-Za-z0-9]+)")
 _ENCRYPT_SCAN = 8192
+_STREAM_DICT_SCAN = 4096
+# A PDF literal string this long in practice is already pathological; capping
+# it keeps `_find_unescaped_paren_close` O(1) per call instead of O(n) per
+# call (which, summed over every "(" in a crafted document, used to be
+# quadratic -- see `_TJ_OPERATOR` note above).
+_MAX_LITERAL_LEN = 2048
 _MAX_DECOMPRESSED_BYTES = 5 * 1024 * 1024  # 5 MB decompression-bomb guard (T5.12)
 # Whole-document budget: many streams just under the per-stream cap must not
 # add up to hundreds of MB of decode + regex work in one request.
@@ -176,8 +184,18 @@ def _pdf_stream_chunks(doc: str) -> list[tuple[bytes, tuple[str, ...]]]:
 
 
 def _stream_filters(preceding: str) -> tuple[str, ...]:
-    """Read ``/Filter`` from the ``<< ... >>`` stream dict right before ``stream``."""
-    dict_match = re.search(r"<<(.*?)>>\s*\Z", preceding, re.S)
+    """Read ``/Filter`` from the ``<< ... >>`` stream dict right before ``stream``.
+
+    Only the last ``_STREAM_DICT_SCAN`` characters of ``preceding`` are
+    searched: a real stream dict is never anywhere near that large, but
+    ``preceding`` itself can be -- it is everything since the previous
+    ``endstream``, so a document crafted with megabytes of ``<<`` before a
+    stream made ``<<(.*?)>>\\s*\\Z`` over the *whole* slice quadratic (every
+    failed start position re-scans toward the end). Bounding the slice first
+    keeps this O(1) regardless of how much unrelated content precedes it.
+    """
+    tail = preceding[-_STREAM_DICT_SCAN:]
+    dict_match = re.search(r"<<(.*?)>>\s*\Z", tail, re.S)
     if not dict_match:
         return ()
     filter_match = _FILTER_PATTERN.search(dict_match.group(1))
@@ -232,18 +250,79 @@ def _flate_decompress(raw: bytes) -> bytes:
     return bytes(out)
 
 
+def _find_unescaped_paren_close(text: str, start: int, limit: int) -> int | None:
+    """Return the index of the ``)`` that closes the literal starting at
+    ``text[start]`` (which must be ``(``), or ``None`` if none is found
+    within ``limit`` characters.
+
+    PDF literal strings escape with a backslash, so a ``\\)`` does not close
+    the string -- that is checked by counting the backslashes immediately
+    before each candidate ``)`` (odd means escaped). The candidate itself is
+    located with ``str.find``, a C-level single-character scan, rather than
+    a Python-level regex backtracking loop: searching position-by-position
+    with an unbounded quantifier is what made the old ``_TJ_PATTERN`` /
+    array-literal regexes quadratic on input packed with ``(`` and no ``)``.
+    Bounding the window to ``limit`` keeps every call here O(limit).
+    """
+    window_end = min(start + 1 + limit, len(text))
+    pos = start + 1
+    while True:
+        close = text.find(")", pos, window_end)
+        if close == -1:
+            return None
+        backslashes = 0
+        k = close - 1
+        while k >= start and text[k] == "\\":
+            backslashes += 1
+            k -= 1
+        if backslashes % 2 == 0:
+            return close
+        pos = close + 1
+
+
+def _iter_bounded_literals(text: str) -> list[str]:
+    """Unescaped contents of every bounded ``(...)`` literal in ``text``, in order."""
+    pieces: list[str] = []
+    i = 0
+    n = len(text)
+    while i < n:
+        if text[i] != "(":
+            i += 1
+            continue
+        close = _find_unescaped_paren_close(text, i, _MAX_LITERAL_LEN)
+        if close is None:
+            i += 1
+            continue
+        pieces.append(_unescape_pdf_literal(text[i + 1 : close]))
+        i = close + 1
+    return pieces
+
+
+def _iter_tj_literals(text: str) -> list[tuple[int, str]]:
+    """``(literal) Tj`` / ``'`` / ``"`` occurrences as ``(start, unescaped)``, in order."""
+    results: list[tuple[int, str]] = []
+    i = 0
+    n = len(text)
+    while i < n:
+        if text[i] != "(":
+            i += 1
+            continue
+        close = _find_unescaped_paren_close(text, i, _MAX_LITERAL_LEN)
+        if close is None:
+            i += 1
+            continue
+        if _TJ_OPERATOR.match(text, close + 1) is not None:
+            results.append((i, _unescape_pdf_literal(text[i + 1 : close])))
+        i = close + 1
+    return results
+
+
 def _extract_text_operators(text: str) -> list[str]:
     """Extract Tj / ' / " literals, TJ arrays, and simple hex strings, in order."""
-    found: list[tuple[int, str]] = []
-
-    for match in _TJ_PATTERN.finditer(text):
-        literal = match.group(0)
-        inner = literal[1 : literal.rfind(")")]
-        found.append((match.start(), _unescape_pdf_literal(inner)))
+    found: list[tuple[int, str]] = list(_iter_tj_literals(text))
 
     for match in _TJ_ARRAY_PATTERN.finditer(text):
-        pieces = _TJ_ARRAY_LITERAL.findall(match.group(1))
-        joined = "".join(_unescape_pdf_literal(piece[1:-1]) for piece in pieces)
+        joined = "".join(_iter_bounded_literals(match.group(1)))
         if joined:
             found.append((match.start(), joined))
 
