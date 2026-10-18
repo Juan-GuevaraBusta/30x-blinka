@@ -270,3 +270,48 @@ def test_approve_unknown_author_still_returns_422_before_route_checks() -> None:
 
     assert response.status_code == 422
     assert response.json() == {"detail": "unknown_approver"}
+
+
+R14_INDETERMINADO = {
+    "rule": "R14",
+    "name": "Política de aprobación",
+    "result": "INDETERMINADO",
+    "detail": "No se pudo resolver la ruta de la política: falta el departamento.",
+    "on_fail": "ESCALAR",
+}
+
+
+def test_indeterminate_r14_never_reports_satisfied_or_payment_ready() -> None:
+    # Fail-closed (I3): an unresolved route must not fall back to "1 approval
+    # from anyone"; the required route could have demanded 2 from cfo/finanzas.
+    client, store, _clock = build_client()
+    store.add_decision(make_record(checks=[R04_FALLA, R14_INDETERMINADO]))
+
+    response = client.get("/decisions/dec_0042/approval")
+
+    body = response.json()
+    assert body["satisfied"] is False
+    assert body["payment_ready"] is False
+    assert "R14" in body["pending_checks"]
+
+
+def test_indeterminate_r14_blocks_approve_but_allows_reject() -> None:
+    client, store, _clock = build_client()
+    store.add_decision(make_record(checks=[R04_FALLA, R14_INDETERMINADO]))
+
+    approve = client.post(
+        "/decisions/dec_0042/approve",
+        json={"author": "cfo@demo.test", "reason": "ok"},
+        headers=ADMIN_HEADERS,
+    )
+    status = client.get("/decisions/dec_0042/approval").json()
+    reject = client.post(
+        "/decisions/dec_0042/reject",
+        json={"author": "cfo@demo.test", "reason": "no"},
+        headers=ADMIN_HEADERS,
+    )
+
+    assert approve.status_code == 409
+    assert approve.json()["detail"] == "policy_route_unresolved"
+    assert status["payment_ready"] is False
+    assert reject.status_code == 200

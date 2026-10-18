@@ -22,7 +22,8 @@ from app.models.domain import CheckResult, DecisionRecord, HumanAction
 from app.models.rules_config import RulesConfig
 from app.rules.approval_policy import parse_r14_quote
 
-ApprovalError = str  # "approver_not_in_route" | "already_approved" | "approval_closed"
+# "approver_not_in_route" | "already_approved" | "approval_closed" | "policy_route_unresolved"
+ApprovalError = str
 
 
 def find_r14_check(record: DecisionRecord) -> CheckResult | None:
@@ -87,6 +88,20 @@ def build_approval_status(
     pending = pending_checks(record)
     check = find_r14_check(record)
 
+    if check is not None and check.result == "INDETERMINADO":
+        # Fail-closed (I3): the policy route is unknown (missing department or
+        # base amount), so no number of approvals can be proven sufficient.
+        return ApprovalStatusBody(
+            route_id=None,
+            required=0,
+            collected=0,
+            approvers=[],
+            satisfied=False,
+            rejected=rejected,
+            payment_ready=False,
+            pending_checks=[*pending, "R14"],
+        )
+
     if check is None or check.result != "FALLA":
         emails = _distinct_approver_emails(record, None)
         required = 1
@@ -149,6 +164,10 @@ def enforce_route_approval(
     `decision == "ESCALAR"` gate).
     """
     check = find_r14_check(record)
+    if check is not None and check.result == "INDETERMINADO":
+        # Fail-closed (I3): an unresolved route never accepts approvals;
+        # rejecting is always safe, so it stays allowed.
+        return "policy_route_unresolved" if action == "aprobada_humano" else None
     if check is None or check.result != "FALLA":
         return None
 
