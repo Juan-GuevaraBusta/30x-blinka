@@ -35,11 +35,19 @@ def is_rejected(record: DecisionRecord) -> bool:
 
 
 def pending_checks(record: DecisionRecord) -> list[str]:
-    """Checks a payment still needs OK on, excluding R04/R14 (§4: `payment_ready`)."""
+    """Checks that still block payment after the required approvals (§4).
+
+    Approval only exists for ESCALAR decisions, so ESCALAR-level reasons
+    (indeterminate checks, amounts over the approval threshold, variable
+    agreements) are exactly what the human reviewed. Only a failure whose
+    on_fail is FRENAR keeps blocking `payment_ready`.
+    """
     return [
         check.rule
         for check in record.checks
-        if check.rule not in ("R04", "R14") and check.result != "OK"
+        if check.rule not in ("R04", "R14")
+        and check.result == "FALLA"
+        and check.on_fail == "FRENAR"
     ]
 
 

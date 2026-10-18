@@ -98,6 +98,26 @@ npm test
 
 (`CONTRIBUTING.md` tiene el detalle completo, incluyendo `python eval/run_motor.py`.)
 
+## Cuenta de prueba para jueces
+
+Entra en https://blinka-invoice-agent.vercel.app/entrar con:
+
+| Correo | Contraseña | Empresa | Rol |
+|---|---|---|---|
+| `sebas@pjgorman.com` | `A1b2c3!` | P.J Gorman (ficticia, USD) | Admin y aprobador (grupos finanzas y cfo) |
+
+La cuenta ya tiene configurados la política de aprobación (4 rutas), los proveedores y los acuerdos (Globex LLC mensual fijo, Andesbyte SAS por horas, Cuotasur SAS en cuotas). Para probar, sube desde `/subir` los archivos de [`data/demo/`](data/demo/README.md):
+
+| Archivo | Resultado esperado | Por qué |
+|---|---|---|
+| `01-globex-mensualidad-octubre.txt` | **PAGAR** | Cuadra con el acuerdo y con todas las reglas |
+| `02-globex-mensualidad-octubre-REENVIO.txt` | **FRENAR** | Ya se pagó: duplicado (R05) |
+| `03-andesbyte-horas-octubre.txt` | **ESCALAR** | Pago variable por horas: requiere aprobación humana (R19) |
+
+Las tres ya están cargadas en la cuenta con esos resultados (míralas en `/decisiones`). Si vuelves a subir cualquiera de ellas, el agente la frena por duplicado (R05): esa es la protección que impide pagar dos veces.
+
+En `/decisiones/[id]` cada decisión muestra los chequeos, la explicación y el enlace a su traza en LangSmith. La cuenta es solo de demostración, con datos sintéticos; no la uses para nada más.
+
 ## Despliegue público
 
 | Pieza | URL |

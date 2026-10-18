@@ -315,3 +315,37 @@ def test_indeterminate_r14_blocks_approve_but_allows_reject() -> None:
     assert approve.json()["detail"] == "policy_route_unresolved"
     assert status["payment_ready"] is False
     assert reject.status_code == 200
+
+
+R06_VARIABLE = {
+    "rule": "R06",
+    "name": "Cuadra con contrato",
+    "result": "INDETERMINADO",
+    "detail": "Acuerdo de pago variable: no hay tarifa fija.",
+    "on_fail": "ESCALAR",
+}
+R19_VARIABLE = {
+    "rule": "R19",
+    "name": "Cuadra con la fórmula pactada",
+    "result": "INDETERMINADO",
+    "detail": "Elemento variable de un acuerdo: requiere revisión humana.",
+    "on_fail": "ESCALAR",
+}
+
+
+def test_human_approval_resolves_escalation_only_reasons() -> None:
+    # Demo case: a variable agreement escalates via R06/R19 INDETERMINADO; the
+    # human approval is exactly what resolves them, so payment becomes ready.
+    client, store, _clock = build_client()
+    store.add_decision(make_record(checks=[R06_VARIABLE, R19_VARIABLE]))
+    client.post(
+        "/decisions/dec_0042/approve",
+        json={"author": "cfo@demo.test", "reason": "Horas revisadas"},
+        headers=ADMIN_HEADERS,
+    )
+
+    body = client.get("/decisions/dec_0042/approval").json()
+
+    assert body["satisfied"] is True
+    assert body["pending_checks"] == []
+    assert body["payment_ready"] is True
