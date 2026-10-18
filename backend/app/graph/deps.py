@@ -31,3 +31,8 @@ class GraphDeps:
     # existing `GraphDeps(...)` call site (dev motor, folder batch, tests)
     # keeps today's behavior untouched.
     agreement_contracts: dict[str, ContractTerms] = field(default_factory=dict)
+    # P0 safety fix: invoices still ESCALAR (no human decision yet), for R05
+    # duplicate-of-pending only. Empty by default so every existing
+    # `GraphDeps(...)` call site (dev motor, folder batch, tests) keeps
+    # today's behavior untouched.
+    pending_ledger: tuple[LedgerEntry, ...] = ()

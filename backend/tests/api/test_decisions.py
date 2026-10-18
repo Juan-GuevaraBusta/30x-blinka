@@ -146,6 +146,59 @@ def test_approve_non_escalar_returns_409_and_adds_no_event(decision: Decision) -
     assert store.decisions[record.id].human_events == []
 
 
+# P0 safety fix: a human must not be able to approve a decision whose invoice
+# (same normalized beneficiary + invoice number, both default to "Globex LLC"
+# / "GX-2231" in `make_record`) is an exact duplicate of one already settled
+# (PAGAR, or an ESCALAR decision that already has an `aprobada_humano`
+# event -- `decision` stays "ESCALAR" forever per I2).
+def test_approve_duplicate_of_paid_decision_returns_409_and_adds_no_event() -> None:
+    client, store, _clock = build_client()
+    paid = make_record(id="dec_paid", invoice_id="INV-PAID", decision="PAGAR")
+    pending = make_record(id="dec_dup", invoice_id="INV-DUP")
+    store.add_decision(paid)
+    store.add_decision(pending)
+
+    response = client.post(
+        "/decisions/dec_dup/approve",
+        json={"author": "cfo@demo.test", "reason": "No debería pasar"},
+        headers=ADMIN_HEADERS,
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "duplicate_of_settled"
+    assert store.decisions["dec_dup"] is pending
+    assert store.decisions["dec_dup"].human_events == []
+
+
+def test_approve_duplicate_of_already_approved_decision_returns_409() -> None:
+    client, store, _clock = build_client()
+    approved = make_record(
+        id="dec_approved",
+        invoice_id="INV-APPROVED",
+        human_events=[
+            {
+                "author": "cfo@demo.test",
+                "at": "2026-03-04T10:00:00Z",
+                "action": "aprobada_humano",
+                "reason": "Primera aprobación.",
+            }
+        ],
+    )
+    dup = make_record(id="dec_dup2", invoice_id="INV-DUP2")
+    store.add_decision(approved)
+    store.add_decision(dup)
+
+    response = client.post(
+        "/decisions/dec_dup2/approve",
+        json={"author": "cfo@demo.test", "reason": "No debería pasar"},
+        headers=ADMIN_HEADERS,
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "duplicate_of_settled"
+    assert store.decisions["dec_dup2"].human_events == []
+
+
 def test_reject_empty_reason_returns_422() -> None:
     client, store, _clock = build_client()
     record = make_record()

@@ -34,7 +34,11 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from app.api.production_processor import ledger_view_for_upload, settled_ledger_from_store
+from app.api.production_processor import (
+    ledger_view_for_upload,
+    pending_ledger_from_store,
+    settled_ledger_from_store,
+)
 from app.api.schemas import InvoiceUpload
 from app.extraction.contracts import CONTRACT_EXTRACTOR_SYSTEM_PROMPT
 from app.extraction.metered import METERED_EXTRACTOR_SYSTEM_PROMPT
@@ -269,6 +273,7 @@ class Pipeline:
             invoice_id=invoice_id, channel=channel, received_at=received_at, content=raw
         )  # type: ignore[arg-type]
         ledger = ledger_view_for_upload(upload, settled_ledger_from_store(self.store))
+        pending = pending_ledger_from_store(self.store)
         deps = GraphDeps(
             extractor=ScriptedLLM(_invoice_payload(inv, extra_payload), self.fee),
             verifier=HappyVerifier(),
@@ -276,6 +281,7 @@ class Pipeline:
             rules=self.rules,
             fx=self.fx,
             ledger=ledger,
+            pending_ledger=pending,
             company_name=COMPANY,
             rules_version="test-fraud-harness",
             model_extractor="fake-extractor",
@@ -784,6 +790,42 @@ def test_s15_pipeline_variant_after_approval_is_exact_duplicate(tmp_path: Path) 
         Inv("apr 001", amount=APPROVAL_AMOUNT), invoice_id="F-2", received_at=T0 + timedelta(days=1)
     )
     _assert_stopped_by(again, "R05", "FRENAR")
+
+
+# --------------------------------------------------------------------------------------
+# S17 (P0 safety fix) -- duplicate of a still-pending (ESCALAR) invoice
+# --------------------------------------------------------------------------------------
+
+
+def test_s17_pipeline_duplicate_of_pending_invoice_is_frenar(tmp_path: Path) -> None:
+    """GAP closed: an invoice resubmitted while the first copy is still
+    ESCALAR (no human decision yet) used to reach a second ESCALAR instead
+    of R05 stopping it -- two live ESCALAR decisions a human could both
+    approve, double-paying. Amount >=3000 escalates via R04/R06 (ESCALAR),
+    never FRENAR, so the first copy is genuinely "pending", not stopped."""
+    p = Pipeline(tmp_path)
+    first = p.submit(Inv("PEND-001", amount=3500.0), invoice_id="F-1", received_at=T0)
+    assert first.decision == "ESCALAR", (first.summary, _failed(first))
+    assert first.human_events == []
+
+    again = p.submit(
+        Inv("PEND-001", amount=3500.0), invoice_id="F-2", received_at=T0 + timedelta(days=1)
+    )
+    _assert_stopped_by(again, "R05", "FRENAR")
+
+
+def test_s17_pipeline_pending_invoice_never_consumes_department_budget(tmp_path: Path) -> None:
+    """Requirement (c): a pending (ESCALAR, unapproved) invoice must never be
+    summed into R07's department-budget total for a later, unrelated invoice.
+    Ingenieria's budget is 8000; a wrongly-counted 7999 pending line would
+    leave only 1 for the next invoice and block it."""
+    p = Pipeline(tmp_path)
+    pending = p.submit(Inv("PEND-BUDGET", amount=7999.0), invoice_id="F-1", received_at=T0)
+    assert pending.decision != "PAGAR"
+    assert pending.human_events == []
+
+    clean = p.submit(Inv("INV-CLEAN-001"), invoice_id="F-2", received_at=T0 + timedelta(hours=1))
+    assert clean.decision == "PAGAR", (clean.summary, _failed(clean))
 
 
 # --------------------------------------------------------------------------------------

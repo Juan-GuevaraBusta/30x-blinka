@@ -55,6 +55,11 @@ class RuleContext:
     jev_signals: list[JevSignal] = field(default_factory=list)
     doc_text: str = ""
     ledger: tuple[LedgerEntry, ...] = ()
+    # P0 safety fix: invoices still awaiting a human call (ESCALAR, not yet
+    # approved or rejected). Consulted only by R05 (duplicate-of-pending);
+    # never merged into ``ledger`` so R03/R07/R17/R21 money sums never count
+    # an unapproved invoice toward a budget or limit.
+    pending_ledger: tuple[LedgerEntry, ...] = ()
     received_at: datetime | None = None
     manual_block: bool = False
     metered_lines: tuple[MeteredLine, ...] = ()

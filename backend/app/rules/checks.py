@@ -188,14 +188,24 @@ def check_r04(ctx: RuleContext) -> CheckResult:
 
 
 def check_r05(ctx: RuleContext) -> CheckResult:
+    """P0 safety fix: an invoice submitted twice while the first is still
+    pending (ESCALAR, no human decision yet) must be caught too, not only
+    once the first one settles (PAGAR/aprobada_humano). ``ctx.pending_ledger``
+    is checked in addition to the settled ``ctx.ledger``; an exact match in
+    either stops the payment (FRENAR per ``on_fail``), and a same-amount
+    match within 30 days escalates, exactly like a settled duplicate.
+    """
     norm = normalize_beneficiary(ctx.extraction.beneficiary)
     number = ctx.extraction.invoice_number
     currency = normalize_currency(ctx.extraction.currency)
     amount = _amount_base(ctx)
-    match = duplicate_match(ctx.ledger, norm, number, amount, currency, ctx.received_at)
-    if match == "exact":
+    settled_match = duplicate_match(ctx.ledger, norm, number, amount, currency, ctx.received_at)
+    pending_match = duplicate_match(
+        ctx.pending_ledger, norm, number, amount, currency, ctx.received_at
+    )
+    if settled_match == "exact" or pending_match == "exact":
         return _fail(ctx, "R05", f"Ya existe la factura {number}.")
-    if match == "probable":
+    if settled_match == "probable" or pending_match == "probable":
         return CheckResult(  # type: ignore[arg-type]
             rule="R05",
             name=RULE_NAMES["R05"],

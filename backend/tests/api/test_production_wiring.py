@@ -111,6 +111,7 @@ def test_tracer_factory_failure_never_breaks_processing(tmp_path, monkeypatch) -
 
     monkeypatch.setattr(pp, "run_invoice", fake_run_invoice)
     monkeypatch.setattr(pp, "settled_ledger_from_store", lambda store, fx=None: pp.Ledger.empty())
+    monkeypatch.setattr(pp, "pending_ledger_from_store", lambda store, fx=None: ())
     monkeypatch.setattr(pp, "effective_rules_and_contracts", lambda store: (None, {}))
     processor = make_production_processor(
         object(),  # type: ignore[arg-type]  never touched: the graph is faked

@@ -117,6 +117,63 @@ def settled_ledger_from_store(store: SqlStore, fx: FxTable | None = None) -> Led
     return settled
 
 
+def _pending_ledger_line(record: DecisionRecord, fx: FxTable) -> LedgerEntry | None:
+    """One line for a decision still awaiting a human call.
+
+    P0 safety fix: ``ESCALAR`` with no human event yet (not approved, not
+    rejected). A decision with an ``aprobada_humano`` event is already a
+    settlement (``_approval_ledger_line`` covers it) even though ``decision``
+    stays ``ESCALAR`` forever (I2); a ``rechazada_humano`` event means the
+    invoice was rejected, not pending. Only used by R05 (duplicate-of-pending):
+    never fed into ``Ledger``/``settled_ledger_from_store``, so it can never
+    be counted by R03/R07/R17/R21.
+    """
+    if record.decision != "ESCALAR":
+        return None
+    decided = ("aprobada_humano", "rechazada_humano")
+    if any(event.action in decided for event in record.human_events):
+        return None
+    ext = record.extracted
+    beneficiary = (ext.beneficiary or "").strip()
+    if not beneficiary:
+        return None
+    received = record.received_at
+    if isinstance(received, datetime):
+        received_at = received.isoformat().replace("+00:00", "Z")
+    else:
+        received_at = str(received)
+    return LedgerEntry(
+        beneficiary=beneficiary,
+        amount_base=settlement_amount_base(ext, fx),
+        currency=ext.currency or "USD",
+        invoice_number=ext.invoice_number or "",
+        received_at=received_at,
+        decision="ESCALAR",
+        department=ext.department,
+        due_date=ext.due_date.isoformat() if ext.due_date else None,
+    )
+
+
+def pending_ledger_from_store(
+    store: SqlStore, fx: FxTable | None = None
+) -> tuple[LedgerEntry, ...]:
+    """Decisions still awaiting a human call (R05 duplicate-of-pending only).
+
+    P0 safety fix: an invoice resubmitted while the first copy is still
+    ``ESCALAR`` previously escaped R05 entirely, because duplicate detection
+    only ever looked at ``settled_ledger_from_store`` (PAGAR/approved). Never
+    merge this into the settled ``Ledger``: a pending invoice has not been
+    approved or paid, so it must never consume an R03/R07/R17/R21 budget.
+    """
+    table = fx if fx is not None else load_fx_table()
+    lines: list[LedgerEntry] = []
+    for record in store.decisions.values():
+        line = _pending_ledger_line(record, table)
+        if line is not None:
+            lines.append(line)
+    return tuple(lines)
+
+
 def ledger_view_for_upload(upload: InvoiceUpload, prior: Ledger) -> tuple[LedgerEntry, ...]:
     """Every persisted settlement, regardless of the client-supplied ``received_at``.
 
@@ -235,6 +292,12 @@ def process_upload(
     deps = config.deps_factory(config.settings, rules, ledger_view)
     if agreement_contracts:
         deps = dataclasses.replace(deps, agreement_contracts=agreement_contracts)
+    # P0 safety fix: invoices still ESCALAR (no human decision yet) feed R05
+    # duplicate-of-pending only; never merged into `ledger_view` above, so
+    # R03/R07/R17/R21 never count an unapproved invoice toward a budget.
+    pending_view = pending_ledger_from_store(config.store, fx_table)
+    if pending_view:
+        deps = dataclasses.replace(deps, pending_ledger=pending_view)
     channel: IngestChannel = upload.channel
     try:
         return run_invoice(
@@ -298,6 +361,7 @@ __all__ = [
     "effective_rules_and_contracts",
     "ledger_view_for_upload",
     "make_production_processor",
+    "pending_ledger_from_store",
     "process_upload",
     "settled_ledger_from_store",
 ]

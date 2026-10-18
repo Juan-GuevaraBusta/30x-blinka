@@ -50,6 +50,7 @@ def make_context(
     jev: list[JevSignal] | None = None,
     doc_text: str = "",
     ledger: tuple[LedgerEntry, ...] = (),
+    pending_ledger: tuple[LedgerEntry, ...] = (),
     received_at: datetime | None = None,
     contract_confirmed: bool = True,
     fee_amount: float = 800.0,
@@ -80,6 +81,7 @@ def make_context(
         jev_signals=jev if jev is not None else _signals("J1", "J2", "J3", "J4", "J7"),
         doc_text=doc_text,
         ledger=ledger,
+        pending_ledger=pending_ledger,
         received_at=received_at or datetime(2026, 5, 13, 10, 0, tzinfo=UTC),
         manual_block=manual_block,
     )
@@ -317,6 +319,74 @@ def test_r05_ok_no_match(rules, fx_table) -> None:
     from app.rules.checks import check_r05
 
     assert check_r05(make_context(rules, fx_table)).result == "OK"
+
+
+# P0 safety fix: an invoice submitted twice while the first copy is still
+# ESCALAR (no human decision yet) must be caught too -- previously R05 only
+# ever looked at the settled ledger (PAGAR / aprobada_humano).
+def test_r05_exact_duplicate_of_pending_invoice_frenar(rules, fx_table) -> None:
+    from app.rules.checks import check_r05
+
+    pending = (
+        _seed(
+            beneficiary="Globex LLC",
+            number="INV-GX-PENDING",
+            received="2026-08-21T10:00:00Z",
+            decision="ESCALAR",
+        ),
+    )
+    ctx = make_context(
+        rules,
+        fx_table,
+        invoice_number="INV-GX-PENDING",
+        received_at=datetime(2026, 8, 23, 10, 0, tzinfo=UTC),
+        pending_ledger=pending,
+    )
+    res = check_r05(ctx)
+    assert res.result == "FALLA"
+    assert res.on_fail == "FRENAR"
+
+
+def test_r05_probable_duplicate_of_pending_invoice_escalar(rules, fx_table) -> None:
+    from app.rules.checks import check_r05
+
+    pending = (
+        _seed(
+            beneficiary="Globex LLC",
+            amount_base=800.0,
+            number="INV-GX-PENDING-OTHER",
+            received="2026-03-28T10:00:00Z",
+            decision="ESCALAR",
+        ),
+    )
+    ctx = make_context(
+        rules,
+        fx_table,
+        invoice_number="INV-GX-2026-NEW",
+        received_at=datetime(2026, 4, 11, 10, 0, tzinfo=UTC),
+        pending_ledger=pending,
+    )
+    res = check_r05(ctx)
+    assert res.result == "FALLA"
+    assert res.on_fail == "ESCALAR"
+
+
+def test_r05_pending_ledger_never_counted_toward_period_budget(rules, fx_table) -> None:
+    """R03's per-period sum reads only `ledger`; a huge pending-only entry
+    must never be summed, even when it would blow the period limit."""
+    from app.rules.checks import check_r03
+
+    pending = (
+        _seed(
+            beneficiary="Globex LLC",
+            amount_base=1_000_000.0,
+            number="INV-GX-PENDING-HUGE",
+            received="2026-05-02T10:00:00Z",
+            decision="ESCALAR",
+        ),
+    )
+    res = check_r03(make_context(rules, fx_table, pending_ledger=pending))
+    assert res.result == "OK"
 
 
 def test_duplicate_match_returns_none_without_keys() -> None:

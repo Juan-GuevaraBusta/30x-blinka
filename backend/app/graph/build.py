@@ -78,6 +78,7 @@ def _rule_context(deps: GraphDeps, state: InvoiceState) -> RuleContext:
         jev_signals=jev,
         doc_text=state.get("doc_text", ""),
         ledger=deps.ledger,
+        pending_ledger=deps.pending_ledger,
         received_at=_parse_received_at(state["received_at"]),
         manual_block=False,
         metered_lines=metered,

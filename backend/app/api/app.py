@@ -47,6 +47,7 @@ from app.models.agreement import VendorAgreementVersion
 from app.models.domain import DecisionRecord, HumanAction, HumanEvent
 from app.models.rules_config import RulesConfig
 from app.rules.agreements import AgreementConflictError, compile_rules
+from app.rules.normalize import normalize_beneficiary, normalize_invoice_number
 
 Processor = Callable[[InvoiceUpload, str], DecisionRecord]
 Clock = Callable[[], datetime]
@@ -326,6 +327,11 @@ def create_app(
         _admin: None = Depends(_check_admin_key),
     ) -> DecisionRecord:
         _require_known_approver(body.author, allowed_approvers)
+        found = store.get(id)
+        if found is None:
+            raise HTTPException(status_code=404, detail="not_found")
+        if _is_duplicate_of_settled(store, found):
+            raise HTTPException(status_code=409, detail="duplicate_of_settled")
         return _add_human_event(store, clock, id, body, "aprobada_humano", allowed_groups)
 
     @app.post("/decisions/{id}/reject")
@@ -447,6 +453,35 @@ def _require_known_approver(author: str, approver_emails: frozenset[str]) -> Non
     """`author` must be one of `data/company.json`'s `approvers` values (T5.9, D055)."""
     if author not in approver_emails:
         raise HTTPException(status_code=422, detail="unknown_approver")
+
+
+def _is_duplicate_of_settled(store: MemoryStore, found: DecisionRecord) -> bool:
+    """P0 safety fix: refuse to approve an invoice that is an exact duplicate
+    (same normalized beneficiary + invoice number) of an already settled
+    decision (PAGAR, or any decision with an ``aprobada_humano`` event --
+    ``decision`` stays ``ESCALAR`` forever per I2, so the decision field
+    alone cannot tell "already approved" apart). This stops a human from
+    approving two ESCALAR decisions for the same duplicate invoice (created
+    before R05 learned to see pending invoices), which would double-pay.
+    """
+    beneficiary = normalize_beneficiary(found.extracted.beneficiary)
+    number = normalize_invoice_number(found.extracted.invoice_number)
+    if beneficiary is None or number is None:
+        return False
+    for other in store.decisions.values():
+        if other.id == found.id:
+            continue
+        settled = other.decision == "PAGAR" or any(
+            event.action == "aprobada_humano" for event in other.human_events
+        )
+        if not settled:
+            continue
+        if (
+            normalize_beneficiary(other.extracted.beneficiary) == beneficiary
+            and normalize_invoice_number(other.extracted.invoice_number) == number
+        ):
+            return True
+    return False
 
 
 def _add_human_event(

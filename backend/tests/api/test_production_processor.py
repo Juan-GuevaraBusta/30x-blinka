@@ -173,6 +173,68 @@ def test_production_app_post_persists_with_mocked_graph(
     assert got.json()["summary"] == expected.summary
 
 
+def test_pending_ledger_from_store_includes_only_untouched_escalar(tmp_path) -> None:
+    """P0 safety fix: `pending_ledger_from_store` must pick up a genuinely
+    pending ESCALAR decision (no human event yet), skip a rejected one, skip
+    an already-approved one, and -- critically -- never appear in
+    `settled_ledger_from_store` (R03/R07/R17/R21 must never see it)."""
+    from app.api.production_processor import (
+        pending_ledger_from_store,
+        settled_ledger_from_store,
+    )
+    from app.models.domain import HumanEvent
+
+    db = tmp_path / "pending.sqlite"
+    engine = create_engine(f"sqlite:///{db}")
+    from app.persistence import init_database, seed_rules
+
+    init_database(engine)
+    store = SqlStore(engine)
+    seed_rules(store, RULES_PATH)
+
+    def _with_number(record: DecisionRecord, number: str) -> DecisionRecord:
+        return record.model_copy(
+            update={"extracted": record.extracted.model_copy(update={"invoice_number": number})}
+        )
+
+    pending = _with_number(
+        make_record(id="dec_pending", invoice_id="INV-PENDING"), "GX-PENDING"
+    )
+    rejected = _with_number(
+        make_record(id="dec_rejected", invoice_id="INV-REJECTED"), "GX-REJECTED"
+    )
+    approved = _with_number(
+        make_record(id="dec_approved", invoice_id="INV-APPROVED"), "GX-APPROVED"
+    )
+
+    store.add_decision(pending)
+    store.add_decision(rejected)
+    store.add_decision(approved)
+    at = datetime.fromisoformat("2026-03-04T12:00:00+00:00")
+    store.add_human_event(
+        "dec_rejected",
+        HumanEvent(
+            author="cfo@demo.test", at=at, action="rechazada_humano", reason="No corresponde."
+        ),
+    )
+    store.add_human_event(
+        "dec_approved",
+        HumanEvent(author="cfo@demo.test", at=at, action="aprobada_humano", reason="Aprobado."),
+    )
+
+    pending_lines = pending_ledger_from_store(store)
+    assert [line.invoice_number for line in pending_lines] == [pending.extracted.invoice_number]
+
+    settled_numbers = {line.invoice_number for line in settled_ledger_from_store(store).as_tuple()}
+    assert pending.extracted.invoice_number not in settled_numbers
+    assert rejected.extracted.invoice_number not in settled_numbers
+    # The approved one *is* settled (an `aprobada_humano` event counts, even
+    # though `decision` stays ESCALAR per I2) -- and therefore must NOT also
+    # show up in `pending_ledger_from_store`, or the same invoice would count
+    # toward both "pending" and "settled" money sums.
+    assert approved.extracted.invoice_number in settled_numbers
+
+
 def test_build_graph_deps_labels_native_jev_backend() -> None:
     """`jev_label` must report the model actually used (`folder_batch.py`'s
     pattern), not always `settings.jev_model` regardless of backend."""
