@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { isActiveNavLink, NAV_LINKS } from "./nav";
 
 describe("NAV_LINKS", () => {
-  it("has the six expected sections in order", () => {
+  it("has the seven expected sections in order", () => {
     expect(NAV_LINKS.map((l) => l.href)).toEqual([
       "/",
       "/reglas",
@@ -11,6 +11,7 @@ describe("NAV_LINKS", () => {
       "/aprobaciones",
       "/metricas",
       "/subir",
+      "/ajustes",
     ]);
   });
 });

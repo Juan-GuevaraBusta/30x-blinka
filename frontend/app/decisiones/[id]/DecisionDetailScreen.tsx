@@ -9,6 +9,13 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Section } from "@/components/ui/Section";
 import type { DecisionRecord } from "@/lib/decision-types";
 import { isValidDecisionId, severityLabel } from "@/lib/decision-present";
+import type { ApprovalStatusBody } from "@/lib/approval-status-present";
+import {
+  approvalCountLabel,
+  approversSummary,
+  pendingChecksSentence,
+  routeDisplayLabel,
+} from "@/lib/approval-status-present";
 import { apiFetch } from "@/lib/session";
 
 const I8_DISCLAIMER =
@@ -26,7 +33,20 @@ type LoadState =
   | { status: "not_found" }
   | { status: "rate_limited" }
   | { status: "error"; message: string }
-  | { status: "ready"; record: DecisionRecord };
+  | { status: "ready"; record: DecisionRecord; approval: ApprovalStatusBody | null };
+
+/** Best-effort «x de N aprobaciones» status; a failure just omits the panel (T7.5 §2). */
+async function loadApprovalStatus(id: string): Promise<ApprovalStatusBody | null> {
+  try {
+    const res = await apiFetch(`/api/decisions/${encodeURIComponent(id)}/approval`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as ApprovalStatusBody;
+  } catch {
+    return null;
+  }
+}
 
 async function loadDecision(id: string): Promise<LoadState> {
   if (!isValidDecisionId(id)) {
@@ -59,7 +79,8 @@ async function loadDecision(id: string): Promise<LoadState> {
       };
     }
     const record = (await res.json()) as DecisionRecord;
-    return { status: "ready", record };
+    const approval = await loadApprovalStatus(id);
+    return { status: "ready", record, approval };
   } catch {
     return {
       status: "error",
@@ -83,7 +104,15 @@ function FieldRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function RecordBody({ record }: { record: DecisionRecord }) {
+function RecordBody({
+  record,
+  approval,
+}: {
+  record: DecisionRecord;
+  approval: ApprovalStatusBody | null;
+}) {
+  const pendingSentence = approval ? pendingChecksSentence(approval, record.checks) : null;
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -116,6 +145,15 @@ function RecordBody({ record }: { record: DecisionRecord }) {
           </p>
         </div>
       </div>
+
+      {approval ? (
+        <Section title="Aprobaciones">
+          <p className="text-sm font-medium text-ink">{approvalCountLabel(approval)}</p>
+          <p className="text-sm text-ink-muted">{routeDisplayLabel(approval.route_id)}</p>
+          <p className="text-sm text-ink-muted">{approversSummary(approval)}</p>
+          {pendingSentence ? <p className="text-sm text-ink-muted">{pendingSentence}</p> : null}
+        </Section>
+      ) : null}
 
       <Section title="Historial de operaciones del agente">
         <AgentOperationTrail record={record} />
@@ -181,5 +219,5 @@ export default function DecisionDetailScreen({ decisionId }: { decisionId: strin
     return <AlertPanel>{state.message}</AlertPanel>;
   }
 
-  return <RecordBody record={state.record} />;
+  return <RecordBody record={state.record} approval={state.approval} />;
 }

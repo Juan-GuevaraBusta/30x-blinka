@@ -6,6 +6,7 @@ import {
   hasCheckEvidence,
   tracePresentation,
 } from "@/lib/decision-present";
+import { rulePlainExplanation } from "@/lib/rule-explanations";
 
 function TrailStep({
   title,
@@ -36,6 +37,7 @@ function TrailStep({
 function CheckTrailItem({ check }: { check: CheckResult }) {
   const evidence = check.evidence;
   const showEvidence = hasCheckEvidence(evidence);
+  const plainExplanation = rulePlainExplanation(check.rule);
   return (
     <div className="rounded-lg border border-line/80 bg-paper px-3 py-2">
       <p className="text-ink">
@@ -46,6 +48,7 @@ function CheckTrailItem({ check }: { check: CheckResult }) {
         <span className="font-medium text-ink">{check.result}</span>
       </p>
       <p className="mt-1 text-ink">{check.detail}</p>
+      {plainExplanation ? <p className="mt-1 text-xs text-ink-muted">{plainExplanation}</p> : null}
       <p className="mt-1 text-xs text-ink-muted">
         Si falla: {formatOnFail(check.on_fail ?? null)}
       </p>

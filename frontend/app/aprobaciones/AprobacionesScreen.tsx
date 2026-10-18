@@ -14,6 +14,8 @@ import {
   parseErrorDetail,
   validateHumanDecisionInput,
 } from "@/lib/approvals";
+import type { ApprovalStatusBody } from "@/lib/approval-status-present";
+import { approvalCountLabel, routeDisplayLabel } from "@/lib/approval-status-present";
 import { apiFetch } from "@/lib/session";
 
 const I8_NOTE =
@@ -92,6 +94,46 @@ function HumanEventsList({ events }: { events: HumanEvent[] }) {
   );
 }
 
+/** Per-row «x de N aprobaciones» + ruta, fetched from `GET /decisions/{id}/approval` (T7.5 §2). */
+function ApprovalStatusLine({ decisionId }: { decisionId: string }) {
+  const [status, setStatus] = useState<ApprovalStatusBody | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch(`/api/decisions/${encodeURIComponent(decisionId)}/approval`, {
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          if (!cancelled) setFailed(true);
+          return;
+        }
+        const body = (await res.json()) as ApprovalStatusBody;
+        if (!cancelled) setStatus(body);
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [decisionId]);
+
+  if (failed) {
+    return <p className="mt-1 text-xs text-ink-muted">No se pudo cargar el estado de aprobación.</p>;
+  }
+  if (!status) {
+    return null;
+  }
+  return (
+    <p className="mt-1 text-sm font-medium text-ink">
+      {approvalCountLabel(status)} · {routeDisplayLabel(status.route_id)}
+    </p>
+  );
+}
+
 function DecisionCard({
   record,
   pending,
@@ -116,6 +158,7 @@ function DecisionCard({
         <span className="text-sm font-semibold text-accent">ESCALAR · severidad {record.severity}</span>
       </header>
       <p className="mt-2 text-sm text-ink-muted">ID {record.id}</p>
+      <ApprovalStatusLine decisionId={record.id} />
       <p className="mt-3 text-base text-ink leading-relaxed">{record.summary}</p>
 
       <dl className="mt-4 space-y-2">

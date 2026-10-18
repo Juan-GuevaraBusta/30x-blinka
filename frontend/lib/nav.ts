@@ -11,6 +11,7 @@ export const NAV_LINKS: NavLink[] = [
   { href: "/aprobaciones", label: "Aprobaciones" },
   { href: "/metricas", label: "Métricas" },
   { href: "/subir", label: "Subir factura" },
+  { href: "/ajustes", label: "Ajustes" },
 ];
 
 /** True when `pathname` is on the section rooted at `href` (exact match, or a sub-route). */
