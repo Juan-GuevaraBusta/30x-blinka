@@ -4,6 +4,7 @@ const PERIODICITY_LABELS: Record<string, string> = {
   monthly: "Mensual",
   biweekly: "Quincenal",
   quarterly: "Trimestral",
+  annual: "Anual",
 };
 
 /**

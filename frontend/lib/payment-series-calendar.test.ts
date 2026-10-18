@@ -79,6 +79,12 @@ describe("periodKey", () => {
     expect(periodKey(biweekly, "2026-01-15")).toBe("B1");
   });
 
+  it("formats annual periods as YYYY", () => {
+    const annual: PaymentSeries = { ...globexRetainer, periodicity: "annual" };
+    expect(periodKey(annual, "2026-06-15")).toBe("2026");
+    expect(periodKey(annual, "2027-01-01")).toBe("2027");
+  });
+
   it("resolves the single matching item for installments", () => {
     expect(periodKey(norteclaroCuotas, "2026-02-14")).toBe("1/3");
   });
@@ -95,6 +101,11 @@ describe("expectedPeriods", () => {
 
   it("lists explicit item keys for installments, ignoring the through date", () => {
     expect(expectedPeriods(norteclaroCuotas, "2026-01-01")).toEqual(["1/3", "2/3"]);
+  });
+
+  it("lists every annual period from start through the given date", () => {
+    const annual: PaymentSeries = { ...globexRetainer, periodicity: "annual", start: "2024-01-01", end: null };
+    expect(expectedPeriods(annual, "2026-06-01")).toEqual(["2024", "2025", "2026"]);
   });
 });
 

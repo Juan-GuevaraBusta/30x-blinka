@@ -19,8 +19,10 @@ from app.models.domain import InvoiceType
 FailAction = Literal["FRENAR", "ESCALAR"]
 PeriodType = Literal["calendar_month"]
 RouteApprovalMode = Literal["auto", "approvals"]
-SeriesPeriodicity = Literal["monthly", "biweekly", "quarterly", "installments", "milestones"]
-_CALENDAR_PERIODICITIES = frozenset({"monthly", "biweekly", "quarterly"})
+SeriesPeriodicity = Literal[
+    "monthly", "biweekly", "quarterly", "annual", "installments", "milestones"
+]
+_CALENDAR_PERIODICITIES = frozenset({"monthly", "biweekly", "quarterly", "annual"})
 
 
 class CompanyRef(BaseModel):
@@ -189,7 +191,7 @@ class SeriesItem(BaseModel):
 class PaymentSeries(BaseModel):
     """Declared payment calendar for one vendor (T7.2 §2, D059).
 
-    `monthly`/`biweekly`/`quarterly` are calendar periodicities: they need
+    `monthly`/`biweekly`/`quarterly`/`annual` are calendar periodicities: they need
     `expected_amount` and `start` (an open-ended `end` means no upper bound).
     `installments`/`milestones` instead declare an explicit, non-empty
     `items` list with their own per-item amount and window.

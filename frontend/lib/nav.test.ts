@@ -8,10 +8,10 @@ describe("NAV_LINKS", () => {
       "/",
       "/reglas",
       "/decisiones",
+      "/bandeja",
       "/aprobaciones",
       "/metricas",
       "/subir",
-      "/ajustes",
     ]);
   });
 });

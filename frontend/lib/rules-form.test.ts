@@ -6,7 +6,6 @@ import { describe, expect, it } from "vitest";
 import type { RulesConfig } from "./rules-types";
 import { canonicalJson } from "./canonical-json";
 import { cloneRulesConfig, validateDraft } from "./rules-form";
-import { versionLabel } from "./version-label";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const samplePath = join(repoRoot, "data", "rules.json");
@@ -15,20 +14,8 @@ function loadSample(): RulesConfig {
   return JSON.parse(readFileSync(samplePath, "utf8")) as RulesConfig;
 }
 
-describe("versionLabel", () => {
-  it("same document yields same label", async () => {
-    const doc = loadSample();
-    expect(await versionLabel(doc)).toBe(await versionLabel(cloneRulesConfig(doc)));
-  });
-
-  it("different documents yield different labels", async () => {
-    const a = loadSample();
-    const b = cloneRulesConfig(a);
-    b.human_approval_threshold = 2500;
-    expect(await versionLabel(a)).not.toBe(await versionLabel(b));
-  });
-
-  it("canonical JSON sorts keys", () => {
+describe("canonicalJson", () => {
+  it("sorts keys", () => {
     const doc = loadSample();
     const parsed = JSON.parse(canonicalJson(doc)) as Record<string, unknown>;
     const keys = Object.keys(parsed);

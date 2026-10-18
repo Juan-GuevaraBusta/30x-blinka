@@ -97,7 +97,7 @@ export default function AcuerdoDetailScreen({ vendorKeyParam }: { vendorKeyParam
     return (
       <div className="space-y-4">
         <AlertPanel>{state.message}</AlertPanel>
-        <Link href="/ajustes/acuerdos" className="text-sm text-accent hover:underline focus-ring">
+        <Link href="/reglas/acuerdos" className="text-sm text-accent hover:underline focus-ring">
           Volver a acuerdos
         </Link>
       </div>
@@ -113,7 +113,7 @@ export default function AcuerdoDetailScreen({ vendorKeyParam }: { vendorKeyParam
         title={active?.terms.vendor_name ?? vendorKey}
         description={
           <p>
-            <Link href="/ajustes/acuerdos" className="text-accent hover:underline focus-ring">
+            <Link href="/reglas/acuerdos" className="text-accent hover:underline focus-ring">
               Acuerdos
             </Link>
           </p>

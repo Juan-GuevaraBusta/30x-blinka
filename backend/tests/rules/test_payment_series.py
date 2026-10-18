@@ -173,6 +173,13 @@ def test_period_key_quarterly() -> None:
     assert period_key(series, date(2027, 1, 1)) == "2027-Q1"
 
 
+def test_period_key_annual() -> None:
+    series = _series({**GLOBEX_MONTHLY, "periodicity": "annual"})
+    assert period_key(series, date(2026, 1, 1)) == "2026"
+    assert period_key(series, date(2026, 12, 31)) == "2026"
+    assert period_key(series, date(2027, 1, 1)) == "2027"
+
+
 def test_period_key_biweekly_blocks_from_start() -> None:
     series = _series({**GLOBEX_MONTHLY, "periodicity": "biweekly"})
     assert period_key(series, date(2026, 1, 1)) == "B0"
@@ -267,6 +274,14 @@ def test_expected_periods_before_installments_is_empty() -> None:
     assert expected_periods_before(series, date(2026, 3, 20)) == []
 
 
+def test_expected_periods_before_annual_skips_gap() -> None:
+    series = _series(
+        {**GLOBEX_MONTHLY, "periodicity": "annual", "start": date(2024, 1, 1), "end": None}
+    )
+    assert expected_periods_before(series, date(2024, 6, 1)) == []
+    assert expected_periods_before(series, date(2026, 6, 1)) == ["2024", "2025"]
+
+
 # --- checks R15-R18 composed through run_deterministic_checks ---------------------
 
 
@@ -344,6 +359,91 @@ def test_amount_out_of_range_is_r15_escalar(rules: RulesConfig, fx_table: FxTabl
     checks = run_deterministic_checks(ctx)
     r15 = next(c for c in checks if c.rule == "R15")
     assert r15.result == "FALLA"
+
+
+def test_annual_in_window_correct_amount_is_pagar(rules: RulesConfig, fx_table: FxTable) -> None:
+    annual_series = _series(
+        {
+            **GLOBEX_MONTHLY,
+            "periodicity": "annual",
+            "end": date(2027, 12, 31),
+        }
+    )
+    policy_rules = rules.model_copy(update={"payment_series": [annual_series]})
+    ctx = make_context(
+        policy_rules,
+        fx_table,
+        beneficiary="Globex LLC",
+        department="Ingenieria",
+        amount=800.0,
+        amount_base=800.0,
+        fee_amount=800.0,
+        due_date="2026-06-15",
+    )
+    checks = run_deterministic_checks(ctx)
+    by_rule = {c.rule: c for c in checks}
+    assert by_rule["R15"].result == "OK"
+    assert decide(checks) == "PAGAR"
+
+
+def test_annual_due_date_after_end_is_r15_escalar(rules: RulesConfig, fx_table: FxTable) -> None:
+    annual_series = _series({**GLOBEX_MONTHLY, "periodicity": "annual"})
+    policy_rules = rules.model_copy(update={"payment_series": [annual_series]})
+    ctx = make_context(
+        policy_rules,
+        fx_table,
+        beneficiary="Globex LLC",
+        department="Ingenieria",
+        amount=800.0,
+        amount_base=800.0,
+        fee_amount=800.0,
+        due_date="2028-01-10",
+    )
+    checks = run_deterministic_checks(ctx)
+    r15 = next(c for c in checks if c.rule == "R15")
+    assert r15.result == "FALLA"
+    assert r15.on_fail == "ESCALAR"
+    assert decide(checks) == "ESCALAR"
+
+
+def test_duplicate_period_within_same_year_annual_is_r16_frenar(
+    rules: RulesConfig, fx_table: FxTable
+) -> None:
+    """Two invoices in the same calendar year (different months) for an
+    `annual` series share the same period key ("YYYY") -- the second one is
+    a duplicate, same as a second monthly invoice in the same month."""
+    annual_series = _series(
+        {
+            **GLOBEX_MONTHLY,
+            "periodicity": "annual",
+            "end": date(2027, 12, 31),
+        }
+    )
+    policy_rules = rules.model_copy(update={"payment_series": [annual_series]})
+    seed = _ledger_entry(
+        beneficiary="Globex LLC",
+        amount_base=800.0,
+        invoice_number="INV-SEED-ANNUAL",
+        received_at="2026-02-01T09:00:00Z",
+        due_date="2026-02-01",
+    )
+    ctx = make_context(
+        policy_rules,
+        fx_table,
+        beneficiary="Globex LLC",
+        department="Ingenieria",
+        amount=800.0,
+        amount_base=800.0,
+        fee_amount=800.0,
+        invoice_number="INV-NEW-ANNUAL",
+        due_date="2026-11-15",
+        ledger=(seed,),
+    )
+    checks = run_deterministic_checks(ctx)
+    r16 = next(c for c in checks if c.rule == "R16")
+    assert r16.result == "FALLA"
+    assert r16.on_fail == "FRENAR"
+    assert decide(checks) == "FRENAR"
 
 
 def test_duplicate_period_different_invoice_number_is_r16_frenar(
@@ -624,7 +724,7 @@ _TOTAL_CAP = st.one_of(st.none(), st.floats(min_value=1, max_value=50_000, allow
 
 @st.composite
 def _calendar_series_payload(draw: st.DrawFn, *, sid: str, beneficiary: str) -> dict:
-    periodicity = draw(st.sampled_from(("monthly", "quarterly", "biweekly")))
+    periodicity = draw(st.sampled_from(("monthly", "quarterly", "biweekly", "annual")))
     start = draw(st.dates(min_value=date(2025, 1, 1), max_value=date(2026, 6, 1)))
     end = draw(
         st.one_of(st.none(), st.dates(min_value=start, max_value=date(2027, 12, 31)))

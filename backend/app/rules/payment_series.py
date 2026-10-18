@@ -18,7 +18,7 @@ from app.rules.context import LedgerEntry
 from app.rules.ledger_queries import COUNTED_DECISIONS
 from app.rules.normalize import normalize_beneficiary
 
-_CALENDAR_PERIODICITIES = frozenset({"monthly", "biweekly", "quarterly"})
+_CALENDAR_PERIODICITIES = frozenset({"monthly", "biweekly", "quarterly", "annual"})
 
 
 @dataclass(frozen=True)
@@ -73,8 +73,8 @@ def resolve_item_key(series: PaymentSeries, due_date: date) -> tuple[str | None,
 def period_key(series: PaymentSeries, due_date: date) -> str | None:
     """Pure period key (§2). ``None`` means "cannot be determined" (fail-closed).
 
-    `monthly` -> ``YYYY-MM``; `quarterly` -> ``YYYY-Qn``; `biweekly` -> the
-    index of the 14-day block counted from `start` (``Bn``);
+    `monthly` -> ``YYYY-MM``; `quarterly` -> ``YYYY-Qn``; `annual` -> ``YYYY``;
+    `biweekly` -> the index of the 14-day block counted from `start` (``Bn``);
     `installments`/`milestones` -> the single item key containing the date.
     """
     if series.periodicity == "monthly":
@@ -82,6 +82,8 @@ def period_key(series: PaymentSeries, due_date: date) -> str | None:
     if series.periodicity == "quarterly":
         quarter = (due_date.month - 1) // 3 + 1
         return f"{due_date.year:04d}-Q{quarter}"
+    if series.periodicity == "annual":
+        return f"{due_date.year:04d}"
     if series.periodicity == "biweekly":
         if series.start is None or due_date < series.start:
             return None
@@ -210,6 +212,15 @@ def _iter_biweekly_keys(start: date, before: date) -> list[str]:
     return [f"B{i}" for i in range(before_index)]
 
 
+def _iter_annual_keys(start: date, before: date) -> list[str]:
+    keys: list[str] = []
+    year = start.year
+    while year < before.year:
+        keys.append(f"{year:04d}")
+        year += 1
+    return keys
+
+
 def expected_periods_before(series: PaymentSeries, due_date: date) -> list[str]:
     """Calendar period keys from `series.start` up to (excluding) `due_date`'s own (§3, R18).
 
@@ -222,4 +233,6 @@ def expected_periods_before(series: PaymentSeries, due_date: date) -> list[str]:
         return _iter_monthly_keys(series.start, due_date)
     if series.periodicity == "quarterly":
         return _iter_quarterly_keys(series.start, due_date)
+    if series.periodicity == "annual":
+        return _iter_annual_keys(series.start, due_date)
     return _iter_biweekly_keys(series.start, due_date)

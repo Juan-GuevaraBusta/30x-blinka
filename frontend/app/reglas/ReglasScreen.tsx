@@ -7,10 +7,6 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { AlertPanel } from "@/components/ui/AlertPanel";
 import type { RulesConfig } from "@/lib/rules-types";
 import { cloneRulesConfig, validateDraft } from "@/lib/rules-form";
-import { versionLabel } from "@/lib/version-label";
-
-const VERSION_NOTE =
-  "Las facturas ya decididas conservan la versión con la que se registraron. Esta pantalla solo sustituye las reglas vigentes.";
 
 async function fetchRules(): Promise<RulesConfig> {
   const res = await fetch("/api/rules", { cache: "no-store" });
@@ -91,16 +87,14 @@ function NumberInput({
 
 export default function ReglasScreen() {
   const [draft, setDraft] = useState<RulesConfig | null>(null);
-  const [savedLabel, setSavedLabel] = useState<string>("");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<string[]>([]);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const applySaved = useCallback(async (doc: RulesConfig) => {
+  const applySaved = useCallback((doc: RulesConfig) => {
     setDraft(cloneRulesConfig(doc));
-    setSavedLabel(await versionLabel(doc));
   }, []);
 
   useEffect(() => {
@@ -109,7 +103,7 @@ export default function ReglasScreen() {
       try {
         const doc = await fetchRules();
         if (!cancelled) {
-          await applySaved(doc);
+          applySaved(doc);
           setLoadError(null);
         }
       } catch (err) {
@@ -143,7 +137,7 @@ export default function ReglasScreen() {
     setSaving(true);
     try {
       const saved = await putRules(parsed.document);
-      await applySaved(saved);
+      applySaved(saved);
       setSaveMessage("Reglas vigentes guardadas.");
     } catch (err) {
       setSaveMessage(err instanceof Error ? err.message : "No se pudo guardar.");
@@ -176,11 +170,6 @@ export default function ReglasScreen() {
             </p>
           }
         />
-        <div className="shrink-0 rounded-xl bg-ink px-4 py-3 text-surface sm:max-w-xs">
-          <p className="text-xs text-surface/70">Versión de contenido</p>
-          <p className="font-mono text-lg tracking-wide">{savedLabel || "—"}</p>
-          <p className="mt-2 text-xs leading-relaxed text-surface/80">{VERSION_NOTE}</p>
-        </div>
       </div>
 
       {(fieldErrors.length > 0 || saveMessage) && (

@@ -37,7 +37,7 @@ export function normalizeVendorKey(rawName: string): string {
   return parts.join(" ");
 }
 
-/** Flat, string-valued form state for `/ajustes/acuerdos/nuevo` (T9.1, D061 §5). */
+/** Flat, string-valued form state for `/reglas/acuerdos/nuevo` (T9.1, D061 §5). */
 export interface AgreementFormState {
   kind: AgreementKind;
   vendor_name: string;

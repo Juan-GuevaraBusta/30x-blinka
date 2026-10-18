@@ -22,6 +22,13 @@ describe("describeAgreement", () => {
     );
   });
 
+  it("summarizes a fixed-amount annual retainer in Spanish", () => {
+    const annual: RetainerAgreement = { ...RETAINER, periodicity: "annual" };
+    expect(describeAgreement(annual)).toBe(
+      "Anual, USD 800, de 2026-01-01 a 2026-12-31, tope USD 9.600",
+    );
+  });
+
   it("summarizes an hourly agreement with overtime", () => {
     const hourly: HourlyAgreement = {
       kind: "hourly",

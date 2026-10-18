@@ -112,7 +112,7 @@ export default function NuevoAcuerdoScreen() {
         return;
       }
       const confirmed = await res.json();
-      router.push(`/ajustes/acuerdos/${encodeURIComponent(confirmed.vendor_key)}`);
+      router.push(`/reglas/acuerdos/${encodeURIComponent(confirmed.vendor_key)}`);
     } catch {
       setError("No se pudo contactar con el servidor.");
     } finally {
@@ -237,6 +237,7 @@ export default function NuevoAcuerdoScreen() {
                 <option value="monthly">Mensual</option>
                 <option value="biweekly">Quincenal</option>
                 <option value="quarterly">Trimestral</option>
+                <option value="annual">Anual</option>
               </select>
             </div>
             <div />

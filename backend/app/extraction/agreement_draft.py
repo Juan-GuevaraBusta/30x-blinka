@@ -124,6 +124,10 @@ _PERIODICITY_ALIASES = {
     "quincenal": "biweekly",
     "quarterly": "quarterly",
     "trimestral": "quarterly",
+    "annual": "annual",
+    "anual": "annual",
+    "yearly": "annual",
+    "annually": "annual",
 }
 
 

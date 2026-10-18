@@ -2,7 +2,7 @@
 
 export type AgreementKind = "retainer" | "hourly" | "installments" | "milestones" | "unit_pricing";
 export type AgreementStatus = "active" | "superseded" | "inactive";
-export type AgreementPeriodicity = "monthly" | "biweekly" | "quarterly";
+export type AgreementPeriodicity = "monthly" | "biweekly" | "quarterly" | "annual";
 
 export interface AmountRange {
   min: number;

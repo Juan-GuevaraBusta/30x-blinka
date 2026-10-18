@@ -142,6 +142,22 @@ def test_retainer_compiles_to_payment_series_shape(base_rules: RulesConfig) -> N
     assert compiled.provenance["payment_series:globex"] == series.id
 
 
+def test_annual_retainer_compiles_to_payment_series_shape(base_rules: RulesConfig) -> None:
+    agreement = _retainer(
+        periodicity="annual",
+        amount={"min": 9600, "max": 9600},
+        valid_to=date(2027, 12, 31),
+        total_cap=None,
+    )
+    compiled = compile_rules(base_rules, [_active(agreement)])
+    series = next(s for s in compiled.rules.payment_series if s.beneficiary == "Globex LLC")
+    assert series.periodicity == "annual"
+    assert series.expected_amount == AmountRange(min=9600, max=9600)
+    assert series.start == date(2026, 1, 1)
+    assert series.end == date(2027, 12, 31)
+    assert compiled.provenance["payment_series:globex"] == series.id
+
+
 def test_installments_compiles_to_payment_series_shape(base_rules: RulesConfig) -> None:
     compiled = compile_rules(base_rules, [_active(_installments())])
     f7 = load_rules_config(F7_RULES_PATH)

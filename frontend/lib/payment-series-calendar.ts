@@ -8,7 +8,13 @@ import type { DecisionRecord } from "@/lib/decision-types";
  * (T7.5 §2: "la UI solo muestra lo que devuelve el API").
  */
 
-export type SeriesPeriodicity = "monthly" | "biweekly" | "quarterly" | "installments" | "milestones";
+export type SeriesPeriodicity =
+  | "monthly"
+  | "biweekly"
+  | "quarterly"
+  | "annual"
+  | "installments"
+  | "milestones";
 
 export interface AmountRange {
   min: number;
@@ -35,7 +41,12 @@ export interface PaymentSeries {
   items: SeriesItem[];
 }
 
-const CALENDAR_PERIODICITIES = new Set<SeriesPeriodicity>(["monthly", "biweekly", "quarterly"]);
+const CALENDAR_PERIODICITIES = new Set<SeriesPeriodicity>([
+  "monthly",
+  "biweekly",
+  "quarterly",
+  "annual",
+]);
 const MAX_PERIODS = 240;
 
 function parseIsoDate(value: string): Date {
@@ -55,6 +66,9 @@ export function periodKey(series: PaymentSeries, dueDateIso: string): string | n
   if (series.periodicity === "quarterly") {
     const quarter = Math.floor(due.getUTCMonth() / 3) + 1;
     return `${due.getUTCFullYear()}-Q${quarter}`;
+  }
+  if (series.periodicity === "annual") {
+    return `${due.getUTCFullYear()}`;
   }
   if (series.periodicity === "biweekly") {
     if (!series.start) return null;
@@ -110,6 +124,15 @@ export function expectedPeriods(series: PaymentSeries, throughIso: string): stri
         quarter = 1;
         year += 1;
       }
+    }
+    return keys;
+  }
+  if (series.periodicity === "annual") {
+    let year = start.getUTCFullYear();
+    const lastYear = last.getUTCFullYear();
+    while (year <= lastYear && keys.length < MAX_PERIODS) {
+      keys.push(`${year}`);
+      year += 1;
     }
     return keys;
   }

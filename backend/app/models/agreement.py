@@ -25,7 +25,7 @@ from app.rules.normalize import normalize_beneficiary
 
 AgreementStatus = Literal["active", "superseded", "inactive"]
 AgreementKind = Literal["retainer", "hourly", "installments", "milestones", "unit_pricing"]
-_RETAINER_PERIODICITIES = ("monthly", "biweekly", "quarterly")
+_RETAINER_PERIODICITIES = ("monthly", "biweekly", "quarterly", "annual")
 
 
 class OvertimeTerms(BaseModel):
@@ -106,7 +106,7 @@ class _AgreementCommon(BaseModel):
 
 class RetainerAgreement(_AgreementCommon):
     kind: Literal["retainer"] = "retainer"
-    periodicity: Literal["monthly", "biweekly", "quarterly"]
+    periodicity: Literal["monthly", "biweekly", "quarterly", "annual"]
     amount: AmountRange
     total_cap: float | None = Field(default=None, gt=0)
 

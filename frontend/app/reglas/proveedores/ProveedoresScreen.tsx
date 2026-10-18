@@ -64,7 +64,7 @@ export default function ProveedoresScreen() {
           {vendors.map((name) => (
             <li key={name}>
               <Link
-                href={`/ajustes/proveedores/${encodeURIComponent(name)}`}
+                href={`/reglas/proveedores/${encodeURIComponent(name)}`}
                 className="panel block px-4 py-3 text-sm font-medium text-ink hover:bg-paper focus-ring"
               >
                 {name}

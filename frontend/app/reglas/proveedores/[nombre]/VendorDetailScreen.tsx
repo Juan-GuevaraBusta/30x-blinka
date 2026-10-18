@@ -102,7 +102,7 @@ export default function VendorDetailScreen({ vendorNameParam }: { vendorNamePara
         title={vendorName}
         description={
           <p>
-            <Link href="/ajustes/proveedores" className="text-accent hover:underline focus-ring">
+            <Link href="/reglas/proveedores" className="text-accent hover:underline focus-ring">
               Proveedores
             </Link>
           </p>

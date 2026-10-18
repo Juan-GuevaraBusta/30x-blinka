@@ -153,3 +153,16 @@ def test_spanish_periodicity_is_normalized_and_unknown_is_dropped() -> None:
     result = draft_agreement(DOC, FakeLlm(response))
     assert "periodicity" not in result.draft
     assert "periodicity" in result.missing
+
+
+def test_spanish_anual_periodicity_is_normalized_to_annual() -> None:
+    annual_doc = (
+        "CONTRATO SINTÉTICO\n"
+        "1.1 El beneficiario autorizado es Globex LLC.\n"
+        "3.1 La facturación es anual.\n"
+        "4.1 La tarifa pactada es 9600 USD por periodo anual.\n"
+    )
+    response = _valid_response()
+    response["periodicity"] = "anual"
+    response["quotes"]["periodicity"] = "La facturación es anual."
+    assert draft_agreement(annual_doc, FakeLlm(response)).draft["periodicity"] == "annual"

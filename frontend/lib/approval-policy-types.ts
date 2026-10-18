@@ -1,7 +1,7 @@
 /**
  * Mirrors `backend/app/models/rules_config.py` `ApprovalPolicy` (T7.1, D059).
  * Read-only contract shape — this file never implements rule logic, only the
- * document shape the `/ajustes/politica` editor reads from and writes back to
+ * document shape the `/reglas/politica` editor reads from and writes back to
  * `approval_policy` inside the `RulesConfig` document returned by `GET /rules`.
  */
 

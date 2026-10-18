@@ -54,7 +54,7 @@ export default function AcuerdosScreen() {
         }
       >
         <Link
-          href="/ajustes/acuerdos/nuevo"
+          href="/reglas/acuerdos/nuevo"
           className="inline-flex items-center rounded-lg border border-line bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 focus-ring"
         >
           Nuevo acuerdo
@@ -74,7 +74,7 @@ export default function AcuerdosScreen() {
           {state.entries.map((entry) => (
             <li key={entry.vendor_key}>
               <Link
-                href={`/ajustes/acuerdos/${encodeURIComponent(entry.vendor_key)}`}
+                href={`/reglas/acuerdos/${encodeURIComponent(entry.vendor_key)}`}
                 className="panel flex flex-wrap items-baseline justify-between gap-2 px-4 py-3 text-sm hover:bg-paper focus-ring"
               >
                 <span className="font-medium text-ink">{entry.vendor_name}</span>
