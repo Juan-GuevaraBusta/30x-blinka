@@ -7,13 +7,13 @@ from pathlib import Path
 
 import pytest
 from app.config import ConfigError
+from app.extraction import ingest_path
 from app.extraction.extract import (
     EXTRACTOR_SYSTEM_PROMPT,
     ExtractError,
     extract_document,
 )
 from app.llm import DecisionClientError
-from backend.app.extraction import ingest_path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXTRACT_SOURCE = Path(__file__).resolve().parents[1] / "app" / "extraction" / "extract.py"

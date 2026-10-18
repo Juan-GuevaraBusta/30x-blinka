@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from backend.app.extraction import (
+from app.extraction import (
     IngestError,
     ingest_bytes,
     ingest_path,

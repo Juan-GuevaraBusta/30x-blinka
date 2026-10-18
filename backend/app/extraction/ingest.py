@@ -10,8 +10,9 @@ import re
 from pathlib import Path
 from typing import Literal
 
-from backend.app.extraction.text_normalize import normalize_document_text
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.extraction.text_normalize import normalize_document_text
 
 IngestChannel = Literal["pdf_text", "image", "email", "chat"]
 
