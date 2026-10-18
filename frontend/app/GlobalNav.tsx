@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { isActiveNavLink, NAV_LINKS } from "@/lib/nav";
 import { clearStoredUserId, getStoredUserId } from "@/lib/session";
@@ -41,7 +42,14 @@ function NavLinks({ orientation }: { orientation: "vertical" | "horizontal" }) {
 
 function SignOutButton() {
   const pathname = usePathname();
-  if (pathname === "/entrar" || !getStoredUserId()) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const path = pathname ?? "/";
+    setVisible(path !== "/entrar" && Boolean(getStoredUserId()));
+  }, [pathname]);
+
+  if (!visible) {
     return null;
   }
   return (
