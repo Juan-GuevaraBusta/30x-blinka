@@ -1,12 +1,13 @@
 # Guía para evaluadores — Tachyon (Hackathon 30x · reto Blinka)
 
-> **Borrador de estructura (T5.5, D046).** `T5.1` (`docs/TASK_BOARD.md`)
-> sigue **PENDIENTE**. Por `docs/T5_5_SPEC.md` §0, mientras eso sea así esta
-> guía solo trae el esqueleto y las filas sin cifras: ninguna cifra de
-> autonomía, `unsafe_pay`, montos o conteo de chequeos se escribe aquí
-> todavía. Cualquier afirmación sin evidencia verificable en el repo
-> (archivo, prueba o reporte) se borra, no se deja como promesa. Esta tarea
-> no se marca hecha en el tablero.
+> **Estado (T5.5/T5.6, D046/D047).** `T5.1` está **HECHA**
+> (`docs/TASK_BOARD.md`). Las cifras de esta guía citan `eval/reports/latest.md`
+> (corrida oficial dev + holdout) y `eval/reports/post_t51_dev.md` (rerun de
+> dev tras el arreglo de R06/J6, decisión **D068**). El holdout se corrió
+> **una sola vez, antes** de ese arreglo. `unsafe_pay = 0` en dev, holdout,
+> adversariales y motor. Cualquier afirmación sin evidencia verificable en
+> el repo (archivo, prueba o reporte) se borró o quedó marcada «no
+> afirmado» (T5.6, ver nota de auditoría al final de `docs/T5_6_SPEC.md`).
 
 ## 1. Cómo ejecutar
 
@@ -28,8 +29,8 @@ imágenes y no tiene integración con un buzón de correo real.
 
 ## 3. Afirmación → evidencia
 
-Solo filas cuya ruta de evidencia existe hoy en el repo. Sin cifras
-(`unsafe_pay`, autonomía, montos, conteos) mientras T5.1 esté PENDIENTE.
+Solo filas cuya ruta de evidencia existe hoy en el repo y que, abierta en
+esta sesión, dice lo que la fila afirma (T5.6).
 
 | Afirmación | Dónde verificarla |
 |---|---|
@@ -53,36 +54,62 @@ Solo filas cuya ruta de evidencia existe hoy en el repo. Sin cifras
 | Reglas configurables | `data/rules.json`; `frontend/app/reglas/` |
 | Hay ficha de decisión en la UI | `frontend/app/decisiones/[id]/` |
 | Demo en URL pública (G4) | URLs en `README.md` → «Despliegue público»; fila G4 de `docs/TASK_BOARD.md`. G5 no está cerrado |
-| La API no exige autenticación de usuario en endpoints mutantes hasta T9.6.0 | `docs/TASK_BOARD.md` fila T9.6 (PENDIENTE, D062) |
+| La identidad del usuario no se verifica contra un JWT en el servidor (límite conocido, sin tarea de cierre programada) | `docs/TASK_BOARD.md` fila T9.8 (HECHA, D067): «Identidad sigue sin verificar el JWT (límite conocido)»; `docs/T9_8_SPEC.md` §5 |
+| El LLM extractor es `openai/gpt-4o-mini`, el verificador `anthropic/claude-sonnet-5` y el JEV `typesafe/jev-router` (dev y holdout) | `eval/reports/latest.md`, sección «Versiones» |
+| El grafo es conservador: en la corrida oficial, 0/11 facturas esperadas en PAGAR llegan a PAGAR (las 11 escalan); tras D068 sube a 2/11, con 6 de las 9 restantes escaladas por J6 bajo umbral y 3 por PNG sin OCR | `eval/reports/latest.md` (matriz esperado × obtenido, dev); `eval/reports/post_t51_dev.md`; `docs/DECISIONS_LOG.md` D068 |
+| Dev oficial (T5.1): n=34, `unsafe_pay=0`, autonomía 55.9 % (19/34) | `eval/reports/latest.md` |
+| Dev tras el arreglo de R06/J6 (D068): `unsafe_pay=0`, autonomía 61.8 % (PAGAR 2/11) | `eval/reports/post_t51_dev.md`; `docs/DECISIONS_LOG.md` D068 |
+| Holdout (T5.1): n=10, `unsafe_pay=0`, autonomía 30.0 % — corrida única, **antes** del arreglo D068; no se repitió | `eval/reports/latest.md`; `docs/DECISIONS_LOG.md` D068 |
+| Adversariales: 8/8 casos no-PAGAR, `unsafe_pay=0` | `eval/reports/adversarial.md` |
+| Motor determinista (extracción verdadera, sin LLM): dev 34/34, f7 16/16, `unsafe_pay=0` | `eval/reports/metrics_summary.json` |
 | Hay una condición de carrera en el límite de periodo del ledger hasta T5.8 | `docs/TASK_BOARD.md` fila T5.8 (HECHA, D055) — mitigada con lock de proceso de un solo worker; ver limitación de worker único |
 | Exposición registrada del holdout al motor (no es la corrida e2e de T5.1) | `docs/DECISIONS_LOG.md` D064 |
 
-### Métricas (todas pendientes de `eval/reports/latest.md`, T5.1)
+### Métricas (fuente: `eval/reports/latest.md` y `eval/reports/post_t51_dev.md`)
+
+| Split | n | `unsafe_pay` | Autonomía | `over_escalation` | `reason_accuracy` | `explain_ok` |
+|---|---|---|---|---|---|---|
+| dev (oficial, `latest.md`) | 34 | 0 | 55.9 % (19/34) | 100.0 % | 14.7 % | 100.0 % |
+| dev (tras D068, `post_t51_dev.md`) | 34 | 0 | 61.8 % (PAGAR 2/11) | 81.8 % | 47.1 % | 100.0 % |
+| holdout (`latest.md`, única, antes de D068) | 10 | 0 | 30.0 % | 100.0 % | 10.0 % | 100.0 % |
 
 | Celda | Texto |
 |---|---|
-| Holdout (`unsafe_pay`, autonomía) | pendiente T5.1 |
-| Adversariales (`unsafe_pay`) | pendiente T5.3 |
-| `over_escalation`, `reason_accuracy`, `explain_ok`, `blind_read` | pendiente T5.1 o T5.4 |
-| `latency_p50`, `cost_per_invoice` | pendiente T5.1 |
+| Adversariales (`unsafe_pay`) | 0; 8/8 no-PAGAR — `eval/reports/adversarial.md` |
+| `blind_read` | pendiente T5.4 |
+| `latency_p50`, `cost_per_invoice` | pendiente T5.1: no está en `eval/reports/latest.md` |
 
 ## 4. Cómo reproducir las métricas
 
-`eval/reports/latest.md` todavía no existe (T5.1 PENDIENTE), así que esta
-guía no manda ejecutar `eval/run_eval.py` todavía. Lo único reproducible
-hoy sin tocar el holdout:
+El resultado oficial, ya comprometido en el repo, es `eval/reports/latest.md`
+(dev + holdout, corrido una sola vez) y `eval/reports/post_t51_dev.md`
+(rerun de solo-dev tras D068). No se vuelve a correr el holdout: su cifra
+oficial sigue siendo la de antes del arreglo.
 
 ```bash
 python -m pytest -q
+python eval/run_motor.py --split dev
+python eval/run_motor.py --split f7
+python eval/run_eval.py --output /tmp/latest-dev-check.md
 ```
+
+El último comando reproduce solo la corrida de **dev** (sin `--include-holdout`)
+en un archivo temporal, para no sobrescribir el reporte oficial del repo.
 
 ## 5. Limitaciones conocidas
 
 - Un solo worker: el lock que serializa decisiones del ledger es de
   proceso, no distribuido (`backend/app/api/app.py`).
-- `X-User-Id` no se verifica del lado del servidor hasta T9.6.0
-  (`docs/TASK_BOARD.md` fila T9.6).
+- `X-User-Id` no se verifica contra un JWT del lado del servidor (límite
+  conocido, sin tarea de cierre programada; `docs/TASK_BOARD.md` fila T9.8,
+  HECHA, D067).
 - Nota sobre exposición del holdout al motor, sin usarla para calibrar
   (`docs/DECISIONS_LOG.md` D064).
-- Esta guía es un borrador de estructura: no completa cifras de evaluación
-  mientras T5.1 esté PENDIENTE (`docs/T5_5_SPEC.md`).
+- La corrida e2e del holdout (T5.1, `eval/reports/latest.md`) se hizo una
+  sola vez, antes del arreglo de R06/J6 (D068); no se repitió, así que su
+  autonomía (30.0 %) es anterior a ese arreglo.
+- El grafo es conservador: la mayoría de las facturas esperadas en PAGAR
+  escalan, sobre todo por la señal JEV J6 bajo umbral o por facturas en
+  imagen PNG sin OCR (`eval/reports/post_t51_dev.md`, D068).
+- `latency_p50` y `cost_per_invoice` no están en ningún reporte comprometido
+  hoy; no se afirman.

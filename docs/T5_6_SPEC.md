@@ -152,3 +152,53 @@ Al terminar: diff de JUDGE_GUIDE.md y README.md, más la «Nota de auditoría»
 al final de docs/T5_6_SPEC.md (filas borradas y por qué). Commit y push:
 T5.6: remove claims that lack a cited file
 ```
+
+## Nota de auditoría (2026-10-18)
+
+Auditoría ejecutada con T5.1 y T5.5 ya HECHA (cifras de evaluación ya
+rellenadas). Se recorrió cada fila de la tabla afirmación → evidencia de
+`JUDGE_GUIDE.md` y cada frase citable de `README.md`:
+
+- Se verificó, archivo por archivo, que cada ruta citada en `JUDGE_GUIDE.md`
+  existe en el repo (comando `test -e` sobre cada path de la tabla; todas
+  presentes: `backend/app/rules/decide.py`, `backend/app/gate/final_gate.py`,
+  `backend/app/records/chain.py`, `.github/workflows/ci.yml`,
+  `backend/app/extraction/ingest.py`, `docs/02_ARCHITECTURE.md`,
+  `eval/reports/latest.md`, `eval/reports/post_t51_dev.md`,
+  `eval/reports/adversarial.md`, `eval/reports/metrics_summary.json`, entre
+  otras). Se abrió el contenido citado de los archivos de mayor riesgo
+  (`verify-chain` en `backend/app/api/app.py`, `build_next_step` en
+  `backend/app/records/build.py`, `test_r13_fail_injection_dev031`,
+  `illegible` en `ingest.py`, el paso de eval en `ci.yml`, y `render.yaml`
+  para la fila I9) y coincide con lo que la fila afirma.
+- **Fila corregida** (`JUDGE_GUIDE.md`, afirmación sobre identidad de
+  usuario): decía «hasta T9.6.0», citando `docs/TASK_BOARD.md` fila T9.6
+  (PENDIENTE, D062). `docs/TASK_BOARD.md` muestra T9.6 como **REEMPLAZADA
+  por T9.8** (D067), y T9.8 está **HECHA** con la nota «Identidad sigue sin
+  verificar el JWT (límite conocido)». Motivo: la fila citaba una tarea que
+  ya no está vigente con ese estado. Se corrigió la cita a T9.8
+  (HECHA, D067) y se quitó el número de tarea inexistente «T9.6.0»,
+  dejándola como límite conocido sin tarea de cierre programada. La misma
+  corrección se aplicó a la fila equivalente en «5. Limitaciones
+  conocidas» de `JUDGE_GUIDE.md`.
+- Ninguna otra fila se borró: todas las rutas restantes existen y, al
+  abrirlas, sostienen la afirmación de su fila.
+- `README.md`: no se encontraron frases de la foto del §6 (fase F0, «URL de
+  ejemplo», «repo vacío», fila `*(pendiente T5.5)*`); el README ya no las
+  tenía antes de esta auditoría.
+- **Discrepancia encontrada y no corregida en esta pasada**: la sección
+  «Cuenta de prueba para jueces» del `README.md` dice que la cuenta trae
+  «la política de aprobación (4 rutas)». `docs/AI_USAGE_LOG.md` (entrada
+  2026-10-18 09:50) registra que esa cifra se corrigió a **2 rutas**,
+  verificado contra `backend/scripts/_demo_fixtures.py`. Esta auditoría no
+  tocó esa sección por instrucción explícita de mantenerla intacta; queda
+  anotada aquí como afirmación no verificada para una próxima pasada.
+- Sin cifras de holdout fuera de las ya citadas de `eval/reports/latest.md`
+  (etiquetadas como corrida única, anterior a D068). `unsafe_pay = 0` solo
+  se afirma con cita a `eval/reports/latest.md`, `post_t51_dev.md`,
+  `eval/reports/adversarial.md` o `eval/reports/metrics_summary.json`,
+  según el alcance de cada fila. La fila I9 sigue diciendo que el gate de
+  eval está cableado en CI (`.github/workflows/ci.yml`) pero no en el
+  despliegue de Render (`render.yaml` no ejecuta `eval/`).
+- Sin ediciones de `backend/`, `data/`, `eval/`, `frontend/` ni `render.yaml`.
+  Sin lectura de `.env`.

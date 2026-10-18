@@ -1,11 +1,15 @@
 # Tachyon — agente de pagos a proveedores (Hackathon 30x · reto Blinka)
 
-> **Borrador de estructura (T5.5, D046).** `T5.1` (`docs/TASK_BOARD.md`) sigue
-> **PENDIENTE**. Por contrato (`docs/T5_5_SPEC.md` §0 y criterio de aceptación 0),
-> mientras eso sea así este README solo trae estructura y afirmaciones sin
-> cifras: nada de autonomía, `unsafe_pay`, montos ni conteos de chequeos. Las
-> celdas de métricas quedan marcadas `pendiente T5.1`. Esta tarea no se marca
-> hecha en el tablero.
+> **Estado (T5.5, D046).** `T5.1` (`docs/TASK_BOARD.md`) está **HECHA**. Las
+> cifras de este README citan `eval/reports/latest.md` (corrida oficial dev +
+> holdout) y `eval/reports/post_t51_dev.md` (rerun de dev tras el arreglo de
+> R06/J6, decisión **D068**). El holdout se corrió **una sola vez, antes**
+> de ese arreglo, y no se repitió: su autonomía (30.0 %) es anterior a D068.
+> `unsafe_pay = 0` en dev, holdout, adversariales y motor. El grafo es
+> **conservador**: la mayoría de las facturas que el set dorado espera en
+> PAGAR terminan en ESCALAR, sobre todo por la señal JEV J6 bajo umbral y
+> por facturas en imagen PNG sin OCR. Ver `JUDGE_GUIDE.md` para la tabla
+> completa afirmación → evidencia.
 
 <details>
 <summary>English summary (for non-Spanish graders — the rest of this document is in Spanish, the project's documentation language)</summary>
@@ -21,8 +25,16 @@ timeout, or low-confidence signal the system fails closed into ESCALAR
 lower it. "PAGAR" records a decision and a **simulated** payment status —
 no real money moves, no real KYC/fraud determination is made, no OCR runs
 on image invoices, and there is no live mailbox integration. See
-`JUDGE_GUIDE.md` for the claim → evidence table. Metrics are not yet
-reported here; T5.1 (dev + holdout evaluation) is pending.
+`JUDGE_GUIDE.md` for the claim → evidence table.
+
+Metrics (`eval/reports/latest.md`, dev n=34 / holdout n=10): `unsafe_pay = 0`
+on both splits; autonomy 55.9% dev / 30.0% holdout. The holdout ran once,
+**before** a later fix (D068, `eval/reports/post_t51_dev.md`) that raised
+dev autonomy to 61.8% (PAGAR 2/11, `unsafe_pay` still 0) — the holdout was
+not re-run after that fix, so its 30.0% figure predates it. The graph is
+conservative: most expected-PAGAR invoices still escalate, mainly because
+the JEV J6 signal sits below its threshold, or because PNG invoices have
+no OCR.
 
 </details>
 
@@ -149,27 +161,46 @@ En `/decisiones/[id]` cada decisión muestra los chequeos, la explicación y el 
   `company_members` (T9.8); la bandeja de correos sigue por usuario y usa los
   aprobadores de la demo.
 - **Nota sobre el holdout.** Durante otra tarea, el *motor* (sin LLM) se
-  corrió una vez sobre el holdout como chequeo de regresión; eso no es la
-  corrida e2e de holdout que hace T5.1 y no se usó para calibrar nada
-  (decisión **D064**, `docs/DECISIONS_LOG.md`).
+  corrió una vez sobre el holdout como chequeo de regresión, sin usarlo
+  para calibrar nada (decisión **D064**, `docs/DECISIONS_LOG.md`). La
+  corrida e2e del grafo sobre el holdout (T5.1, `eval/reports/latest.md`)
+  se hizo una sola vez, **antes** del arreglo de R06/J6 (decisión **D068**,
+  `eval/reports/post_t51_dev.md`); no se volvió a correr, así que su
+  autonomía (30.0 %) es anterior a ese arreglo.
 
 ## Métricas
 
-Sin `eval/reports/latest.md` todavía, ninguna cifra de evaluación se
-escribe aquí:
+Fuente: `eval/reports/latest.md` (corrida oficial `eval/run_eval.py
+--output eval/reports/latest.md --include-holdout`, 2026-10-18) y
+`eval/reports/post_t51_dev.md` (rerun de solo-dev tras el arreglo de
+R06/J6, decisión **D068**, `docs/DECISIONS_LOG.md`).
+
+| Split | n | `unsafe_pay` | Autonomía | `over_escalation` | `reason_accuracy` | `explain_ok` |
+|---|---|---|---|---|---|---|
+| dev (oficial, `latest.md`) | 34 | 0 | 55.9 % (19/34) | 100.0 % | 14.7 % | 100.0 % |
+| dev (tras arreglo R06/J6, `post_t51_dev.md`, D068) | 34 | 0 | 61.8 % (PAGAR 2/11) | 81.8 % | 47.1 % | 100.0 % |
+| holdout (`latest.md`, corrida única, **antes** de D068) | 10 | 0 | 30.0 % | 100.0 % | 10.0 % | 100.0 % |
+
+El grafo es conservador: en la corrida oficial, 0 de 11 facturas que el set
+dorado espera en PAGAR llegan a PAGAR (las 11 escalan). Tras el arreglo
+R06/J6 (D068) eso sube a 2/11 en dev; de las 9 que siguen sin pagar, 6
+escalan porque la señal JEV J6 queda bajo su umbral (juicio no
+determinista de JEV) y 3 son facturas en imagen PNG sin OCR. El holdout no
+se volvió a correr después de ese arreglo, así que su 30.0 % sigue siendo
+la cifra **previa**.
 
 | Celda | Estado |
 |---|---|
-| Autonomía / `unsafe_pay` (dev y holdout) | `[pendiente T5.1: autonomía dev/holdout de eval/reports/latest.md]` |
-| Adversariales (`unsafe_pay`) | `[pendiente T5.3]` |
-| `over_escalation`, `reason_accuracy`, `explain_ok`, `blind_read` | `[pendiente T5.1 / T5.4]` |
-| `latency_p50`, `cost_per_invoice` | `[pendiente T5.1]` |
+| Adversariales (`unsafe_pay`) | 0; 8/8 casos no-PAGAR — `eval/reports/adversarial.md` |
+| Referencia de motor (extracción verdadera, sin LLM) | dev 34/34, f7 16/16, `unsafe_pay = 0` — `eval/reports/metrics_summary.json` |
+| `blind_read` | `[pendiente T5.4]` |
+| `latency_p50`, `cost_per_invoice` | `[pendiente T5.1: no está en eval/reports/latest.md]` |
 
 ## Estado
 
 Ver `docs/TASK_BOARD.md` para el estado real de cada tarea y gate. A la
-fecha de este borrador: T5.1 PENDIENTE, T5.5 en borrador de estructura
-(esta misma entrega), G5 y G6 PENDIENTE.
+fecha de esta entrega: T5.1, T5.3, T5.5 y T5.6 **HECHA**; G5 y G6 siguen
+**PENDIENTE** (su cierre es decisión del Orquestador, no de esta entrega).
 
 ## Guía para evaluadores
 
