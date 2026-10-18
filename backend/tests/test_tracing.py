@@ -209,3 +209,49 @@ def test_graph_import_exports_tracing_without_sockets(monkeypatch: pytest.Monkey
     assert graph.NullTrace is not None
     assert callable(graph.make_langsmith_session)
     assert connects == []
+
+
+def test_finish_builds_run_url_with_client_when_run_has_none() -> None:
+    # Production records had langsmith_run_id but url=None, so the UI had no
+    # "Ver traza" link. The SDK's get_run_url fills it (best effort).
+    from types import SimpleNamespace
+
+    from app.graph.tracing import _LangSmithSession
+
+    session = object.__new__(_LangSmithSession)
+    session._failed = False
+    session._project_name = "blinka"
+    run = SimpleNamespace(trace_id="t-1", id="r-1", url=None)
+    session._tracer = SimpleNamespace(latest_run=run)
+    session._client = SimpleNamespace(
+        get_run_url=lambda *, run, project_name: f"https://smith.example/{project_name}/{run.id}"
+    )
+
+    ref = session.finish("PAGAR")
+
+    assert ref is not None
+    assert ref.langsmith_run_id == "t-1"
+    assert ref.url == "https://smith.example/blinka/r-1"
+
+
+def test_finish_keeps_run_id_when_url_lookup_fails() -> None:
+    from types import SimpleNamespace
+
+    from app.graph.tracing import _LangSmithSession
+
+    def boom(**_kw: object) -> str:
+        raise RuntimeError("network")
+
+    session = object.__new__(_LangSmithSession)
+    session._failed = False
+    session._project_name = "blinka"
+    session._tracer = SimpleNamespace(
+        latest_run=SimpleNamespace(trace_id="t-2", id="r-2", url=None)
+    )
+    session._client = SimpleNamespace(get_run_url=boom)
+
+    ref = session.finish("ESCALAR")
+
+    assert ref is not None
+    assert ref.langsmith_run_id == "t-2"
+    assert ref.url is None

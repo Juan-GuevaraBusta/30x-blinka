@@ -552,3 +552,21 @@ def test_r13_ok_clean_text_no_j7(rules, fx_table) -> None:
 def test_run_checks_all_ok_normal_pay_fixture(rules, fx_table) -> None:
     results = run_deterministic_checks(make_context(rules, fx_table))
     assert all(r.result == "OK" for r in results)
+
+
+def test_r06_variable_agreement_explains_formula_instead_of_missing_contract(fx_table) -> None:
+    # Demo case: an hourly agreement exists, so «Contrato ausente» was misleading.
+    import json
+    from pathlib import Path
+
+    from app.models.rules_config import RulesConfig
+    from app.rules.checks import check_r06
+
+    raw = json.loads(Path("data/f7/rules.json").read_text(encoding="utf-8"))
+    f7_rules = RulesConfig.model_validate(raw)
+    ctx = make_context(f7_rules, fx_table, beneficiary="Andesbyte SAS", contract_confirmed=False)
+    res = check_r06(ctx)
+
+    assert res.result == "INDETERMINADO"  # still never PAGAR on its own
+    assert "Contrato ausente" not in res.detail
+    assert "variable" in res.detail.lower()

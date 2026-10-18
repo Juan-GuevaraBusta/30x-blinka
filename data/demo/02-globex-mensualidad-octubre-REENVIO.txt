@@ -1,0 +1,7 @@
+Beneficiario: Globex LLC
+Para: Acme Demo Inc.
+Numero: GX-2026-10-001
+Concepto: Mensualidad de servicios de octubre 2026
+Total: 1200 USD
+Vence: 2026-10-31
+Departamento: Ingenieria

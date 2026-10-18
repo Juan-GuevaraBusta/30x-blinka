@@ -36,6 +36,7 @@ class _LangSmithSession:
         if endpoint:
             client_kwargs["api_url"] = endpoint
         self._client = Client(**client_kwargs)
+        self._project_name = settings.langsmith_project
         self._tracer = LangChainTracer(
             project_name=settings.langsmith_project,
             client=self._client,
@@ -65,10 +66,19 @@ class _LangSmithSession:
             root_id = run.trace_id or run.id
             url = getattr(run, "url", None)
             if not isinstance(url, str) or not url:
-                url = None
+                url = self._run_url(run)
             return TraceRef(langsmith_run_id=str(root_id), url=url)
         except Exception:
             return None
+
+
+    def _run_url(self, run: object) -> str | None:
+        """Best effort: a missing link must never break the decision."""
+        try:
+            url = self._client.get_run_url(run=run, project_name=self._project_name)
+        except Exception:
+            return None
+        return url if isinstance(url, str) and url else None
 
 
 def make_langsmith_session(settings: Settings) -> TraceSession:

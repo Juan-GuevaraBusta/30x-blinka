@@ -1,0 +1,9 @@
+Beneficiario: Andesbyte SAS
+Para: Acme Demo Inc.
+Numero: AB-2026-10-017
+Concepto: 50 horas de desarrollo en octubre 2026 a 45 USD por hora
+Horas: 50
+Tarifa: 45 USD/hora
+Total: 2250 USD
+Vence: 2026-10-31
+Departamento: Ingenieria

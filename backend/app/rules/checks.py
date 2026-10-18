@@ -37,6 +37,7 @@ from app.rules.payment_series import (
 )
 from app.rules.variable_pricing import (
     expected_amount,
+    find_pricing_terms,
     format_calculation_detail,
     invoice_amount_in_terms,
     validate_metered_for_terms,
@@ -220,6 +221,14 @@ def check_r05(ctx: RuleContext) -> CheckResult:
 
 def check_r06(ctx: RuleContext) -> CheckResult:
     if ctx.contract_terms is None or not ctx.contract_confirmed:
+        if find_pricing_terms(ctx.rules, ctx.extraction.beneficiary) is not None:
+            # A variable agreement exists: the amount is checked by its formula
+            # (R19) and always goes to a human; there is no fixed fee to compare.
+            return _indeterminate(
+                "R06",
+                "Acuerdo de pago variable: no hay tarifa fija; el monto se valida "
+                "con la fórmula pactada (R19) y requiere revisión humana.",
+            )
         return _indeterminate("R06", "Contrato ausente o sin confirmar.")
     converted_fee = convert_to_base(
         ctx.contract_terms.fee_amount, ctx.contract_terms.fee_currency, ctx.fx_table
