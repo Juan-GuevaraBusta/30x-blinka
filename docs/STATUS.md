@@ -39,8 +39,17 @@ Ninguna otra cifra de métricas se afirma en esta página sin el archivo que la 
 
 ## Pendiente, por fase
 
-- **F5:** T5.1 (eval dev + holdout), T5.2 (calibrar JEV), T5.3 (casos adversariales), T5.4 (lectura ciega), T5.6 (revisión final de afirmaciones), T5.10 (hash-chain de registros), T5.11 (`Decimal` para dinero).
-- **F6:** T6.1 (guion de demo), T6.2 (video de respaldo), T6.3 (etiqueta y congelar rama), T6.5 (licencia/seguridad/contribución), T6.6 (esta página y sincronización del roadmap).
+Regenerado desde la columna Estado de `docs/TASK_BOARD.md` (2026-10-17). F0–F4 no tienen tareas PENDIENTE.
+
+- **F5:** T5.1 (eval dev + holdout), T5.2 (calibrar JEV), T5.3 (casos adversariales), T5.4 (lectura ciega), T5.5 (README, `JUDGE_GUIDE.md` y ejemplos de registros), T5.6 (revisión final de afirmaciones), T5.10 (hash-chain de registros), T5.11 (`Decimal` para dinero).
+- **F6:** T6.1 (guion de demo), T6.2 (video de respaldo), T6.3 (etiqueta y congelar rama).
+
+## Hecho, por fase (F5–F6)
+
+F0–F4 ya están cerradas por las gates G0–G4 arriba; el detalle tarea por tarea queda en `docs/TASK_BOARD.md`.
+
+- **F5:** T5.7 (unificar import del backend), T5.8 (lock de ledger por periodo), T5.9 (clave de admin + validar aprobador), T5.12 (decodificar streams FlateDecode en PDF).
+- **F6:** T6.4 (CI con gate de eval y CodeQL), T6.5 (licencia/seguridad/contribución), T6.6 (página de estado y sincronización del roadmap), T6.7 (navegación global, tablero inicial y decisiones clicables).
 
 Detalle completo de cada tarea, dueño y evidencia: `docs/TASK_BOARD.md`.
 

@@ -87,6 +87,7 @@ Ruta crítica: **F1 (datos y contratos) → F2 (motor) → F3 (grafo) → F4 (UI
 - [x] **T5.9** Exigir clave de administrador en los endpoints que mutan y validar el aprobador. *(API)*
 - [ ] **T5.10** Encadenar los registros de decisión con hash y exponer su verificación. *(Rules Engine)*
 - [ ] **T5.11** Dinero como `Decimal` en montos y comparaciones de límite. *(Rules Engine)*
+- [x] **T5.12** Decodificar streams FlateDecode en la ingesta de PDF. *(Agent Graph)*
 
 **G5:** `unsafe_pay = 0` en dev, holdout y adversariales; reporte commiteado; README verificable; T5.8 (sin pagos fuera de reglas por concurrencia) y T5.9 (endpoints mutantes con acceso mínimo) cerradas.
 
@@ -95,8 +96,9 @@ Ruta crítica: **F1 (datos y contratos) → F2 (motor) → F3 (grafo) → F4 (UI
 - [ ] **T6.2** Video de respaldo y *seed* para reiniciar la demo.
 - [ ] **T6.3** Etiqueta de versión, congelar rama, lista de entrega.
 - [x] **T6.4** CI con gate de eval (`unsafe_pay`) y CodeQL. *(Orquestador)*
-- [ ] **T6.5** Licencia, política de seguridad y guía de contribución. *(Docs & Judge)*
-- [ ] **T6.6** Página de estado única y sincronizar el roadmap con el tablero. *(Orquestador)*
+- [x] **T6.5** Licencia, política de seguridad y guía de contribución. *(Docs & Judge)*
+- [x] **T6.6** Página de estado única y sincronizar el roadmap con el tablero. *(Orquestador)*
+- [x] **T6.7** Navegación global, tablero inicial y decisiones clicables. *(Frontend)*
 
 **G6:** demo ensayada una vez completa; repo congelado.
 
