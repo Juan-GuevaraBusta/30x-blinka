@@ -11,7 +11,7 @@ from app.api.asgi import (
 from app.persistence import SqlStore, seed_rules
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from tests.api.support import RULES_PATH
+from tests.api.support import ADMIN_HEADERS, RULES_PATH, TEST_ADMIN_KEY
 
 
 def test_postgresql_scheme_rewritten_without_connecting() -> None:
@@ -31,7 +31,7 @@ def test_render_internal_host_skips_sslmode() -> None:
 
 def test_factory_sqlite_seed_get_put(tmp_path) -> None:
     db = tmp_path / "boot.sqlite"
-    mapping = {"DATABASE_URL": f"sqlite:///{db}"}
+    mapping = {"DATABASE_URL": f"sqlite:///{db}", "ADMIN_API_KEY": TEST_ADMIN_KEY}
     app = create_production_app(mapping, rules_path=RULES_PATH, cors_origins="")
     client = TestClient(app)
 
@@ -45,7 +45,7 @@ def test_factory_sqlite_seed_get_put(tmp_path) -> None:
     assert body["human_approval_threshold"] == 3000.0
 
     updated = {**body, "human_approval_threshold": 2500.0}
-    put = client.put("/rules", json=updated)
+    put = client.put("/rules", json=updated, headers=ADMIN_HEADERS)
     assert put.status_code == 200
     assert put.json()["human_approval_threshold"] == 2500.0
 
@@ -55,18 +55,33 @@ def test_factory_sqlite_seed_get_put(tmp_path) -> None:
 
 def test_second_seed_does_not_overwrite_put(tmp_path) -> None:
     db = tmp_path / "boot.sqlite"
-    mapping = {"DATABASE_URL": f"sqlite:///{db}"}
+    mapping = {"DATABASE_URL": f"sqlite:///{db}", "ADMIN_API_KEY": TEST_ADMIN_KEY}
     app = create_production_app(mapping, rules_path=RULES_PATH, cors_origins="")
     client = TestClient(app)
     base = client.get("/rules").json()
     custom = {**base, "human_approval_threshold": 2500.0}
-    client.put("/rules", json=custom)
+    client.put("/rules", json=custom, headers=ADMIN_HEADERS)
 
     store = SqlStore(create_engine(mapping["DATABASE_URL"]))
     seeded_again = seed_rules(store, RULES_PATH)
 
     assert seeded_again.human_approval_threshold == 2500.0
     assert client.get("/rules").json()["human_approval_threshold"] == 2500.0
+
+
+def test_put_rules_returns_503_when_admin_api_key_env_unset(tmp_path) -> None:
+    """T5.9 (D055): fail-closed when the production env never set ADMIN_API_KEY."""
+    db = tmp_path / "boot.sqlite"
+    mapping = {"DATABASE_URL": f"sqlite:///{db}"}
+    app = create_production_app(mapping, rules_path=RULES_PATH, cors_origins="")
+    client = TestClient(app)
+
+    response = client.put(
+        "/rules", json=client.get("/rules").json(), headers=ADMIN_HEADERS
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "admin_key_not_configured"}
 
 
 def test_decisions_empty_after_seed(tmp_path) -> None:

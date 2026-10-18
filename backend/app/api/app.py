@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import hmac
 import threading
 from collections.abc import Callable
 from datetime import datetime
 from typing import Annotated, Literal
 
-from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, Form, Header, HTTPException, Query, UploadFile
 from pydantic import ValidationError
 
 from app.api.rate_limit import FixedWindowLimiter, RateLimitMiddleware
@@ -47,9 +48,18 @@ def create_app(
     clock: Clock,
     rate_limit: int,
     metrics_reader: MetricsReader | None = None,
+    admin_api_key: str | None = None,
+    approver_emails: frozenset[str] | None = None,
 ) -> FastAPI:
-    """Build the app. Tests pass `store`, `processor`, `clock`, and `rate_limit`."""
+    """Build the app. Tests pass `store`, `processor`, `clock`, and `rate_limit`.
+
+    T5.9 (D055): `admin_api_key` gates PUT /rules and approve/reject (fail-closed 503
+    when unset). `approver_emails` is the static allowlist for `author`, normally
+    `data/company.json`'s `approvers` values; it defaults to empty, so no author is
+    accepted unless the caller passes the real set.
+    """
     limiter = FixedWindowLimiter(rate_limit, clock)
+    allowed_approvers = approver_emails if approver_emails is not None else frozenset()
     app = FastAPI(title="blinka-invoice-agent", openapi_url=None)
     app.add_middleware(RateLimitMiddleware, limiter=limiter)
 
@@ -62,7 +72,11 @@ def create_app(
         return store.rules
 
     @app.put("/rules")
-    def put_rules(body: RulesConfig) -> RulesConfig:
+    def put_rules(
+        body: RulesConfig,
+        x_admin_key: Annotated[str | None, Header(alias="X-Admin-Key")] = None,
+    ) -> RulesConfig:
+        _require_admin_key(admin_api_key, x_admin_key)
         # FastAPI rejects an invalid body with 422 before this runs, so the store stays.
         return store.put_rules(body)
 
@@ -118,11 +132,23 @@ def create_app(
             raise HTTPException(status_code=409, detail="duplicate_invoice") from exc
 
     @app.post("/decisions/{id}/approve")
-    def approve(id: str, body: HumanDecisionBody) -> DecisionRecord:
+    def approve(
+        id: str,
+        body: HumanDecisionBody,
+        x_admin_key: Annotated[str | None, Header(alias="X-Admin-Key")] = None,
+    ) -> DecisionRecord:
+        _require_admin_key(admin_api_key, x_admin_key)
+        _require_known_approver(body.author, allowed_approvers)
         return _add_human_event(store, clock, id, body, "aprobada_humano")
 
     @app.post("/decisions/{id}/reject")
-    def reject(id: str, body: HumanDecisionBody) -> DecisionRecord:
+    def reject(
+        id: str,
+        body: HumanDecisionBody,
+        x_admin_key: Annotated[str | None, Header(alias="X-Admin-Key")] = None,
+    ) -> DecisionRecord:
+        _require_admin_key(admin_api_key, x_admin_key)
+        _require_known_approver(body.author, allowed_approvers)
         return _add_human_event(store, clock, id, body, "rechazada_humano")
 
     @app.get("/metrics")
@@ -153,6 +179,27 @@ def _decide_and_store_invoice(
     with _INVOICE_LOCK:
         record = processor(upload)
         return store.add_decision(record)
+
+
+def _require_admin_key(configured: str | None, provided: str | None) -> None:
+    """Fail-closed admin auth for mutating endpoints (T5.9, D055).
+
+    No `ADMIN_API_KEY` in the environment -> 503, nobody can mutate even with a
+    header. Configured and missing/wrong header -> 401 (no user session exists to
+    distinguish "unauthenticated" from "authenticated without permission").
+    """
+    if not configured:
+        raise HTTPException(status_code=503, detail="admin_key_not_configured")
+    if not provided:
+        raise HTTPException(status_code=401, detail="missing_admin_key")
+    if not hmac.compare_digest(provided.encode("utf-8"), configured.encode("utf-8")):
+        raise HTTPException(status_code=401, detail="invalid_admin_key")
+
+
+def _require_known_approver(author: str, approver_emails: frozenset[str]) -> None:
+    """`author` must be one of `data/company.json`'s `approvers` values (T5.9, D055)."""
+    if author not in approver_emails:
+        raise HTTPException(status_code=422, detail="unknown_approver")
 
 
 def _add_human_event(

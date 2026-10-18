@@ -16,7 +16,14 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session
-from tests.api.support import load_rules, make_record, rules_payload
+from tests.api.support import (
+    ADMIN_HEADERS,
+    TEST_ADMIN_KEY,
+    load_approver_emails,
+    load_rules,
+    make_record,
+    rules_payload,
+)
 
 
 def _engine_for(tmp_path) -> object:
@@ -161,17 +168,29 @@ def test_http_sql_store_rules_survive_restart(tmp_path) -> None:
     store = SqlStore(engine)
     store.put_rules(load_rules())
     frozen = datetime(2026, 3, 4, 12, 0, tzinfo=UTC)
-    app = create_app(store, lambda _u: make_record(), clock=lambda: frozen, rate_limit=1000)
+    approvers = load_approver_emails()
+    app = create_app(
+        store,
+        lambda _u: make_record(),
+        clock=lambda: frozen,
+        rate_limit=1000,
+        admin_api_key=TEST_ADMIN_KEY,
+        approver_emails=approvers,
+    )
     client = TestClient(app)
 
     custom = RulesConfig.model_validate({**rules_payload(), "human_approval_threshold": 2500.0})
-    assert client.put("/rules", json=json.loads(custom.model_dump_json())).status_code == 200
+    put = client.put(
+        "/rules", json=json.loads(custom.model_dump_json()), headers=ADMIN_HEADERS
+    )
+    assert put.status_code == 200
 
     esc = make_record()
     store.add_decision(esc)
     approve = client.post(
         "/decisions/dec_0042/approve",
         json={"author": "cfo@demo.test", "reason": "Coincide con el presupuesto"},
+        headers=ADMIN_HEADERS,
     )
     assert approve.status_code == 200
     assert approve.json()["decision"] == "ESCALAR"
@@ -181,7 +200,14 @@ def test_http_sql_store_rules_survive_restart(tmp_path) -> None:
 
     engine2 = create_engine(url)
     store2 = SqlStore(engine2)
-    app2 = create_app(store2, lambda _u: make_record(), clock=lambda: frozen, rate_limit=1000)
+    app2 = create_app(
+        store2,
+        lambda _u: make_record(),
+        clock=lambda: frozen,
+        rate_limit=1000,
+        admin_api_key=TEST_ADMIN_KEY,
+        approver_emails=approvers,
+    )
     client2 = TestClient(app2)
 
     rules_body = client2.get("/rules").json()
@@ -197,6 +223,7 @@ def test_http_sql_store_rules_survive_restart(tmp_path) -> None:
     conflict = client2.post(
         "/decisions/dec_pay/approve",
         json={"author": "cfo@demo.test", "reason": "No debería pasar"},
+        headers=ADMIN_HEADERS,
     )
     assert conflict.status_code == 409
     assert store2.get("dec_pay").human_events == []

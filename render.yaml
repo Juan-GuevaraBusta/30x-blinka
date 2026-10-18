@@ -16,6 +16,8 @@ services:
         value: "60"
       - key: CORS_ORIGINS
         sync: false
+      - key: ADMIN_API_KEY
+        sync: false
       - key: LANGSMITH_API_KEY
         sync: false
       - key: LLM_API_KEY

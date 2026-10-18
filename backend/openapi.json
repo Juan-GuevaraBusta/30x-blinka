@@ -47,15 +47,33 @@
       "put": {
         "summary": "Put Rules",
         "operationId": "put_rules_rules_put",
+        "parameters": [
+          {
+            "name": "X-Admin-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Admin-Key"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RulesConfig"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -226,6 +244,22 @@
               "type": "string",
               "title": "Id"
             }
+          },
+          {
+            "name": "X-Admin-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Admin-Key"
+            }
           }
         ],
         "requestBody": {
@@ -274,6 +308,22 @@
             "schema": {
               "type": "string",
               "title": "Id"
+            }
+          },
+          {
+            "name": "X-Admin-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Admin-Key"
             }
           }
         ],
@@ -725,7 +775,7 @@
                 "enum": [
                   "servicios",
                   "productos",
-                  "suscripción",
+                  "suscripci\u00f3n",
                   "honorarios",
                   "otro"
                 ]
@@ -875,7 +925,7 @@
                 "enum": [
                   "servicios",
                   "productos",
-                  "suscripción",
+                  "suscripci\u00f3n",
                   "honorarios",
                   "otro"
                 ]
@@ -1213,7 +1263,7 @@
           "R13"
         ],
         "title": "OnFail",
-        "description": "Exactly R01–R13. Values are only FRENAR or ESCALAR."
+        "description": "Exactly R01\u2013R13. Values are only FRENAR or ESCALAR."
       },
       "PeriodLimit": {
         "properties": {

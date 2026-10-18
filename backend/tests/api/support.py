@@ -17,6 +17,12 @@ from fastapi.testclient import TestClient
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RULES_PATH = REPO_ROOT / "data" / "rules.json"
+COMPANY_PATH = REPO_ROOT / "data" / "company.json"
+
+# T5.9 (D055): fixed test double for ADMIN_API_KEY. Mutating-endpoint tests send it
+# via ADMIN_HEADERS instead of weakening the auth check.
+TEST_ADMIN_KEY = "test-admin-key"
+ADMIN_HEADERS = {"X-Admin-Key": TEST_ADMIN_KEY}
 
 _EXAMPLE: dict[str, object] = {
     "id": "dec_0042",
@@ -82,6 +88,12 @@ def rules_payload() -> dict[str, object]:
     return json.loads(RULES_PATH.read_text(encoding="utf-8"))
 
 
+def load_approver_emails() -> frozenset[str]:
+    """Valid `author` values for approve/reject (T5.9, D055): data/company.json's approvers."""
+    payload = json.loads(COMPANY_PATH.read_text(encoding="utf-8"))
+    return frozenset(payload["approvers"].values())
+
+
 def make_record(
     *,
     id: str = "dec_0042",
@@ -103,6 +115,8 @@ def build_client(
     clock: MutableClock | None = None,
     rate_limit: int = 1000,
     metrics_reader: Callable[[], MetricsReading] | None = None,
+    admin_api_key: str | None = TEST_ADMIN_KEY,
+    approver_emails: frozenset[str] | None = None,
 ) -> tuple[TestClient, MemoryStore, MutableClock]:
     rules_store = store if store is not None else MemoryStore(load_rules())
     frozen = clock if clock is not None else MutableClock(datetime(2026, 3, 4, 12, 0, tzinfo=UTC))
@@ -111,11 +125,14 @@ def build_client(
         return make_record(invoice_id=upload.invoice_id)
 
     chosen = processor if processor is not None else default_processor
+    allowed_approvers = approver_emails if approver_emails is not None else load_approver_emails()
     app = create_app(
         rules_store,
         chosen,
         clock=frozen,
         rate_limit=rate_limit,
         metrics_reader=metrics_reader,
+        admin_api_key=admin_api_key,
+        approver_emails=allowed_approvers,
     )
     return TestClient(app), rules_store, frozen

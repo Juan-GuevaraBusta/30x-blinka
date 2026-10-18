@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 FailAction = Literal["FRENAR", "ESCALAR"]
 PeriodType = Literal["calendar_month"]
@@ -108,6 +108,13 @@ class RulesConfig(BaseModel):
         if any(not name.strip() or not email.strip() for name, email in value.items()):
             raise ValueError("approver names and emails must be non-empty")
         return value
+
+    @model_validator(mode="after")
+    def threshold_within_per_payment_limit(self) -> RulesConfig:
+        """T5.9 (D055): escalation threshold above the per-payment cap is never reachable."""
+        if self.human_approval_threshold > self.limits.per_payment:
+            raise ValueError("human_approval_threshold must be <= limits.per_payment")
+        return self
 
 
 def load_rules_config(path: Path) -> RulesConfig:

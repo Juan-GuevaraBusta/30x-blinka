@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from app.models.domain import Decision
 from fastapi.testclient import TestClient
-from tests.api.support import build_client, make_record
+from tests.api.support import ADMIN_HEADERS, build_client, make_record
 
 
 def test_list_decisions_empty(client: TestClient) -> None:
@@ -70,6 +70,7 @@ def test_approve_appends_event_and_keeps_decision() -> None:
     response = client.post(
         "/decisions/dec_0042/approve",
         json={"author": "cfo@demo.test", "reason": "Coincide con el presupuesto"},
+        headers=ADMIN_HEADERS,
     )
 
     assert response.status_code == 200
@@ -98,6 +99,7 @@ def test_reject_appends_event_and_keeps_decision() -> None:
     response = client.post(
         "/decisions/dec_0042/reject",
         json={"author": "cfo@demo.test", "reason": "Falta la orden de compra"},
+        headers=ADMIN_HEADERS,
     )
 
     assert response.status_code == 200
@@ -116,6 +118,7 @@ def test_approve_non_escalar_returns_409_and_adds_no_event(decision: Decision) -
     response = client.post(
         f"/decisions/{record.id}/approve",
         json={"author": "cfo@demo.test", "reason": "No debería pasar"},
+        headers=ADMIN_HEADERS,
     )
 
     assert response.status_code == 409
@@ -131,6 +134,7 @@ def test_reject_empty_reason_returns_422() -> None:
     response = client.post(
         "/decisions/dec_0042/reject",
         json={"author": "cfo@demo.test", "reason": ""},
+        headers=ADMIN_HEADERS,
     )
 
     assert response.status_code == 422
@@ -146,6 +150,7 @@ def test_approve_missing_author_returns_422() -> None:
     response = client.post(
         "/decisions/dec_0042/approve",
         json={"reason": "Coincide con el presupuesto"},
+        headers=ADMIN_HEADERS,
     )
 
     assert response.status_code == 422
@@ -164,6 +169,7 @@ def test_approve_extra_field_returns_422() -> None:
             "reason": "Coincide con el presupuesto",
             "extra": 1,
         },
+        headers=ADMIN_HEADERS,
     )
 
     assert response.status_code == 422
@@ -174,6 +180,7 @@ def test_approve_missing_decision_returns_404(client: TestClient) -> None:
     response = client.post(
         "/decisions/missing/approve",
         json={"author": "cfo@demo.test", "reason": "Coincide con el presupuesto"},
+        headers=ADMIN_HEADERS,
     )
 
     assert response.status_code == 404

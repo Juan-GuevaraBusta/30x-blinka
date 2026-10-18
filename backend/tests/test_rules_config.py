@@ -122,3 +122,18 @@ def test_rejects_period_type_other_than_calendar_month() -> None:
     payload["limits"]["per_period"]["type"] = "rolling_30d"
     with pytest.raises(ValidationError):
         RulesConfig.model_validate(payload)
+
+
+def test_rejects_threshold_above_per_payment_limit() -> None:
+    """T5.9 (D055): cross-field validator, no document previously relied on this gap."""
+    payload = _rules_dict()
+    payload["human_approval_threshold"] = payload["limits"]["per_payment"] + 1
+    with pytest.raises(ValidationError):
+        RulesConfig.model_validate(payload)
+
+
+def test_accepts_threshold_equal_to_per_payment_limit() -> None:
+    payload = _rules_dict()
+    payload["human_approval_threshold"] = payload["limits"]["per_payment"]
+    rules = RulesConfig.model_validate(payload)
+    assert rules.human_approval_threshold == payload["limits"]["per_payment"]

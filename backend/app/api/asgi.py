@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 from collections.abc import Mapping, Sequence
@@ -98,6 +99,16 @@ def rate_limit_from_mapping(mapping: Mapping[str, str]) -> int:
     return value
 
 
+def _load_approver_emails(data_root: Path) -> frozenset[str]:
+    """Static allowlist for approve/reject `author` (T5.9, D055): company.json's
+    `approvers` values, read once at boot, independent of later PUT /rules edits.
+    """
+    company_path = data_root / "data" / "company.json"
+    payload = json.loads(company_path.read_text(encoding="utf-8"))
+    approvers = payload.get("approvers", {})
+    return frozenset(approvers.values())
+
+
 def _build_engine(url: str) -> Engine:
     prepared = prepare_database_url(url)
     return create_engine(
@@ -133,6 +144,11 @@ def create_production_app(
     else:
         origins = parse_cors_origins(cors_origins)
 
+    # T5.9 (D055): read outside app/config.py, like DATABASE_URL and CORS_ORIGINS above.
+    raw_admin_key = env.get("ADMIN_API_KEY")
+    admin_api_key = raw_admin_key if raw_admin_key else None
+    approver_emails = _load_approver_emails(data_root)
+
     limit = rate_limit_from_mapping(env)
     processor = make_production_processor(store, data_root=data_root)
     app = create_app(
@@ -140,6 +156,8 @@ def create_production_app(
         processor,
         clock=lambda: datetime.now(UTC),
         rate_limit=limit,
+        admin_api_key=admin_api_key,
+        approver_emails=approver_emails,
     )
     if origins:
         app.add_middleware(
