@@ -119,9 +119,17 @@ Inventario: 163 nombres únicos. Ninguna skill inventada en este mapa.
 | T5.4 | NINGUNA | NINGUNA | Lectura ciega por una persona. |
 | T5.5 | `drawio-skill` | PARCIAL | Solo si el README necesita un `.drawio`. La tabla afirmación→evidencia no tiene skill. |
 | T5.6 | `verification-before-completion` | TOTAL | Probar cada afirmación antes de darla por cierta. |
+| T5.7 | NINGUNA | NINGUNA | No hay skill de reescritura de imports. Proceso: `python-testing-patterns` PARCIAL, `test-driven-development`, para la prueba de regresión. |
+| T5.8 | NINGUNA | NINGUNA | Concurrencia de un candado de proceso no tiene skill propia. Proceso: `python-testing-patterns` PARCIAL, `test-driven-development`. |
+| T5.9 | `api-engineer` | PARCIAL | Mismo contrato de T4.1, ahora para auth mínima. Proceso: `python-testing-patterns` PARCIAL. |
+| T5.10 | NINGUNA | NINGUNA | Hash encadenado no tiene skill. Proceso: `python-testing-patterns` PARCIAL, `test-driven-development`. |
+| T5.11 | NINGUNA | NINGUNA | `Decimal` es stdlib; sin skill de dominio. Proceso: `python-testing-patterns` PARCIAL, `test-driven-development`. |
 | T6.1 | `sales-enablement` | PARCIAL | Menciona guiones de demo, en clave de ventas. |
 | T6.2 | NINGUNA | NINGUNA | `video` genera vídeo de marketing con herramientas de IA, no una grabación de la demo. |
 | T6.3 | `finishing-a-development-branch` | PARCIAL | Ayuda a cerrar la rama. El etiquetado lo decide el humano. |
+| T6.4 | NINGUNA | NINGUNA | No hay skill de CI/CodeQL en el IDE. |
+| T6.5 | NINGUNA | NINGUNA | Licencia, política de seguridad y guía de contribución son texto de repo, no un dominio con skill propia. |
+| T6.6 | NINGUNA | NINGUNA | Sincronizar documentos de seguimiento no tiene skill propia. |
 | G0 | `verification-before-completion` | TOTAL | El gate se cierra con salida de las tres llamadas, no con un relato. Contrato: `docs/G0_SPEC.md` (D027). T0.3 sigue NINGUNA de dominio. |
 | G1 | `verification-before-completion` | TOTAL | Igual, contra el checklist de `docs/05`. |
 | G2 | `verification-before-completion` | TOTAL | El gate se cierra con stdout fresco de `run_motor.py` + pytest, no con un relato. Contrato: `docs/G2_SPEC.md` (D028). |

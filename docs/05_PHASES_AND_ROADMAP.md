@@ -82,13 +82,21 @@ Ruta crítica: **F1 (datos y contratos) → F2 (motor) → F3 (grafo) → F4 (UI
 - [ ] **T5.4** Prueba de explicabilidad: lectura ciega de 5 registros por alguien ajeno al código. *(QA & Eval)*
 - [ ] **T5.5** `README.md`, `JUDGE_GUIDE.md` (afirmación → evidencia), ejemplos en `docs/examples/records/`. *(Docs & Judge)*
 - [ ] **T5.6** Revisión final de afirmaciones: borrar lo que no tenga evidencia. *(Docs & Judge)*
+- [ ] **T5.7** Unificar el import del backend para que `cd backend && pytest` y la CLI de eval corran. *(Agent Graph)*
+- [ ] **T5.8** Serializar la decisión dependiente del ledger para cumplir el límite por periodo bajo concurrencia. *(API)*
+- [ ] **T5.9** Exigir clave de administrador en los endpoints que mutan y validar el aprobador. *(API)*
+- [ ] **T5.10** Encadenar los registros de decisión con hash y exponer su verificación. *(Rules Engine)*
+- [ ] **T5.11** Dinero como `Decimal` en montos y comparaciones de límite. *(Rules Engine)*
 
-**G5:** `unsafe_pay = 0` en dev, holdout y adversariales; reporte commiteado; README verificable.
+**G5:** `unsafe_pay = 0` en dev, holdout y adversariales; reporte commiteado; README verificable; T5.8 (sin pagos fuera de reglas por concurrencia) y T5.9 (endpoints mutantes con acceso mínimo) cerradas.
 
 ## F6 — Demo y entrega (h35–36)
 - [ ] **T6.1** Guion de 3 min: factura normal pagada → duplicado frenado → monto alto escalado → aprobación humana → registro y traza → métricas.
 - [ ] **T6.2** Video de respaldo y *seed* para reiniciar la demo.
 - [ ] **T6.3** Etiqueta de versión, congelar rama, lista de entrega.
+- [ ] **T6.4** CI con gate de eval (`unsafe_pay`) y CodeQL. *(Orquestador)*
+- [ ] **T6.5** Licencia, política de seguridad y guía de contribución. *(Docs & Judge)*
+- [ ] **T6.6** Página de estado única y sincronizar el roadmap con el tablero. *(Orquestador)*
 
 **G6:** demo ensayada una vez completa; repo congelado.
 

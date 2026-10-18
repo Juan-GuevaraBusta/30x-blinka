@@ -4,6 +4,8 @@ Dueño: **Docs & Judge**. Skill: `verification-before-completion` (TOTAL). Ruta 
 
 `~/.cursor/plugins/cache/cursor-public/superpowers/d884ae04edebef577e82ff7c4e143debd0bbec99/skills/verification-before-completion/SKILL.md`
 
+Esa ruta es una caché local de Cursor y solo existe en la máquina donde se instaló. Si la sesión que implementa corre en otra máquina o en otro IDE y el archivo no está ahí, se aplica la misma regla que esta tarea audita: ninguna afirmación sin abrir el archivo citado. La sesión no inventa el contenido de la skill ni sigue adelante como si la hubiera leído; anota en `docs/AI_USAGE_LOG.md` que la skill estuvo ausente en esa máquina y continúa el resto del checklist sin ese paso.
+
 Depende de **T5.5**. Si T5.5 sigue PENDIENTE en `docs/TASK_BOARD.md`, esta tarea se detiene: no se rellena la tabla afirmación→evidencia en su lugar.
 
 Estado: contrato para la sesión que **implemente** T5.6. Este archivo no borra afirmaciones, no cierra T5.6 y no cierra **G5**.
@@ -76,7 +78,7 @@ Estas reglas mandan sobre el texto que T5.5 haya dejado.
 
 **`unsafe_pay = 0` en el e2e de dev.** Solo con cita a `eval/reports/g3_closure_2026-10-17.md` o a la fila D039 de `docs/DECISIONS_LOG.md`. Ese alcance es el e2e del grafo sobre las 34 facturas de dev (`unsafe_pay = 0`, autonomía 55.9 %). No se extiende a holdout, a adversariales ni al deploy.
 
-**I9 y el deploy.** I9, en `AGENTS.md`, dice que `unsafe_pay > 0` en la evaluación bloquea el despliegue. Eso es la regla del proyecto. Afirmar que **el deploy ya está bloqueado por ese gate** exige que el pipeline de deploy ejecute el eval. Al escribir este spec, `render.yaml` arranca `uvicorn` y no llama a `eval/`; no hay workflow en `.github/`. Si al auditar sigue igual, la fila dice que **no está cableado**. No se edita `render.yaml` ni se añade un workflow para hacer verdadera la frase de `docs/06_EVAL_AND_TEST_PLAN.md` («el pipeline de eval se ejecuta antes de cada deploy»).
+**I9 y el deploy.** I9, en `AGENTS.md`, dice que `unsafe_pay > 0` en la evaluación bloquea el despliegue. Eso es la regla del proyecto. Afirmar que **el deploy ya está bloqueado por ese gate** exige que el pipeline de deploy ejecute el eval. Al escribir este spec, `render.yaml` arranca `uvicorn` y no llama a `eval/`; no hay workflow en `.github/`. Si al auditar sigue igual, la fila dice que **no está cableado**. No se edita `render.yaml` ni se añade un workflow para hacer verdadera la frase de `docs/06_EVAL_AND_TEST_PLAN.md` («el pipeline de eval se ejecuta antes de cada deploy»). Si al auditar `docs/TASK_BOARD.md` muestra la fila T6.4 como HECHA (`docs/T6_4_SPEC.md`, D055), la fila de `JUDGE_GUIDE.md` puede decir que el gate de eval (`unsafe_pay`) **sí está cableado en CI de GitHub Actions**, citando `.github/workflows/ci.yml`, pero sigue diciendo que **no está cableado en el despliegue de Render**, salvo que la auditoría encuentre evidencia de que Render espera a esa CI (al escribir este spec, no la hay). No se mezclan las dos afirmaciones en una sola frase.
 
 ## 5. Fuera de alcance
 
