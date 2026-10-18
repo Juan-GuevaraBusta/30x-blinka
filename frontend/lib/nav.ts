@@ -10,7 +10,6 @@ export const NAV_LINKS: NavLink[] = [
   { href: "/decisiones", label: "Decisiones" },
   { href: "/bandeja", label: "Bandeja" },
   { href: "/aprobaciones", label: "Aprobaciones" },
-  { href: "/metricas", label: "Métricas" },
   { href: "/subir", label: "Subir factura" },
 ];
 

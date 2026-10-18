@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  BarChart3,
   CheckSquare,
   FileUp,
   Gavel,
@@ -31,7 +30,6 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   "/decisiones": ScrollText,
   "/bandeja": Inbox,
   "/aprobaciones": CheckSquare,
-  "/metricas": BarChart3,
   "/subir": FileUp,
 };
 
