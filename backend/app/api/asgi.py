@@ -19,6 +19,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 
 from app.api.app import create_app
+from app.api.metrics_summary_reader import make_evidence_reader, make_metrics_reader
 from app.api.production_processor import make_production_processor
 from app.config import ConfigError, Settings
 from app.graph.tracing import TraceSession, make_langsmith_session
@@ -279,6 +280,8 @@ def create_production_app(
         agreement_llm=_agreement_llm(settings),
         clock=lambda: datetime.now(UTC),
         rate_limit=limit,
+        metrics_reader=make_metrics_reader(data_root),
+        evidence_reader=make_evidence_reader(data_root),
         admin_api_key=admin_api_key,
         approver_emails=approver_emails,
         approver_groups=approver_groups,

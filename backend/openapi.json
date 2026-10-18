@@ -1050,6 +1050,72 @@
         }
       }
     },
+    "/metrics/live": {
+      "get": {
+        "summary": "Live Metrics",
+        "description": "Company-scoped operation counters, computed from stored decisions only.\n\nNever reads `eval/reports/` (that is `/metrics` and `/metrics/evaluation`).\nCompany scoping mirrors `GET /decisions` (`member.company_id` from X-User-Id).",
+        "operationId": "live_metrics_metrics_live_get",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveMetricsBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics/evaluation": {
+      "get": {
+        "summary": "Evaluation Metrics",
+        "description": "Versioned evidence from `eval/reports/metrics_summary.json` (I9: no report \u2192 empty).",
+        "operationId": "evaluation_metrics_metrics_evaluation_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsEvaluationBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/openapi.json": {
       "get": {
         "summary": "Openapi Json",
@@ -3472,6 +3538,64 @@
         ],
         "title": "LineItem"
       },
+      "LiveMetricsBody": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total"
+          },
+          "pagar": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Pagar"
+          },
+          "frenar": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Frenar"
+          },
+          "escalar": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Escalar"
+          },
+          "auto_decided_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Decided Pct"
+          },
+          "pending_approvals": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Pending Approvals"
+          },
+          "approved_by_humans": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Approved By Humans"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "total",
+          "pagar",
+          "frenar",
+          "escalar",
+          "auto_decided_pct",
+          "pending_approvals",
+          "approved_by_humans"
+        ],
+        "title": "LiveMetricsBody",
+        "description": "GET /metrics/live: company-scoped operation counters from stored decisions only.\n\nNever invented (I9 spirit): every field is a count or a ratio over counts\nthat are already in `store`. No field here reads `eval/reports/`."
+      },
       "MeBody": {
         "properties": {
           "user_id": {
@@ -3602,6 +3726,87 @@
           "source"
         ],
         "title": "MetricsBody"
+      },
+      "MetricsEvaluationBody": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsEvidenceEntry"
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "generated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated At"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "none",
+              "report"
+            ],
+            "title": "Source"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "entries",
+          "source"
+        ],
+        "title": "MetricsEvaluationBody",
+        "description": "GET /metrics/evaluation: the committed `eval/reports/metrics_summary.json`."
+      },
+      "MetricsEvidenceEntry": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Label"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Value"
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Source"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "value",
+          "source"
+        ],
+        "title": "MetricsEvidenceEntry",
+        "description": "One line of versioned evaluation evidence (eval/build_metrics_summary.py).\n\n`value` is whatever the source artifact says -- a number, a ratio string,\nor free text like \"pendiente T5.1\" -- never invented (I9)."
       },
       "ModelVersions": {
         "properties": {

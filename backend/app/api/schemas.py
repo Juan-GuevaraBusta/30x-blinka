@@ -75,6 +75,53 @@ class MetricsBody(BaseModel):
     source: Literal["none", "report"]
 
 
+class LiveMetricsBody(BaseModel):
+    """GET /metrics/live: company-scoped operation counters from stored decisions only.
+
+    Never invented (I9 spirit): every field is a count or a ratio over counts
+    that are already in `store`. No field here reads `eval/reports/`.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    total: int = Field(ge=0)
+    pagar: int = Field(ge=0)
+    frenar: int = Field(ge=0)
+    escalar: int = Field(ge=0)
+    # Share of decisions the system settled without a human: (pagar + frenar) / total.
+    # null when total == 0 -- never a fabricated 0 % (I9).
+    auto_decided_pct: float | None
+    # ESCALAR decisions with no human_events yet (neither approved nor rejected).
+    pending_approvals: int = Field(ge=0)
+    # Decisions with at least one `aprobada_humano` event.
+    approved_by_humans: int = Field(ge=0)
+
+
+class MetricsEvidenceEntry(BaseModel):
+    """One line of versioned evaluation evidence (eval/build_metrics_summary.py).
+
+    `value` is whatever the source artifact says -- a number, a ratio string,
+    or free text like "pendiente T5.1" -- never invented (I9).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1)
+    label: str = Field(min_length=1)
+    value: int | float | str
+    source: str = Field(min_length=1)
+
+
+class MetricsEvaluationBody(BaseModel):
+    """GET /metrics/evaluation: the committed `eval/reports/metrics_summary.json`."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    entries: list[MetricsEvidenceEntry]
+    generated_at: str | None = None
+    source: Literal["none", "report"]
+
+
 class ApprovalStatusBody(BaseModel):
     """GET /decisions/{id}/approval response (T7.1, D059 §4). Read-only."""
 

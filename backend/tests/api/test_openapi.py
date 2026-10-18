@@ -23,6 +23,8 @@ _CONTRACT_PATHS = (
     "/agreements/{vendor_key}",
     "/agreements/{vendor_key}/deactivate",
     "/metrics",
+    "/metrics/live",
+    "/metrics/evaluation",
     "/health",
     "/openapi.json",
 )
@@ -88,6 +90,8 @@ def test_openapi_lists_contract_paths(client: TestClient) -> None:
     assert "get" in paths["/decisions/{id}/approval"]
     assert "post" in paths["/decisions/{id}/add-beneficiary"]
     assert "get" in paths["/metrics"]
+    assert "get" in paths["/metrics/live"]
+    assert "get" in paths["/metrics/evaluation"]
     assert "get" in paths["/health"]
     assert "get" in paths["/openapi.json"]
 

@@ -38,7 +38,9 @@ from app.api.schemas import (
     InvoiceMeta,
     InvoiceRejected,
     InvoiceUpload,
+    LiveMetricsBody,
     MetricsBody,
+    MetricsEvaluationBody,
     MetricsReading,
 )
 from app.api.store import (
@@ -74,6 +76,8 @@ from app.rules.normalize import normalize_beneficiary, normalize_invoice_number
 Processor = Callable[[InvoiceUpload, str], DecisionRecord]
 Clock = Callable[[], datetime]
 MetricsReader = Callable[[], MetricsReading | None]
+# GET /metrics/evaluation: (entries, generated_at) read from eval/reports/metrics_summary.json.
+EvidenceReader = Callable[[], tuple[list[dict[str, Any]], str | None] | None]
 
 # T5.8 (D055): process-wide lock serializing ledger-read -> decide -> persist
 # for POST /invoices (the only route that can settle PAGAR). Two concurrent
@@ -105,6 +109,7 @@ def create_app(
     clock: Clock,
     rate_limit: int,
     metrics_reader: MetricsReader | None = None,
+    evidence_reader: EvidenceReader | None = None,
     admin_api_key: str | None = None,
     approver_emails: frozenset[str] | None = None,
     approver_groups: Mapping[str, frozenset[str]] | None = None,
@@ -510,6 +515,50 @@ def create_app(
             autonomy_pct=reading.autonomy_pct,
             source="report",
         )
+
+    @app.get("/metrics/live")
+    def live_metrics(member: Tenant) -> LiveMetricsBody:
+        """Company-scoped operation counters, computed from stored decisions only.
+
+        Never reads `eval/reports/` (that is `/metrics` and `/metrics/evaluation`).
+        Company scoping mirrors `GET /decisions` (`member.company_id` from X-User-Id).
+        """
+        records = store.list_decisions_for_company(member.company_id)
+        total = len(records)
+        pagar = sum(1 for record in records if record.decision == "PAGAR")
+        frenar = sum(1 for record in records if record.decision == "FRENAR")
+        escalar = sum(1 for record in records if record.decision == "ESCALAR")
+        auto_decided_pct = ((pagar + frenar) / total * 100) if total else None
+        pending_approvals = sum(
+            1
+            for record in records
+            if record.decision == "ESCALAR" and not record.human_events
+        )
+        approved_by_humans = sum(
+            1
+            for record in records
+            if any(event.action == "aprobada_humano" for event in record.human_events)
+        )
+        return LiveMetricsBody(
+            total=total,
+            pagar=pagar,
+            frenar=frenar,
+            escalar=escalar,
+            auto_decided_pct=auto_decided_pct,
+            pending_approvals=pending_approvals,
+            approved_by_humans=approved_by_humans,
+        )
+
+    @app.get("/metrics/evaluation")
+    def evaluation_metrics() -> MetricsEvaluationBody:
+        """Versioned evidence from `eval/reports/metrics_summary.json` (I9: no report → empty)."""
+        if evidence_reader is None:
+            return MetricsEvaluationBody(entries=[], generated_at=None, source="none")
+        read = evidence_reader()
+        if read is None:
+            return MetricsEvaluationBody(entries=[], generated_at=None, source="none")
+        entries, generated_at = read
+        return MetricsEvaluationBody(entries=entries, generated_at=generated_at, source="report")
 
     @app.get("/openapi.json")
     def openapi_json() -> dict[str, object]:

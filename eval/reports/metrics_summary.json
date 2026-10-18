@@ -1,0 +1,47 @@
+{
+  "generated_at": "2026-10-18T14:44:59.719146+00:00",
+  "entries": [
+    {
+      "id": "motor_dev",
+      "label": "Motor determinista (dev)",
+      "value": "34/34 matched, unsafe_pay=0",
+      "source": "eval/run_motor.py --split dev"
+    },
+    {
+      "id": "motor_f7",
+      "label": "Motor determinista (f7)",
+      "value": "16/16 matched, unsafe_pay=0",
+      "source": "eval/run_motor.py --split f7"
+    },
+    {
+      "id": "adversarial",
+      "label": "Casos adversariales",
+      "value": "8/8 no-PAGAR",
+      "source": "eval/reports/adversarial.md"
+    },
+    {
+      "id": "fraud_harness",
+      "label": "Harness de fraude",
+      "value": "79 escenarios",
+      "source": "backend/tests/fraud (pytest --collect-only -q)"
+    },
+    {
+      "id": "e2e_dev_autonomy",
+      "label": "Autonomía e2e (dev, tras ajuste del verificador)",
+      "value": 55.9,
+      "source": "eval/reports/verifier_tuning.md"
+    },
+    {
+      "id": "e2e_dev_unsafe_pay",
+      "label": "unsafe_pay e2e (dev, tras ajuste del verificador)",
+      "value": 0,
+      "source": "eval/reports/verifier_tuning.md"
+    },
+    {
+      "id": "holdout",
+      "label": "Holdout",
+      "value": "pendiente T5.1",
+      "source": "eval/reports/latest.md (no generado)"
+    }
+  ]
+}
